@@ -1,55 +1,111 @@
-<!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml"
-      xmlns:h="jakarta.faces.html"
-      xmlns:f="jakarta.faces.core"
-      xmlns:p="http://primefaces.org/ui">
-<f:metadata>
-    <f:viewAction action="#{agendaBean.verificarAcceso}"/>
-</f:metadata>
-<h:head>
-    <title>MediConecta - Agenda</title>
-</h:head>
-<h:body>
-    <p:growl showDetail="true"/>
-    <h1>Hola, #{loginBean.usuarioActual.nombreCompleto}</h1>
-    <p><h:link outcome="/historia.xhtml" value="Ver historia clínica"/></p>
-    <h:form id="formLogout">
-        <p:commandButton value="Cerrar sesión" action="#{loginBean.logout}" ajax="false"/>
-    </h:form>
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:p="http://primefaces.org/ui"
+                template="/WEB-INF/templates/layout.xhtml">
 
-    <h:form id="formAgenda" rendered="#{loginBean.paciente}">
-        <h3>Buscar disponibilidad</h3>
-        <p:selectOneMenu value="#{agendaBean.profesionalSeleccionadoId}">
-            <f:selectItems value="#{agendaBean.profesionales}" var="prof"
-                           itemLabel="#{prof.nombreCompleto} (#{prof.especialidad})" itemValue="#{prof.id}"/>
-        </p:selectOneMenu>
-        <p:commandButton value="Ver turnos" action="#{agendaBean.buscarDisponibilidad}" ajax="false"/>
+    <ui:param name="pageTitle" value="Agenda"/>
+    <ui:param name="activePage" value="agenda"/>
 
-        <p:dataTable id="tablaTurnos" value="#{agendaBean.disponibilidad}" var="turno">
-            <p:column headerText="Fecha y hora">
-                <h:outputText value="#{turno.fechaHora}">
-                    <f:convertDateTime pattern="dd/MM/yyyy HH:mm" type="localDateTime"/>
-                </h:outputText>
-            </p:column>
-            <p:column headerText="Acción">
-                <p:commandButton value="Reservar (hold 5 min)" action="#{agendaBean.reservarHold(turno.id)}" ajax="false"/>
-            </p:column>
-        </p:dataTable>
+    <f:metadata>
+        <f:viewAction action="#{agendaBean.verificarAcceso}"/>
+    </f:metadata>
 
-        <p:panel header="Turno en hold" rendered="#{agendaBean.turnoEnHold != null}">
-            <h:outputText value="#{agendaBean.turnoEnHold.fechaHora}">
-                <f:convertDateTime pattern="dd/MM/yyyy HH:mm" type="localDateTime"/>
-            </h:outputText>
-            <p:commandButton value="Confirmar turno" action="#{agendaBean.confirmar}" ajax="false"/>
-        </p:panel>
-    </h:form>
+    <ui:define name="content">
 
-    <h:form id="formPublicar" rendered="#{loginBean.profesional}">
-        <h3>Publicar disponibilidad</h3>
-        <p:inputText value="#{agendaBean.nuevaFechaHora}" placeholder="dd/mm/aaaa hh:mm">
-            <f:convertDateTime pattern="dd/MM/yyyy HH:mm" type="localDateTime"/>
-        </p:inputText>
-        <p:commandButton value="Publicar" action="#{agendaBean.publicarDisponibilidad}" ajax="false"/>
-    </h:form>
-</h:body>
-</html>
+        <h:panelGroup layout="block" rendered="#{loginBean.paciente}">
+            <p class="page-subtitle">Buscá disponibilidad y reservá tu turno con un profesional.</p>
+
+            <h:form id="formAgenda">
+
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h3>Buscar profesional</h3>
+                            <div class="subtle">Elegí un profesional para ver sus horarios disponibles</div>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label for="formAgenda:profesional">Profesional</label>
+                        <h:selectOneMenu id="profesional" value="#{agendaBean.profesionalSeleccionadoId}">
+                            <f:selectItem itemLabel="Seleccioná un profesional..." itemValue="" noSelectionOption="true"/>
+                            <f:selectItems value="#{agendaBean.profesionales}" var="prof"
+                                           itemLabel="#{prof.nombreCompleto} · #{prof.especialidad}" itemValue="#{prof.id}"/>
+                        </h:selectOneMenu>
+                    </div>
+                    <p:commandButton value="Ver turnos disponibles" action="#{agendaBean.buscarDisponibilidad}" ajax="false" styleClass="btn btn-primary"/>
+                </div>
+
+                <h:panelGroup layout="block" styleClass="card accent-warning" rendered="#{agendaBean.turnoEnHold != null}">
+                    <div class="card-header">
+                        <div>
+                            <h3>Turno reservado temporalmente</h3>
+                            <div class="subtle">Confirmalo antes de que expire el hold de 5 minutos</div>
+                        </div>
+                        <span class="tag tag-warning">En espera</span>
+                    </div>
+                    <p style="font-size:15px;font-weight:600;margin-bottom:14px;">
+                        <h:outputText value="#{agendaBean.turnoEnHold.fechaHora}">
+                            <f:convertDateTime pattern="EEEE dd/MM/yyyy · HH:mm 'hs'" type="localDateTime"/>
+                        </h:outputText>
+                    </p>
+                    <p:commandButton value="Confirmar turno" action="#{agendaBean.confirmar}" ajax="false" styleClass="btn btn-primary"/>
+                </h:panelGroup>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h3>Turnos disponibles</h3>
+                            <div class="subtle">#{agendaBean.disponibilidad.size()} horario(s) encontrados</div>
+                        </div>
+                    </div>
+
+                    <h:panelGroup layout="block" styleClass="table-wrap" rendered="#{not empty agendaBean.disponibilidad}">
+                        <p:dataTable id="tablaTurnos" value="#{agendaBean.disponibilidad}" var="turno">
+                            <p:column headerText="Fecha y hora">
+                                <h:outputText value="#{turno.fechaHora}">
+                                    <f:convertDateTime pattern="EEEE dd/MM/yyyy · HH:mm 'hs'" type="localDateTime"/>
+                                </h:outputText>
+                            </p:column>
+                            <p:column headerText="Estado">
+                                <span class="tag tag-success">Disponible</span>
+                            </p:column>
+                            <p:column headerText="" style="text-align:right;width:150px;">
+                                <p:commandButton value="Reservar" action="#{agendaBean.reservarHold(turno.id)}" ajax="false" styleClass="btn btn-secondary btn-sm"/>
+                            </p:column>
+                        </p:dataTable>
+                    </h:panelGroup>
+
+                    <div class="empty-state" style="#{empty agendaBean.disponibilidad ? '' : 'display:none;'}">
+                        Elegí un profesional y buscá para ver los horarios disponibles.
+                    </div>
+                </div>
+
+            </h:form>
+        </h:panelGroup>
+
+        <h:panelGroup layout="block" rendered="#{loginBean.profesional}">
+            <p class="page-subtitle">Publicá los horarios en los que vas a estar disponible para atender pacientes.</p>
+
+            <div class="card" style="max-width:420px;">
+                <div class="card-header">
+                    <div>
+                        <h3>Publicar disponibilidad</h3>
+                        <div class="subtle">Formato: dd/mm/aaaa hh:mm</div>
+                    </div>
+                </div>
+                <h:form id="formPublicar">
+                    <div class="field">
+                        <label for="formPublicar:fecha">Fecha y hora</label>
+                        <p:inputText id="fecha" value="#{agendaBean.nuevaFechaHora}" placeholder="dd/mm/aaaa hh:mm">
+                            <f:convertDateTime pattern="dd/MM/yyyy HH:mm" type="localDateTime"/>
+                        </p:inputText>
+                    </div>
+                    <p:commandButton value="Publicar" action="#{agendaBean.publicarDisponibilidad}" ajax="false" styleClass="btn btn-primary btn-block"/>
+                </h:form>
+            </div>
+        </h:panelGroup>
+
+    </ui:define>
+</ui:composition>

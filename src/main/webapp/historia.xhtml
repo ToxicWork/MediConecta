@@ -1,55 +1,122 @@
-<!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml"
-      xmlns:h="jakarta.faces.html"
-      xmlns:f="jakarta.faces.core"
-      xmlns:p="http://primefaces.org/ui">
-<f:metadata>
-    <f:viewAction action="#{historiaBean.verificarAcceso}"/>
-</f:metadata>
-<h:head>
-    <title>MediConecta - Historia Clínica</title>
-</h:head>
-<h:body>
-    <p:growl showDetail="true"/>
-    <h1>Historia clínica</h1>
-    <p><h:link outcome="/agenda.xhtml" value="Volver a la agenda"/></p>
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:p="http://primefaces.org/ui"
+                template="/WEB-INF/templates/layout.xhtml">
 
-    <h:form id="formSeleccion" rendered="#{loginBean.profesional}">
-        <p:outputLabel for="paciente" value="Paciente con turno confirmado"/>
-        <p:selectOneMenu id="paciente" value="#{historiaBean.pacienteId}">
-            <f:selectItems value="#{historiaBean.turnosDelProfesional}" var="t"
-                           itemLabel="#{t.paciente.nombreCompleto} - #{t.fechaHora}" itemValue="#{t.paciente.id}"/>
-        </p:selectOneMenu>
-        <p:commandButton value="Ver historia" action="#{historiaBean.cargarHistoriaDePaciente(historiaBean.pacienteId)}" ajax="false"/>
-    </h:form>
+    <ui:param name="pageTitle" value="Historia Clínica"/>
+    <ui:param name="activePage" value="historia"/>
 
-    <h:form id="formHistoria" rendered="#{historiaBean.historia != null}">
-        <p:dataTable value="#{historiaBean.historia.entradas}" var="entrada">
-            <p:column headerText="Fecha">
-                <h:outputText value="#{entrada.fecha}">
-                    <f:convertDateTime pattern="dd/MM/yyyy HH:mm" type="localDateTime"/>
-                </h:outputText>
-            </p:column>
-            <p:column headerText="Tipo">
-                <h:outputText value="#{entrada.tipo}"/>
-            </p:column>
-            <p:column headerText="Descripción">
-                <h:outputText value="#{entrada.descripcion}"/>
-            </p:column>
-            <p:column headerText="Profesional">
-                <h:outputText value="#{entrada.profesional.nombreCompleto}"/>
-            </p:column>
-        </p:dataTable>
+    <f:metadata>
+        <f:viewAction action="#{historiaBean.verificarAcceso}"/>
+    </f:metadata>
 
-        <h:panelGroup rendered="#{loginBean.profesional}">
-            <h3>Agregar entrada</h3>
-            <p:selectOneMenu value="#{historiaBean.tipoNuevaEntrada}">
-                <f:selectItem itemLabel="Diagnóstico" itemValue="DIAGNOSTICO"/>
-                <f:selectItem itemLabel="Receta" itemValue="RECETA"/>
-            </p:selectOneMenu>
-            <p:inputTextarea value="#{historiaBean.descripcionNuevaEntrada}" rows="3" cols="40"/>
-            <p:commandButton value="Guardar" action="#{historiaBean.agregarEntrada}" ajax="false"/>
-        </h:panelGroup>
-    </h:form>
-</h:body>
-</html>
+    <ui:define name="content">
+
+        <p class="page-subtitle">
+            <h:outputText value="Consultá el historial médico completo del paciente." rendered="#{loginBean.profesional}"/>
+            <h:outputText value="Tu historial de diagnósticos y recetas." rendered="#{loginBean.paciente}"/>
+        </p>
+
+        <h:form id="formSeleccion" rendered="#{loginBean.profesional}">
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <h3>Seleccionar paciente</h3>
+                        <div class="subtle">Solo se listan pacientes con turno confirmado</div>
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div class="field" style="margin-bottom:0;">
+                        <label for="formSeleccion:paciente">Paciente / turno</label>
+                        <h:selectOneMenu id="paciente" value="#{historiaBean.pacienteId}">
+                            <f:selectItem itemLabel="Seleccioná un paciente..." itemValue="" noSelectionOption="true"/>
+                            <f:selectItems value="#{historiaBean.turnosDelProfesional}" var="t"
+                                           itemLabel="#{t.paciente.nombreCompleto} · #{t.fechaHora}" itemValue="#{t.paciente.id}"/>
+                        </h:selectOneMenu>
+                    </div>
+                    <div style="align-self:end;">
+                        <p:commandButton value="Ver historia" action="#{historiaBean.cargarHistoriaDePaciente(historiaBean.pacienteId)}" ajax="false" styleClass="btn btn-primary"/>
+                    </div>
+                </div>
+            </div>
+        </h:form>
+
+        <h:form id="formHistoria" rendered="#{historiaBean.historia != null}">
+
+            <div class="card">
+                <div class="patient-header">
+                    <span class="avatar">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="24" height="24"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20.2c1.4-4 4.4-6.2 7.5-6.2s6.1 2.2 7.5 6.2"/></svg>
+                    </span>
+                    <div>
+                        <div class="p-name">
+                            #{historiaBean.nombrePacienteSeleccionado}
+                            <span class="tag tag-info">Historia clínica</span>
+                        </div>
+                        <div class="p-sub">
+                            <h:outputText value="Obra social: #{historiaBean.obraSocialPacienteSeleccionado}" rendered="#{not empty historiaBean.obraSocialPacienteSeleccionado}"/>
+                            <h:outputText value="Sin obra social registrada" rendered="#{empty historiaBean.obraSocialPacienteSeleccionado}"/>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <h3>Línea de tiempo clínica</h3>
+                        <div class="subtle">#{historiaBean.historia.entradas.size()} entrada(s) registradas</div>
+                    </div>
+                </div>
+
+                <h:panelGroup layout="block" styleClass="timeline" rendered="#{not empty historiaBean.historia.entradas}">
+                    <ui:repeat value="#{historiaBean.historia.entradas}" var="entrada">
+                        <div class="timeline-item">
+                            <span class="timeline-dot #{entrada.tipo == 'RECETA' ? 'receta' : ''}"/>
+                            <div class="timeline-meta">
+                                <span class="tag #{entrada.tipo == 'RECETA' ? 'tag-success' : 'tag-info'}">
+                                    #{entrada.tipo == 'RECETA' ? 'Receta' : 'Diagnóstico'}
+                                </span>
+                                <span class="timeline-date">
+                                    <h:outputText value="#{entrada.fecha}">
+                                        <f:convertDateTime pattern="dd/MM/yyyy HH:mm" type="localDateTime"/>
+                                    </h:outputText>
+                                </span>
+                            </div>
+                            <div class="timeline-desc">#{entrada.descripcion}</div>
+                            <div class="timeline-author">Atendido por #{entrada.profesional.nombreCompleto}</div>
+                        </div>
+                    </ui:repeat>
+                </h:panelGroup>
+
+                <div class="empty-state" style="#{empty historiaBean.historia.entradas ? '' : 'display:none;'}">
+                    Todavía no hay entradas registradas en esta historia clínica.
+                </div>
+            </div>
+
+            <h:panelGroup layout="block" styleClass="card" rendered="#{loginBean.profesional}" style="max-width:520px;">
+                <div class="card-header">
+                    <div>
+                        <h3>Agregar entrada</h3>
+                        <div class="subtle">Se guarda en la historia del paciente seleccionado</div>
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="formHistoria:tipo">Tipo</label>
+                    <h:selectOneMenu id="tipo" value="#{historiaBean.tipoNuevaEntrada}">
+                        <f:selectItem itemLabel="Diagnóstico" itemValue="DIAGNOSTICO"/>
+                        <f:selectItem itemLabel="Receta" itemValue="RECETA"/>
+                    </h:selectOneMenu>
+                </div>
+                <div class="field">
+                    <label for="formHistoria:descripcion">Descripción</label>
+                    <p:inputTextarea id="descripcion" value="#{historiaBean.descripcionNuevaEntrada}" rows="4"/>
+                </div>
+                <p:commandButton value="Guardar" action="#{historiaBean.agregarEntrada}" ajax="false" styleClass="btn btn-primary"/>
+            </h:panelGroup>
+        </h:form>
+
+    </ui:define>
+</ui:composition>

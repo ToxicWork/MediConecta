@@ -4,49 +4,93 @@
       xmlns:f="jakarta.faces.core"
       xmlns:p="http://primefaces.org/ui">
 <h:head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <title>MediConecta - Ingreso</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+    <h:outputStylesheet library="css" name="mediconecta.css"/>
 </h:head>
 <h:body>
-    <p:growl showDetail="true"/>
+    <div class="auth-shell">
 
-    <h1>MediConecta</h1>
+        <div class="auth-brand">
+            <span class="brand-mark">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21c-4.5-2.8-8-6.2-8-10.2A5.3 5.3 0 0 1 12 6a5.3 5.3 0 0 1 8 4.8c0 4-3.5 7.4-8 10.2Z"/><path d="M9 11h6M12 8v6"/></svg>
+            </span>
+            <h1>MediConecta</h1>
+            <p>La plataforma que conecta pacientes y profesionales de la salud: turnos, historia clínica y seguimiento, todo en un solo lugar.</p>
+        </div>
 
-    <h2>Iniciar sesión</h2>
-    <h:form id="formLogin">
-        <p:outputLabel for="email" value="Email"/>
-        <p:inputText id="email" value="#{loginBean.email}"/>
-        <p:outputLabel for="password" value="Contraseña"/>
-        <p:password id="password" value="#{loginBean.password}"/>
-        <p:commandButton value="Ingresar" action="#{loginBean.login}" ajax="false"/>
-    </h:form>
+        <div class="auth-panel">
+            <div class="auth-card">
 
-    <h2>Registrarse</h2>
-    <h:form id="formRegistro">
-        <p:outputLabel for="rol" value="Tipo de usuario"/>
-        <p:selectOneMenu id="rol" value="#{loginBean.rolRegistro}">
-            <f:selectItem itemLabel="Paciente" itemValue="PACIENTE"/>
-            <f:selectItem itemLabel="Profesional" itemValue="PROFESIONAL"/>
-        </p:selectOneMenu>
+                <p:growl showDetail="true"/>
 
-        <p:outputLabel for="regNombre" value="Nombre completo"/>
-        <p:inputText id="regNombre" value="#{loginBean.regNombreCompleto}"/>
+                <h2>Iniciar sesión</h2>
+                <p class="page-subtitle">Ingresá con tu email y contraseña.</p>
 
-        <p:outputLabel for="regEmail" value="Email"/>
-        <p:inputText id="regEmail" value="#{loginBean.regEmail}"/>
+                <h:form id="formLogin">
+                    <div class="field">
+                        <label for="formLogin:email">Email</label>
+                        <p:inputText id="email" value="#{loginBean.email}"/>
+                    </div>
+                    <div class="field">
+                        <label for="formLogin:password">Contraseña</label>
+                        <p:password id="password" value="#{loginBean.password}" feedback="false"/>
+                    </div>
+                    <p:commandButton value="Ingresar" action="#{loginBean.login}" ajax="false" styleClass="btn btn-primary btn-block"/>
+                </h:form>
 
-        <p:outputLabel for="regPassword" value="Contraseña"/>
-        <p:password id="regPassword" value="#{loginBean.regPassword}"/>
+                <p class="auth-switch">¿Sos nuevo en MediConecta? <a href="#registro">Creá tu cuenta</a></p>
 
-        <p:outputLabel for="regObraSocial" value="Obra social (si sos paciente)"/>
-        <p:inputText id="regObraSocial" value="#{loginBean.regObraSocial}"/>
+                <div class="auth-divider" id="registro">Registrarme</div>
 
-        <p:outputLabel for="regMatricula" value="Matrícula (si sos profesional)"/>
-        <p:inputText id="regMatricula" value="#{loginBean.regMatricula}"/>
+                <h:form id="formRegistro">
+                    <div class="field">
+                        <label for="formRegistro:rol">Tipo de usuario</label>
+                        <h:selectOneMenu id="rol" value="#{loginBean.rolRegistro}">
+                            <f:selectItem itemLabel="Paciente" itemValue="PACIENTE"/>
+                            <f:selectItem itemLabel="Profesional" itemValue="PROFESIONAL"/>
+                        </h:selectOneMenu>
+                    </div>
 
-        <p:outputLabel for="regEspecialidad" value="Especialidad (si sos profesional)"/>
-        <p:inputText id="regEspecialidad" value="#{loginBean.regEspecialidad}"/>
+                    <div class="field">
+                        <label for="formRegistro:regNombre">Nombre completo</label>
+                        <p:inputText id="regNombre" value="#{loginBean.regNombreCompleto}"/>
+                    </div>
 
-        <p:commandButton value="Registrarme" action="#{loginBean.registrar}" ajax="false"/>
-    </h:form>
+                    <div class="field">
+                        <label for="formRegistro:regEmail">Email</label>
+                        <p:inputText id="regEmail" value="#{loginBean.regEmail}"/>
+                    </div>
+
+                    <div class="field">
+                        <label for="formRegistro:regPassword">Contraseña</label>
+                        <p:password id="regPassword" value="#{loginBean.regPassword}" feedback="false"/>
+                    </div>
+
+                    <div class="field">
+                        <label for="formRegistro:regObraSocial">Obra social <span style="font-weight:400;color:var(--color-text-secondary);">(si sos paciente)</span></label>
+                        <p:inputText id="regObraSocial" value="#{loginBean.regObraSocial}"/>
+                    </div>
+
+                    <div class="field-row">
+                        <div class="field">
+                            <label for="formRegistro:regMatricula">Matrícula <span style="font-weight:400;color:var(--color-text-secondary);">(profesional)</span></label>
+                            <p:inputText id="regMatricula" value="#{loginBean.regMatricula}"/>
+                        </div>
+                        <div class="field">
+                            <label for="formRegistro:regEspecialidad">Especialidad <span style="font-weight:400;color:var(--color-text-secondary);">(profesional)</span></label>
+                            <p:inputText id="regEspecialidad" value="#{loginBean.regEspecialidad}"/>
+                        </div>
+                    </div>
+
+                    <p:commandButton value="Registrarme" action="#{loginBean.registrar}" ajax="false" styleClass="btn btn-secondary btn-block"/>
+                </h:form>
+
+            </div>
+        </div>
+    </div>
 </h:body>
 </html>

@@ -14,6 +14,7 @@ import jakarta.inject.Named;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.Optional;
 
 @Named
 @ViewScoped
@@ -63,6 +64,32 @@ public class HistoriaBean implements Serializable {
     public List<Turno> getTurnosDelProfesional() {
         Usuario actual = loginBean.getUsuarioActual();
         return actual == null ? List.of() : servicioDeTurnos.buscarConfirmadosDeProfesional(actual.getId());
+    }
+
+    public String getNombrePacienteSeleccionado() {
+        Usuario actual = loginBean.getUsuarioActual();
+        if (actual instanceof Paciente) {
+            return actual.getNombreCompleto();
+        }
+        return buscarPacienteSeleccionado().map(Paciente::getNombreCompleto).orElse(null);
+    }
+
+    public String getObraSocialPacienteSeleccionado() {
+        Usuario actual = loginBean.getUsuarioActual();
+        if (actual instanceof Paciente paciente) {
+            return paciente.getObraSocial();
+        }
+        return buscarPacienteSeleccionado().map(Paciente::getObraSocial).orElse(null);
+    }
+
+    private Optional<Paciente> buscarPacienteSeleccionado() {
+        if (pacienteId == null) {
+            return Optional.empty();
+        }
+        return getTurnosDelProfesional().stream()
+                .map(Turno::getPaciente)
+                .filter(paciente -> pacienteId.equals(paciente.getId()))
+                .findFirst();
     }
 
     public Long getPacienteId() {
