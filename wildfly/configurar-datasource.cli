@@ -1,0 +1,26 @@
+## Ejecutar con el servidor levantado:
+##   jboss-cli.sh --connect --file=wildfly/configurar-datasource.cli   (Linux/Mac)
+##   jboss-cli.bat --connect --file=wildfly\configurar-datasource.cli  (Windows)
+## Antes: registrar el driver de PostgreSQL (una sola vez, ver SETUP.md):
+##   /subsystem=datasources/jdbc-driver=postgresql:add(driver-name=postgresql,driver-module-name=org.postgresql,driver-class-name=org.postgresql.Driver)
+##
+## Reemplazar host/usuario/password por los del proyecto Supabase
+## (Project Settings > Database > Connection string > Session pooler,
+##  para compatibilidad IPv4 — la conexión "Direct" es IPv6 por defecto).
+
+data-source add \
+    --name=mediconectaDS \
+    --jndi-name=java:/mediconectaDS \
+    --driver-name=postgresql \
+    --connection-url=jdbc:postgresql://aws-0-<region>.pooler.supabase.com:5432/postgres?sslmode=require \
+    --user-name=postgres.<project-ref> \
+    --password=<db-password> \
+    --enabled=true \
+    --jta=true \
+    --use-ccm=true \
+    --min-pool-size=2 \
+    --max-pool-size=10 \
+    --validate-on-match=true \
+    --background-validation=false
+
+/subsystem=datasources/data-source=mediconectaDS:test-connection-in-pool

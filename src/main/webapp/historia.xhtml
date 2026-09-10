@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="jakarta.faces.html"
+      xmlns:f="jakarta.faces.core"
+      xmlns:p="http://primefaces.org/ui">
+<f:metadata>
+    <f:viewAction action="#{historiaBean.verificarAcceso}"/>
+</f:metadata>
+<h:head>
+    <title>MediConecta - Historia Clínica</title>
+</h:head>
+<h:body>
+    <p:growl showDetail="true"/>
+    <h1>Historia clínica</h1>
+    <p><h:link outcome="/agenda.xhtml" value="Volver a la agenda"/></p>
+
+    <h:form id="formSeleccion" rendered="#{loginBean.profesional}">
+        <p:outputLabel for="paciente" value="Paciente con turno confirmado"/>
+        <p:selectOneMenu id="paciente" value="#{historiaBean.pacienteId}">
+            <f:selectItems value="#{historiaBean.turnosDelProfesional}" var="t"
+                           itemLabel="#{t.paciente.nombreCompleto} - #{t.fechaHora}" itemValue="#{t.paciente.id}"/>
+        </p:selectOneMenu>
+        <p:commandButton value="Ver historia" action="#{historiaBean.cargarHistoriaDePaciente(historiaBean.pacienteId)}" ajax="false"/>
+    </h:form>
+
+    <h:form id="formHistoria" rendered="#{historiaBean.historia != null}">
+        <p:dataTable value="#{historiaBean.historia.entradas}" var="entrada">
+            <p:column headerText="Fecha">
+                <h:outputText value="#{entrada.fecha}">
+                    <f:convertDateTime pattern="dd/MM/yyyy HH:mm" type="localDateTime"/>
+                </h:outputText>
+            </p:column>
+            <p:column headerText="Tipo">
+                <h:outputText value="#{entrada.tipo}"/>
+            </p:column>
+            <p:column headerText="Descripción">
+                <h:outputText value="#{entrada.descripcion}"/>
+            </p:column>
+            <p:column headerText="Profesional">
+                <h:outputText value="#{entrada.profesional.nombreCompleto}"/>
+            </p:column>
+        </p:dataTable>
+
+        <h:panelGroup rendered="#{loginBean.profesional}">
+            <h3>Agregar entrada</h3>
+            <p:selectOneMenu value="#{historiaBean.tipoNuevaEntrada}">
+                <f:selectItem itemLabel="Diagnóstico" itemValue="DIAGNOSTICO"/>
+                <f:selectItem itemLabel="Receta" itemValue="RECETA"/>
+            </p:selectOneMenu>
+            <p:inputTextarea value="#{historiaBean.descripcionNuevaEntrada}" rows="3" cols="40"/>
+            <p:commandButton value="Guardar" action="#{historiaBean.agregarEntrada}" ajax="false"/>
+        </h:panelGroup>
+    </h:form>
+</h:body>
+</html>

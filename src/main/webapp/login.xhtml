@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="jakarta.faces.html"
+      xmlns:f="jakarta.faces.core"
+      xmlns:p="http://primefaces.org/ui">
+<h:head>
+    <title>MediConecta - Ingreso</title>
+</h:head>
+<h:body>
+    <p:growl showDetail="true"/>
+
+    <h1>MediConecta</h1>
+
+    <h2>Iniciar sesión</h2>
+    <h:form id="formLogin">
+        <p:outputLabel for="email" value="Email"/>
+        <p:inputText id="email" value="#{loginBean.email}"/>
+        <p:outputLabel for="password" value="Contraseña"/>
+        <p:password id="password" value="#{loginBean.password}"/>
+        <p:commandButton value="Ingresar" action="#{loginBean.login}" ajax="false"/>
+    </h:form>
+
+    <h2>Registrarse</h2>
+    <h:form id="formRegistro">
+        <p:outputLabel for="rol" value="Tipo de usuario"/>
+        <p:selectOneMenu id="rol" value="#{loginBean.rolRegistro}">
+            <f:selectItem itemLabel="Paciente" itemValue="PACIENTE"/>
+            <f:selectItem itemLabel="Profesional" itemValue="PROFESIONAL"/>
+        </p:selectOneMenu>
+
+        <p:outputLabel for="regNombre" value="Nombre completo"/>
+        <p:inputText id="regNombre" value="#{loginBean.regNombreCompleto}"/>
+
+        <p:outputLabel for="regEmail" value="Email"/>
+        <p:inputText id="regEmail" value="#{loginBean.regEmail}"/>
+
+        <p:outputLabel for="regPassword" value="Contraseña"/>
+        <p:password id="regPassword" value="#{loginBean.regPassword}"/>
+
+        <p:outputLabel for="regObraSocial" value="Obra social (si sos paciente)"/>
+        <p:inputText id="regObraSocial" value="#{loginBean.regObraSocial}"/>
+
+        <p:outputLabel for="regMatricula" value="Matrícula (si sos profesional)"/>
+        <p:inputText id="regMatricula" value="#{loginBean.regMatricula}"/>
+
+        <p:outputLabel for="regEspecialidad" value="Especialidad (si sos profesional)"/>
+        <p:inputText id="regEspecialidad" value="#{loginBean.regEspecialidad}"/>
+
+        <p:commandButton value="Registrarme" action="#{loginBean.registrar}" ajax="false"/>
+    </h:form>
+</h:body>
+</html>
