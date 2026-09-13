@@ -313,6 +313,9 @@ a.nav-item:hover { background: rgba(255, 255, 255, .08); text-decoration: none; 
 .btn-secondary { background: #fff; color: var(--color-text); border-color: var(--color-border); }
 .btn-secondary:hover { background: #f5f7fb; }
 
+.btn-danger { background: #fff; color: var(--color-danger-text); border-color: var(--color-danger-bg); }
+.btn-danger:hover { background: var(--color-danger-bg); }
+
 .btn-block { width: 100%; }
 .btn-sm { padding: 7px 13px; font-size: 12.5px; }
 

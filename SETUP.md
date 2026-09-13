@@ -42,6 +42,12 @@ historia clínica con `@RolesAllowed`) contra WildFly 41.0.1.Final + Supabase.
 5. Editar `wildfly/configurar-datasource.cli` con los datos del Session pooler de Supabase (paso 1) y
    ejecutarlo: `jboss-cli.sh --connect --file=wildfly/configurar-datasource.cli`. El propio script
    corre `test-connection-in-pool` al final para confirmar que la conexión funciona.
+6. Desactivar `integrated-jaspi` en el dominio de seguridad de aplicación (ver explicación en
+   "Notas técnicas" más abajo — imprescindible para que el login funcione):
+   ```
+   jboss-cli.sh --connect --command="/subsystem=undertow/application-security-domain=other:write-attribute(name=integrated-jaspi,value=false)"
+   jboss-cli.sh --connect --command=":reload"
+   ```
 
 ## 3. Deploy
 
@@ -79,6 +85,16 @@ un `HttpAuthenticationMechanism` propio (`ar.edu.mediconecta.seguridad.Mecanismo
 
 El `@DatabaseIdentityStoreDefinition` en sí (callerQuery/groupsQuery/hash PBKDF2) es el componente
 declarativo que exige la consigna y funciona sin cambios.
+
+Con la configuración por defecto de WildFly, el login fallaba con `ELY01177: Authorization
+failed` al llamar `notifyContainerAboutLogin`, aunque la validación de credenciales (PBKDF2 contra
+la tabla `usuario`) daba `VALID`. Causa: `application-security-domain=other` tiene
+`integrated-jaspi=true` por defecto, que exige que el principal ya exista como identidad en el
+realm de Elytron del dominio (`ApplicationRealm`, un archivo de properties) para poder concederle
+`LoginPermission` — pero nuestros usuarios viven solo en la tabla `usuario` de Supabase, nunca en
+ese realm. Con `integrated-jaspi=false` (paso 6 de la sección WildFly) Elytron arma una identidad
+ad-hoc a partir del `CallerPrincipalCallback`/`GroupPrincipalCallback` que emite
+`notifyContainerAboutLogin`, sin necesitar que el principal preexista en ningún realm.
 
 ## Nota sobre esta entrega
 

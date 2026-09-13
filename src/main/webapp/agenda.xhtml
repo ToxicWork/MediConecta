@@ -22,6 +22,38 @@
                 <div class="card">
                     <div class="card-header">
                         <div>
+                            <h3>Mis turnos</h3>
+                            <div class="subtle">#{agendaBean.misTurnos.size()} turno(s) confirmado(s)</div>
+                        </div>
+                    </div>
+
+                    <h:panelGroup layout="block" styleClass="table-wrap" rendered="#{not empty agendaBean.misTurnos}">
+                        <p:dataTable id="tablaMisTurnos" value="#{agendaBean.misTurnos}" var="turno">
+                            <p:column headerText="Fecha y hora">
+                                <h:outputText value="#{turno.fechaHora}">
+                                    <f:convertDateTime pattern="EEEE dd/MM/yyyy · HH:mm 'hs'" type="localDateTime"/>
+                                </h:outputText>
+                            </p:column>
+                            <p:column headerText="Profesional">
+                                #{turno.profesional.nombreCompleto} · #{turno.profesional.especialidad}
+                            </p:column>
+                            <p:column headerText="Estado">
+                                <span class="tag tag-success">Confirmado</span>
+                            </p:column>
+                            <p:column headerText="" style="text-align:right;width:150px;">
+                                <p:commandButton value="Cancelar" action="#{agendaBean.cancelar(turno.id)}" ajax="false" styleClass="btn btn-danger btn-sm"/>
+                            </p:column>
+                        </p:dataTable>
+                    </h:panelGroup>
+
+                    <div class="empty-state" style="#{empty agendaBean.misTurnos ? '' : 'display:none;'}">
+                        No tenés turnos confirmados todavía.
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div>
                             <h3>Buscar profesional</h3>
                             <div class="subtle">Elegí un profesional para ver sus horarios disponibles</div>
                         </div>

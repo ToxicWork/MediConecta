@@ -101,6 +101,18 @@ public class ServicioDeTurnosBean implements ServicioDeTurnos {
         return turnoDAO.buscarConfirmadosDeProfesional(profesionalId);
     }
 
+    @Override
+    public Turno cancelar(Long turnoId, Long pacienteId) {
+        Turno turno = turnoDAO.buscarPorId(turnoId);
+        if (turno == null || turno.getEstado() != EstadoTurno.CONFIRMADO
+                || turno.getPaciente() == null || !turno.getPaciente().getId().equals(pacienteId)) {
+            throw new TurnoNoDisponibleException("El turno no existe, no está confirmado o no te pertenece.");
+        }
+        turno.liberar();
+        turnoDAO.actualizar(turno);
+        return turno;
+    }
+
     @PrePassivate
     void antesDePasivar() {
         LOG.info("Pasivando conversación de reserva (turno en hold: " + turnoEnHoldId + ").");

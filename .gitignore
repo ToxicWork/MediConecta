@@ -1,1 +1,2 @@
 /target/
+wildfly/*.local.cli

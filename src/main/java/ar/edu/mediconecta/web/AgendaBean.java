@@ -49,6 +49,23 @@ public class AgendaBean implements Serializable {
         }
     }
 
+    public List<Turno> getMisTurnos() {
+        Usuario usuario = loginBean.getUsuarioActual();
+        return usuario == null ? List.of() : servicioDeTurnos.buscarConfirmadosDePaciente(usuario.getId());
+    }
+
+    public void cancelar(Long turnoId) {
+        try {
+            Usuario usuario = loginBean.getUsuarioActual();
+            servicioDeTurnos.cancelar(turnoId, usuario.getId());
+            FacesContext.getCurrentInstance().addMessage(null,
+                    new FacesMessage(FacesMessage.SEVERITY_INFO, "Turno cancelado", null));
+        } catch (TurnoNoDisponibleException e) {
+            FacesContext.getCurrentInstance().addMessage(null,
+                    new FacesMessage(FacesMessage.SEVERITY_ERROR, e.getMessage(), null));
+        }
+    }
+
     public void reservarHold(Long turnoId) {
         try {
             Usuario usuario = loginBean.getUsuarioActual();
