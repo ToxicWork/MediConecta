@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="jakarta.faces.html">
+<h:head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>MediConecta - Ocurrió un error</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+    <h:outputStylesheet library="css" name="mediconecta.css"/>
+</h:head>
+<h:body>
+    <div class="auth-shell">
+        <div class="auth-brand">
+            <span class="brand-mark">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21c-4.5-2.8-8-6.2-8-10.2A5.3 5.3 0 0 1 12 6a5.3 5.3 0 0 1 8 4.8c0 4-3.5 7.4-8 10.2Z"/><path d="M9 11h6M12 8v6"/></svg>
+            </span>
+            <h1>MediConecta</h1>
+            <p>Algo salió mal de nuestro lado.</p>
+        </div>
+
+        <div class="auth-panel">
+            <div class="auth-card">
+                <h2>Ocurrió un error</h2>
+                <p class="page-subtitle">
+                    No pudimos completar la acción. Volvé a intentarlo o iniciá sesión nuevamente
+                    si el problema persiste.
+                </p>
+                <h:link outcome="/login.xhtml" styleClass="btn btn-primary btn-block">Volver al inicio</h:link>
+            </div>
+        </div>
+    </div>
+</h:body>
+</html>

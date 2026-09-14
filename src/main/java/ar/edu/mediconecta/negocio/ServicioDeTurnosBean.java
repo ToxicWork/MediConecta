@@ -7,6 +7,8 @@ import ar.edu.mediconecta.modelo.Turno;
 import ar.edu.mediconecta.negocio.excepciones.TurnoNoDisponibleException;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
+import jakarta.annotation.security.DeclareRoles;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.ejb.PostActivate;
 import jakarta.ejb.PrePassivate;
 import jakarta.ejb.Stateful;
@@ -30,6 +32,7 @@ import java.util.logging.Logger;
  */
 @Stateful
 @StatefulTimeout(value = 5, unit = TimeUnit.MINUTES)
+@DeclareRoles({"PACIENTE", "PROFESIONAL"})
 public class ServicioDeTurnosBean implements ServicioDeTurnos {
 
     private static final Logger LOG = Logger.getLogger(ServicioDeTurnosBean.class.getName());
@@ -48,6 +51,7 @@ public class ServicioDeTurnosBean implements ServicioDeTurnos {
     }
 
     @Override
+    @RolesAllowed("PROFESIONAL")
     public Turno publicarDisponibilidad(Long profesionalId, LocalDateTime fechaHora) {
         Turno turno = new Turno(usuarioDAO.obtenerReferenciaProfesional(profesionalId), fechaHora);
         turnoDAO.guardar(turno);
@@ -55,11 +59,13 @@ public class ServicioDeTurnosBean implements ServicioDeTurnos {
     }
 
     @Override
+    @RolesAllowed({"PACIENTE", "PROFESIONAL"})
     public List<Turno> buscarDisponibilidad(Long profesionalId) {
         return turnoDAO.buscarDisponibles(profesionalId);
     }
 
     @Override
+    @RolesAllowed("PACIENTE")
     public Turno reservarHold(Long turnoId, Long pacienteId) {
         if (turnoEnHoldId != null) {
             throw new TurnoNoDisponibleException("Ya existe un turno en hold en esta conversación.");
@@ -75,6 +81,7 @@ public class ServicioDeTurnosBean implements ServicioDeTurnos {
     }
 
     @Override
+    @RolesAllowed("PACIENTE")
     public Turno confirmar() {
         if (turnoEnHoldId == null) {
             throw new TurnoNoDisponibleException("No hay ningún turno en hold para confirmar.");
@@ -87,21 +94,25 @@ public class ServicioDeTurnosBean implements ServicioDeTurnos {
     }
 
     @Override
+    @RolesAllowed("PACIENTE")
     public Turno getTurnoEnHold() {
         return turnoEnHoldId == null ? null : turnoDAO.buscarPorId(turnoEnHoldId);
     }
 
     @Override
+    @RolesAllowed("PACIENTE")
     public List<Turno> buscarConfirmadosDePaciente(Long pacienteId) {
         return turnoDAO.buscarConfirmadosDePaciente(pacienteId);
     }
 
     @Override
+    @RolesAllowed("PROFESIONAL")
     public List<Turno> buscarConfirmadosDeProfesional(Long profesionalId) {
         return turnoDAO.buscarConfirmadosDeProfesional(profesionalId);
     }
 
     @Override
+    @RolesAllowed("PACIENTE")
     public Turno cancelar(Long turnoId, Long pacienteId) {
         Turno turno = turnoDAO.buscarPorId(turnoId);
         if (turno == null || turno.getEstado() != EstadoTurno.CONFIRMADO

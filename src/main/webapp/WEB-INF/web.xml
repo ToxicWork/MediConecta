@@ -11,4 +11,13 @@
     <welcome-file>login.xhtml</welcome-file>
   </welcome-file-list>
 
+  <error-page>
+    <error-code>500</error-code>
+    <location>/error.xhtml</location>
+  </error-page>
+  <error-page>
+    <exception-type>java.lang.Throwable</exception-type>
+    <location>/error.xhtml</location>
+  </error-page>
+
 </web-app>

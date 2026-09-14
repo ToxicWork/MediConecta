@@ -6,6 +6,7 @@ import ar.edu.mediconecta.modelo.Usuario;
 import ar.edu.mediconecta.negocio.ServicioDeTurnos;
 import ar.edu.mediconecta.negocio.ServicioDeUsuarios;
 import ar.edu.mediconecta.negocio.excepciones.TurnoNoDisponibleException;
+import jakarta.ejb.EJBAccessException;
 import jakarta.enterprise.context.SessionScoped;
 import jakarta.faces.application.FacesMessage;
 import jakarta.faces.context.FacesContext;
@@ -51,7 +52,10 @@ public class AgendaBean implements Serializable {
 
     public List<Turno> getMisTurnos() {
         Usuario usuario = loginBean.getUsuarioActual();
-        return usuario == null ? List.of() : servicioDeTurnos.buscarConfirmadosDePaciente(usuario.getId());
+        if (usuario == null || !loginBean.isPaciente()) {
+            return List.of();
+        }
+        return servicioDeTurnos.buscarConfirmadosDePaciente(usuario.getId());
     }
 
     public void cancelar(Long turnoId) {
@@ -78,18 +82,29 @@ public class AgendaBean implements Serializable {
     }
 
     public void confirmar() {
-        Turno confirmado = servicioDeTurnos.confirmar();
-        turnoEnHold = null;
-        FacesContext.getCurrentInstance().addMessage(null,
-                new FacesMessage(FacesMessage.SEVERITY_INFO, "Turno confirmado para " + confirmado.getFechaHora(), null));
+        try {
+            Turno confirmado = servicioDeTurnos.confirmar();
+            turnoEnHold = null;
+            FacesContext.getCurrentInstance().addMessage(null,
+                    new FacesMessage(FacesMessage.SEVERITY_INFO, "Turno confirmado para " + confirmado.getFechaHora(), null));
+        } catch (TurnoNoDisponibleException e) {
+            turnoEnHold = null;
+            FacesContext.getCurrentInstance().addMessage(null,
+                    new FacesMessage(FacesMessage.SEVERITY_ERROR, e.getMessage(), null));
+        }
     }
 
     public void publicarDisponibilidad() {
-        Usuario actual = loginBean.getUsuarioActual();
-        servicioDeTurnos.publicarDisponibilidad(actual.getId(), nuevaFechaHora);
-        nuevaFechaHora = null;
-        FacesContext.getCurrentInstance().addMessage(null,
-                new FacesMessage(FacesMessage.SEVERITY_INFO, "Disponibilidad publicada", null));
+        try {
+            Usuario actual = loginBean.getUsuarioActual();
+            servicioDeTurnos.publicarDisponibilidad(actual.getId(), nuevaFechaHora);
+            nuevaFechaHora = null;
+            FacesContext.getCurrentInstance().addMessage(null,
+                    new FacesMessage(FacesMessage.SEVERITY_INFO, "Disponibilidad publicada", null));
+        } catch (EJBAccessException e) {
+            FacesContext.getCurrentInstance().addMessage(null,
+                    new FacesMessage(FacesMessage.SEVERITY_ERROR, "No tenés permiso para publicar disponibilidad.", null));
+        }
     }
 
     public Long getProfesionalSeleccionadoId() {
