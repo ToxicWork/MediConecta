@@ -15,12 +15,17 @@ import jakarta.inject.Named;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Named
 @SessionScoped
 public class AgendaBean implements Serializable {
+
+    private static final DateTimeFormatter FORMATO_FECHA = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+    private static final String MIS_TURNOS = AgendaBean.class.getName() + ".misTurnos";
 
     @Inject
     private ServicioDeUsuarios servicioDeUsuarios;
@@ -50,18 +55,30 @@ public class AgendaBean implements Serializable {
         }
     }
 
+    /**
+     * Se evalúa varias veces por página: se guarda en el request y se invalida en las
+     * acciones que cambian los turnos del paciente (la tabla lo lee antes de la acción).
+     */
+    @SuppressWarnings("unchecked")
     public List<Turno> getMisTurnos() {
         Usuario usuario = loginBean.getUsuarioActual();
         if (usuario == null || !loginBean.isPaciente()) {
             return List.of();
         }
-        return servicioDeTurnos.buscarConfirmadosDePaciente(usuario.getId());
+        Map<String, Object> request = FacesContext.getCurrentInstance().getExternalContext().getRequestMap();
+        return (List<Turno>) request.computeIfAbsent(MIS_TURNOS,
+                clave -> servicioDeTurnos.buscarConfirmadosDePaciente(usuario.getId()));
+    }
+
+    private void invalidarMisTurnos() {
+        FacesContext.getCurrentInstance().getExternalContext().getRequestMap().remove(MIS_TURNOS);
     }
 
     public void cancelar(Long turnoId) {
         try {
             Usuario usuario = loginBean.getUsuarioActual();
             servicioDeTurnos.cancelar(turnoId, usuario.getId());
+            invalidarMisTurnos();
             FacesContext.getCurrentInstance().addMessage(null,
                     new FacesMessage(FacesMessage.SEVERITY_INFO, "Turno cancelado", null));
         } catch (TurnoNoDisponibleException e) {
@@ -84,9 +101,10 @@ public class AgendaBean implements Serializable {
     public void confirmar() {
         try {
             Turno confirmado = servicioDeTurnos.confirmar();
+            invalidarMisTurnos();
             turnoEnHold = null;
             FacesContext.getCurrentInstance().addMessage(null,
-                    new FacesMessage(FacesMessage.SEVERITY_INFO, "Turno confirmado para " + confirmado.getFechaHora(), null));
+                    new FacesMessage(FacesMessage.SEVERITY_INFO, "Turno confirmado para el " + FORMATO_FECHA.format(confirmado.getFechaHora()) + " hs", null));
         } catch (TurnoNoDisponibleException e) {
             turnoEnHold = null;
             FacesContext.getCurrentInstance().addMessage(null,

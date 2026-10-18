@@ -47,7 +47,15 @@ public class MecanismoAutenticacion implements HttpAuthenticationMechanism {
                         .put("jakarta.servlet.http.registerSession", Boolean.TRUE.toString());
                 return httpMessageContext.notifyContainerAboutLogin(result);
             }
-            return httpMessageContext.responseUnauthorized();
+            // SEND_FAILURE sin responseUnauthorized(): este último manda un 401 crudo y corta
+            // la respuesta, y LoginBean no llega a mostrar "Credenciales inválidas".
+            return AuthenticationStatus.SEND_FAILURE;
+        }
+
+        // Los recursos estáticos (CSS, JS, imágenes de PrimeFaces) no están protegidos ni usan
+        // roles: no tiene sentido ir a la base por cada uno (son ~10 por página).
+        if (esRecursoEstatico(request)) {
+            return httpMessageContext.doNothing();
         }
 
         if (request.getUserPrincipal() != null) {
@@ -63,5 +71,9 @@ public class MecanismoAutenticacion implements HttpAuthenticationMechanism {
         }
 
         return httpMessageContext.doNothing();
+    }
+
+    private static boolean esRecursoEstatico(HttpServletRequest request) {
+        return request.getRequestURI().startsWith(request.getContextPath() + "/jakarta.faces.resource/");
     }
 }

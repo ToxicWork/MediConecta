@@ -19,10 +19,13 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.Serializable;
+import java.util.Optional;
 
 @Named
 @SessionScoped
 public class LoginBean implements Serializable {
+
+    private static final String USUARIO_ACTUAL = LoginBean.class.getName() + ".usuarioActual";
 
     @Inject
     private SecurityContext securityContext;
@@ -79,12 +82,23 @@ public class LoginBean implements Serializable {
         return "login.xhtml?faces-redirect=true";
     }
 
+    /**
+     * JSF evalúa este getter varias veces por página (layout, vistas, otros beans): el
+     * resultado se guarda en el request para consultar la base una sola vez por request.
+     */
+    @SuppressWarnings("unchecked")
     public Usuario getUsuarioActual() {
-        var principal = getRequest().getUserPrincipal();
+        HttpServletRequest request = getRequest();
+        var principal = request.getUserPrincipal();
         if (principal == null) {
             return null;
         }
-        return servicioDeUsuarios.buscarPorEmail(principal.getName()).orElse(null);
+        var usuario = (Optional<Usuario>) request.getAttribute(USUARIO_ACTUAL);
+        if (usuario == null) {
+            usuario = servicioDeUsuarios.buscarPorEmail(principal.getName());
+            request.setAttribute(USUARIO_ACTUAL, usuario);
+        }
+        return usuario.orElse(null);
     }
 
     public boolean isProfesional() {

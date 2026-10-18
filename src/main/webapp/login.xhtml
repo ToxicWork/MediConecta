@@ -25,7 +25,7 @@
         <div class="auth-panel">
             <div class="auth-card">
 
-                <p:growl showDetail="true"/>
+                <p:growl showDetail="false"/>
 
                 <h2>Iniciar sesión</h2>
                 <p class="page-subtitle">Ingresá con tu email y contraseña.</p>
@@ -56,17 +56,17 @@
 
                     <div class="field">
                         <label for="formRegistro:regNombre">Nombre completo</label>
-                        <p:inputText id="regNombre" value="#{loginBean.regNombreCompleto}"/>
+                        <p:inputText id="regNombre" value="#{loginBean.regNombreCompleto}" required="true" requiredMessage="Completá tu nombre"/>
                     </div>
 
                     <div class="field">
                         <label for="formRegistro:regEmail">Email</label>
-                        <p:inputText id="regEmail" value="#{loginBean.regEmail}"/>
+                        <p:inputText id="regEmail" value="#{loginBean.regEmail}" required="true" requiredMessage="Completá tu email"/>
                     </div>
 
                     <div class="field">
                         <label for="formRegistro:regPassword">Contraseña</label>
-                        <p:password id="regPassword" value="#{loginBean.regPassword}" feedback="false"/>
+                        <p:password id="regPassword" value="#{loginBean.regPassword}" feedback="false" required="true" requiredMessage="Elegí una contraseña"/>
                     </div>
 
                     <h:panelGroup id="camposSegunRol" layout="block">

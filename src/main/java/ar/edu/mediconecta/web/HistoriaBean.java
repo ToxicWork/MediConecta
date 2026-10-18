@@ -13,12 +13,16 @@ import jakarta.inject.Inject;
 import jakarta.inject.Named;
 
 import java.io.Serializable;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 
 @Named
 @ViewScoped
 public class HistoriaBean implements Serializable {
+
+    private static final DateTimeFormatter FORMATO_FECHA = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     @Inject
     private ServicioDeHistoriaClinica servicioDeHistoriaClinica;
@@ -126,5 +130,10 @@ public class HistoriaBean implements Serializable {
 
     public void setTurnoAsociadoId(Long turnoAsociadoId) {
         this.turnoAsociadoId = turnoAsociadoId;
+    }
+
+    /** Fecha legible para las etiquetas de los selects, donde no se puede usar un converter. */
+    public String formatear(LocalDateTime fechaHora) {
+        return fechaHora == null ? "" : FORMATO_FECHA.format(fechaHora);
     }
 }

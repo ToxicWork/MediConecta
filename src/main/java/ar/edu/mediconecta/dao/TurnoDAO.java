@@ -6,6 +6,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @ApplicationScoped
@@ -26,12 +27,14 @@ public class TurnoDAO {
         return em.merge(turno);
     }
 
+    /** Solo horarios futuros: un turno disponible que ya pasó no se puede reservar. */
     public List<Turno> buscarDisponibles(Long profesionalId) {
         return em.createQuery(
                         "SELECT t FROM Turno t WHERE t.profesional.id = :profesionalId "
-                                + "AND t.estado = :estado ORDER BY t.fechaHora", Turno.class)
+                                + "AND t.estado = :estado AND t.fechaHora > :ahora ORDER BY t.fechaHora", Turno.class)
                 .setParameter("profesionalId", profesionalId)
                 .setParameter("estado", EstadoTurno.DISPONIBLE)
+                .setParameter("ahora", LocalDateTime.now())
                 .getResultList();
     }
 

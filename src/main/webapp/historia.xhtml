@@ -33,7 +33,7 @@
                         <h:selectOneMenu id="paciente" value="#{historiaBean.pacienteId}">
                             <f:selectItem itemLabel="Seleccioná un paciente..." itemValue="" noSelectionOption="true"/>
                             <f:selectItems value="#{historiaBean.turnosDelProfesional}" var="t"
-                                           itemLabel="#{t.paciente.nombreCompleto} · #{t.fechaHora}" itemValue="#{t.paciente.id}"/>
+                                           itemLabel="#{t.paciente.nombreCompleto} · #{historiaBean.formatear(t.fechaHora)}" itemValue="#{t.paciente.id}"/>
                         </h:selectOneMenu>
                     </div>
                     <div style="align-self:end;">
