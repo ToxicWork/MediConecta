@@ -3,7 +3,7 @@
 Plataforma que conecta pacientes con profesionales de salud independientes y pequeñas clínicas
 para turnos presenciales y telemedicina, con facturación a obras sociales y prepagas.
 
-TP Integrador, Desarrollo de Aplicaciones II (comisión Lunes TM).
+TP Integrador, Desarrollo de Aplicaciones II (comisión Lunes TT).
 
 ## Estado actual
 
@@ -20,8 +20,25 @@ PostgreSQL (Supabase).
 Patrones aplicados: DAO, Facade y Factory. Seguridad declarativa con
 `@DatabaseIdentityStoreDefinition` (Jakarta Security) y `@RolesAllowed`.
 
-Las integraciones externas (obra social vía SOAP, pagos y telemedicina vía REST) y la mensajería
-asincrónica quedan para las próximas entregas (Unidad IV en adelante), según el cronograma del TP.
+**Entrega Parcial N.º 2** (Unidades IV-V): primer proceso de negocio con mensajería asincrónica
+real, sobre el broker ActiveMQ Artemis embebido en WildFly (perfil `standalone-full.xml`).
+
+- Al confirmar o cancelar un turno, `ServicioDeTurnos` publica un `EventoTurno` (JSON) en
+  `topico.turnos`. El envío JMS se enlista en la misma transacción JTA que actualiza el turno
+  (Transactional Client): si hay rollback, el evento no sale.
+- `ServicioDeNotificaciones`: `NotificacionesSubscriber` (MDB, suscripción durable) genera el email
+  al paciente y el aviso en la app al profesional, visibles en `/notificaciones.xhtml`.
+- `AuditoriaSubscriber` (MDB, suscripción durable) registra cada evento en `registro_auditoria`.
+- **Monitor de eventos** (`/monitor.xhtml`): muestra en vivo, para los turnos del usuario, qué suscriptor
+  procesó cada evento y con qué latencia, o cuál lo tiene pendiente (por ejemplo, si se frena un MDB desde
+  `jboss-cli`). Se alimenta de `evento_publicado`, que se escribe en la misma transacción que el envío JMS.
+- Patrones nuevos: Publish-Subscribe Channel, Durable Subscriber, Event-Driven Consumer, Idempotent
+  Receiver (`evento_procesado`), Dead Letter Channel (3 reintentos y DLQ), Builder
+  (`EventoTurno.Builder`), Template Method + Factory Method (`ProcesadorNotificacion`) y Transfer Object
+  (DTO del monitor).
+
+Las integraciones síncronas (obra social vía SOAP, pagos y telemedicina vía REST), el proceso con
+cola punto a punto y la transacción de varios pasos quedan para la Entrega Obligatoria N.º 2.
 
 ## Documentación
 
@@ -32,6 +49,13 @@ asincrónica quedan para las próximas entregas (Unidad IV en adelante), según 
   seguridad y decisiones de diseño).
 - [`Trabajo practico/MediConecta_Diagrama_Capas 1.png`](<Trabajo practico/MediConecta_Diagrama_Capas 1.png>):
   arquitectura en capas planificada para el sistema completo.
+
+- [`docs/diagramas/`](docs/diagramas/): los diez diagramas de la solución (PlantUML + PNG).
+- [`docs/documento-maestro/`](docs/documento-maestro/): documento maestro de los diagramas (PDF, formato APA).
+- [`docs/presentacion/`](docs/presentacion/): presentación de la Entrega Parcial N.º 2 (PPTX y PDF) y guía
+  para la presentación.
+- [`pruebas/prueba_e2e.py`](pruebas/prueba_e2e.py): prueba de punta a punta con navegador real
+  (14 verificaciones). Requiere `pip install playwright` y Google Chrome.
 
 ## Declaración de uso de inteligencia artificial generativa
 

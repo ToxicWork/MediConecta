@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="UTF-8">
+<title>MediConecta — Manual de usuario</title>
+<meta name="author" content="Agustín Bodas, Máximo Bonarrico y Sergio Casanova">
+<style>
+  @page {
+    size: A4;
+    margin: 2.2cm 2.3cm 2.2cm 2.3cm;
+    @bottom-right { content: counter(page); font-family: "Avenir Next", "Helvetica Neue", Arial, sans-serif; font-size: 9pt; color: #6b7280; }
+    @bottom-left { content: "MediConecta · Manual de usuario"; font-family: "Avenir Next", "Helvetica Neue", Arial, sans-serif; font-size: 9pt; color: #9aa3b5; }
+  }
+  @page :first { @bottom-right { content: none; } @bottom-left { content: none; } margin: 0; }
+
+  html { font-family: "Avenir Next", "Helvetica Neue", Arial, sans-serif; font-size: 10.8pt; color: #1f2a44; }
+  body { margin: 0; }
+  p { line-height: 1.6; margin: 0 0 0.32cm 0; }
+  h1 { font-family: Georgia, serif; font-size: 22pt; color: #16308c; margin: 0 0 0.15cm 0; page-break-after: avoid; font-weight: bold; }
+  h1 + .bajada { font-size: 12pt; color: #6b7280; margin: 0 0 0.6cm 0; line-height: 1.45; }
+  h2 { font-family: Georgia, serif; font-size: 14pt; color: #16308c; margin: 0.6cm 0 0.22cm 0; page-break-after: avoid; }
+  .capitulo { page-break-before: always; }
+  .num-cap { font-size: 10pt; letter-spacing: 0.14em; text-transform: uppercase; color: #2f5fe0; font-weight: 600; margin-bottom: 0.1cm; }
+
+  /* Portada */
+  .portada { height: 29.7cm; background: #16308c; color: #fff; position: relative; padding: 3.2cm 2.6cm 0 2.6cm; box-sizing: border-box; }
+  .portada .marca { font-size: 11pt; letter-spacing: 0.2em; color: #c9d6f7; font-weight: 600; }
+  .portada .titulo { font-family: Georgia, serif; font-size: 40pt; font-weight: bold; margin-top: 5.2cm; line-height: 1.05; }
+  .portada .sub { font-size: 15pt; color: #c9d6f7; margin-top: 0.45cm; line-height: 1.4; max-width: 13cm; }
+  .portada .pie { position: absolute; left: 2.6cm; bottom: 2.6cm; font-size: 10pt; color: #c9d6f7; line-height: 1.7; }
+  .portada .pie b { color: #fff; }
+
+  /* Pasos */
+  ol.pasos { list-style: none; padding: 0; margin: 0 0 0.35cm 0; counter-reset: paso; }
+  ol.pasos li { counter-increment: paso; position: relative; padding-left: 1.05cm; margin-bottom: 0.22cm; line-height: 1.55; }
+  ol.pasos li::before {
+    content: counter(paso); position: absolute; left: 0; top: 0;
+    width: 0.62cm; height: 0.62cm; border-radius: 50%; background: #2f5fe0; color: #fff;
+    font-weight: 700; font-size: 9.5pt; text-align: center; line-height: 0.62cm;
+  }
+
+  /* Capturas */
+  .captura { margin: 0.25cm 0 0.45cm 0; page-break-inside: avoid; }
+  .captura img { width: 100%; border: 0.6pt solid #d5dbea; border-radius: 6px; display: block; }
+  .captura.media img { width: 44%; margin: 0 auto; }
+  .captura .pie-foto { font-size: 9pt; color: #6b7280; margin-top: 0.12cm; line-height: 1.4; }
+  .captura.media .pie-foto { width: 44%; margin-left: auto; margin-right: auto; }
+
+  /* Recuadros */
+  .nota { border-radius: 6px; padding: 7pt 11pt; margin: 0.15cm 0 0.4cm 0; page-break-inside: avoid; line-height: 1.5; }
+  .nota p { margin: 0; }
+  .nota .t { font-weight: 700; margin-right: 4pt; }
+  .ojo { background: #fff4e4; border: 0.6pt solid #f0c784; }
+  .ojo .t { color: #b3690a; }
+  .tip { background: #eef3ff; border: 0.6pt solid #c9d6f7; }
+  .tip .t { color: #2247c0; }
+
+  .indice { margin-top: 0.4cm; }
+  .indice div { display: flex; padding: 5pt 0; border-bottom: 0.5pt solid #e6e9f2; font-size: 11pt; }
+  .indice .n { width: 1cm; color: #2f5fe0; font-weight: 700; }
+  .indice a { color: #1f2a44; text-decoration: none; flex: 1; }
+  .indice a::after { content: target-counter(attr(href), page); float: right; color: #6b7280; }
+
+  .faq { margin-bottom: 0.32cm; page-break-inside: avoid; }
+  .faq .q { font-weight: 700; color: #16308c; margin-bottom: 0.05cm; line-height: 1.45; }
+  .faq .a { line-height: 1.55; }
+
+  table.glosario { width: 100%; border-collapse: collapse; font-size: 10pt; page-break-inside: avoid; }
+  .bloque-glosario { page-break-inside: avoid; }
+  table.glosario td { padding: 5pt 6pt; border-bottom: 0.5pt solid #e6e9f2; vertical-align: top; line-height: 1.45; }
+  table.glosario td:first-child { width: 28%; font-weight: 700; color: #16308c; }
+  .mono { font-family: Menlo, "Courier New", monospace; font-size: 9.5pt; background: #f4f6fb; padding: 0 3px; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<section class="portada">
+  <div class="marca">MEDICONECTA</div>
+  <div class="titulo">Manual de<br>usuario</div>
+  <div class="sub">Cómo sacar y cancelar turnos, publicar tus horarios y llevar la historia clínica, paso a paso.</div>
+  <div class="pie">
+    <b>Versión 0.2 · octubre de 2026</b><br>
+    Trabajo Práctico: Desarrollo de Aplicaciones II · UADE · Comisión Lunes TT<br>
+    Grupo 4: Agustín Bodas, Máximo Bonarrico y Sergio Casanova
+  </div>
+</section>
+
+<section class="capitulo">
+  <h1>Antes de empezar</h1>
+  <div class="bajada">Qué es MediConecta, para quién es y qué vas a encontrar en este manual.</div>
+
+  <p>MediConecta junta en un mismo lugar a pacientes y profesionales de la salud. Si sos paciente, la usás para buscar un horario con tu médico, reservarlo y, si después no podés ir, cancelarlo para que lo aproveche otra persona. Si sos profesional, publicás los horarios en los que atendés y llevás la historia clínica de tus pacientes: diagnósticos y recetas, con fecha y firma.</p>
+
+  <p>No hace falta instalar nada. Alcanza con un navegador actualizado (Chrome, Firefox, Edge o Safari) en una computadora, una tablet o un celular. En pantallas chicas el menú de la izquierda pasa arriba y se desliza de costado, y las tablas anchas se pueden correr con el dedo.</p>
+
+  <p>El manual está ordenado según quién lo lea. Los dos primeros capítulos son para todos; después hay uno para pacientes y otro para profesionales, y al final un capítulo con las situaciones que más dudas generan. No hace falta leerlo de corrido: buscá lo que necesitás en el índice.</p>
+
+  <div class="indice">
+    <div><span class="n">1</span><a href="#cap-cuenta">Crear tu cuenta</a></div>
+    <div><span class="n">2</span><a href="#cap-entrar">Entrar, salir y moverte por la aplicación</a></div>
+    <div><span class="n">3</span><a href="#cap-paciente">Si sos paciente</a></div>
+    <div><span class="n">4</span><a href="#cap-profesional">Si sos profesional</a></div>
+    <div><span class="n">5</span><a href="#cap-avisos">Tus avisos: notificaciones y monitor de eventos</a></div>
+    <div><span class="n">6</span><a href="#cap-faq">¿Qué hago si…?</a></div>
+    <div><span class="n">7</span><a href="#cap-falta">Lo que todavía no hace</a></div>
+  </div>
+
+  <div class="nota tip" style="margin-top:0.6cm;"><p><span class="t">Para probarla.</span>Si querés recorrer la aplicación sin crear cuentas, hay dos usuarios de demostración: el paciente <span class="mono">juan.perez@mediconecta.test</span> y la profesional <span class="mono">ana.lopez@mediconecta.test</span>. La contraseña de los dos es <span class="mono">demo1234</span>. Todos los ejemplos de este manual están hechos con ellos.</p></div>
+</section>
+
+<section class="capitulo" id="cap-cuenta">
+  <div class="num-cap">Capítulo 1</div>
+  <h1>Crear tu cuenta</h1>
+  <div class="bajada">Un solo formulario, y unos datos más si sos profesional.</div>
+
+  <p>El registro está en la misma pantalla de inicio, debajo de donde dice “¿Sos nuevo en MediConecta? Registrate”. Lo primero que te pide es qué tipo de usuario sos, y eso importa: según lo que elijas, el formulario cambia. Un paciente carga su obra social; un profesional, su matrícula y su especialidad.</p>
+
+  <div class="captura media">
+    <img src="img/m02-registro.jpg">
+    <div class="pie-foto">El formulario con “Profesional” elegido: aparecen los campos de matrícula y especialidad.</div>
+  </div>
+
+  <ol class="pasos">
+    <li>Elegí <b>Paciente</b> o <b>Profesional</b> en “Tipo de usuario”.</li>
+    <li>Completá tu nombre, tu email y una contraseña. Los tres son obligatorios; si falta alguno, la aplicación te avisa cuál.</li>
+    <li>Si sos paciente, escribí tu obra social y tu plan (por ejemplo, “OSDE 210”). Si no tenés, podés dejarlo vacío. Si sos profesional, cargá tu matrícula y tu especialidad: los pacientes te van a buscar por ese nombre y esa especialidad.</li>
+    <li>Tocá <b>Registrarme</b>. Si todo salió bien, ya podés entrar con tu email y tu contraseña.</li>
+  </ol>
+
+  <div class="nota ojo"><p><span class="t">Ojo.</span>Cada email se puede usar una sola vez. Si te dice que ya está registrado, probablemente ya tenés una cuenta: intentá entrar con ese email.</p></div>
+</section>
+
+<section class="capitulo" id="cap-entrar">
+  <div class="num-cap">Capítulo 2</div>
+  <h1>Entrar, salir y moverte por la aplicación</h1>
+  <div class="bajada">El menú de la izquierda es el mismo para todos; lo que cambia es lo que ves adentro.</div>
+
+  <p>Para entrar, escribí tu email y tu contraseña en “Iniciar sesión” y tocá <b>Ingresar</b>. Si alguno de los dos está mal, aparece un cartel rojo que dice “Credenciales inválidas” y podés volver a intentar. Por seguridad, el cartel no te dice cuál de los dos datos falló.</p>
+
+  <div class="captura media">
+    <img src="img/m12-login-error.jpg">
+    <div class="pie-foto">Lo que ves si te equivocás de contraseña.</div>
+  </div>
+
+  <p>Una vez adentro, a la izquierda tenés el menú con seis secciones: <b>Monitor de eventos</b>, <b>Agenda</b>, <b>Historia Clínica</b>, <b>Telemedicina</b> y <b>Pagos</b>, estas dos últimas todavía marcadas como “Pronto”, y <b>Notificaciones</b>. Al lado de Notificaciones aparece un número cuando tenés avisos sin leer. Abajo de todo están tu nombre, tu rol y el botón <b>Cerrar sesión</b>.</p>
+
+  <div class="nota tip"><p><span class="t">Un consejo.</span>Si usás una computadora compartida (la de un consultorio, la de una biblioteca), cerrá siempre la sesión al terminar. Tu historia clínica es información sensible y nadie más debería poder verla.</p></div>
+</section>
+
+<section class="capitulo" id="cap-paciente">
+  <div class="num-cap">Capítulo 3</div>
+  <h1>Si sos paciente</h1>
+  <div class="bajada">Buscar un horario, reservarlo, confirmarlo y, si hace falta, cancelarlo.</div>
+
+  <h2>Sacar un turno</h2>
+  <p>Todo pasa en <b>Agenda</b>. En “Buscar profesional” elegí con quién te querés atender (cada profesional aparece con su especialidad) y tocá <b>Ver turnos disponibles</b>. Abajo se arma una lista con los horarios libres de ese profesional, del más próximo al más lejano. Solo aparecen horarios futuros.</p>
+
+  <div class="captura">
+    <img src="img/m03-paciente-disponibles.jpg">
+    <div class="pie-foto">Juan buscó a la Dra. Ana López y le aparecen dos horarios libres el 20/11.</div>
+  </div>
+
+  <p>Cuando encontrás uno que te sirve, tocá <b>Reservar</b>. En ese momento el horario queda retenido a tu nombre durante <b>cinco minutos</b>: nadie más lo puede tomar mientras decidís. Arriba de la lista aparece un recuadro naranja, “Turno reservado temporalmente”, con la fecha y la hora.</p>
+
+  <div class="captura">
+    <img src="img/m04-paciente-hold.jpg">
+    <div class="pie-foto">El turno queda “En espera” hasta que lo confirmes.</div>
+  </div>
+
+  <p>Para quedarte con el turno, tocá <b>Confirmar turno</b>. Vas a ver un cartel azul con la fecha confirmada, y el turno pasa a la tabla “Mis turnos”, arriba de todo. Listo: el profesional ya se enteró, sin que tengas que hacer nada más (en el capítulo 5 te contamos cómo).</p>
+
+  <div class="captura">
+    <img src="img/m05-paciente-mis-turnos.jpg">
+    <div class="pie-foto">Después de confirmar: el aviso arriba a la derecha y el turno nuevo en “Mis turnos”.</div>
+  </div>
+
+  <div class="nota ojo"><p><span class="t">Ojo con los cinco minutos.</span>Si reservás y no confirmás a tiempo, el horario se libera solo y vuelve a la lista para cualquier paciente. No pasa nada malo: si todavía está libre, lo podés reservar de nuevo.</p></div>
+
+  <h2>Cancelar un turno</h2>
+  <p>En “Mis turnos” cada turno confirmado tiene su botón <b>Cancelar</b>. Al tocarlo, el turno desaparece de tu lista y el horario vuelve a quedar disponible para que lo tome otro paciente. Al profesional le llega un aviso de que cancelaste.</p>
+  <p>Si lo que querés es cambiar el día, por ahora no hay un botón para reprogramar: cancelá el turno y reservá uno nuevo.</p>
+
+  <h2>Tu historia clínica</h2>
+  <p>En <b>Historia Clínica</b> ves todo lo que tus profesionales cargaron sobre vos: diagnósticos y recetas, ordenados del más nuevo al más viejo, con la fecha y el nombre de quien te atendió. Es de solo lectura: no podés editarla vos, y ningún otro paciente puede verla.</p>
+
+  <div class="captura">
+    <img src="img/m08-paciente-historia.jpg">
+    <div class="pie-foto">La historia de Juan, con el diagnóstico que cargó la Dra. López en su control.</div>
+  </div>
+</section>
+
+<section class="capitulo" id="cap-profesional">
+  <div class="num-cap">Capítulo 4</div>
+  <h1>Si sos profesional</h1>
+  <div class="bajada">Publicar tus horarios y llevar la historia clínica de tus pacientes.</div>
+
+  <h2>Publicar tus horarios</h2>
+  <p>Cuando entrás, la <b>Agenda</b> te muestra un único recuadro: “Publicar disponibilidad”. Escribí el día y la hora en el formato <span class="mono">dd/mm/aaaa hh:mm</span>, por ejemplo <span class="mono">20/11/2026 10:00</span>, y tocá <b>Publicar</b>. Ese horario aparece enseguida en la lista de los pacientes que te busquen.</p>
+
+  <div class="captura">
+    <img src="img/m06-profesional-publicar.jpg">
+    <div class="pie-foto">La agenda del lado del profesional.</div>
+  </div>
+
+  <p>Cada horario se publica de a uno. Si atendés toda una mañana cada media hora, vas a tener que cargarlos uno por uno; es algo que queremos mejorar.</p>
+
+  <h2>Cargar diagnósticos y recetas</h2>
+  <p>Entrá a <b>Historia Clínica</b>. Arriba, en “Seleccionar paciente”, aparecen los pacientes que tienen un turno confirmado con vos, con la fecha del turno. Elegí uno y tocá <b>Ver historia</b>.</p>
+
+  <div class="captura">
+    <img src="img/m07-profesional-historia.jpg">
+    <div class="pie-foto">La Dra. López abrió la historia de Juan: arriba sus datos, en el medio la línea de tiempo y abajo el formulario para agregar.</div>
+  </div>
+
+  <ol class="pasos">
+    <li>Revisá la <b>línea de tiempo clínica</b>: cada entrada tiene su tipo (diagnóstico o receta), la fecha y quién la cargó.</li>
+    <li>Más abajo, en “Agregar entrada”, elegí si es un <b>Diagnóstico</b> o una <b>Receta</b>.</li>
+    <li>Escribí la descripción con el detalle que necesites: lo que vos mismo querrías leer en el próximo control.</li>
+    <li>Tocá <b>Guardar</b>. La entrada aparece primera en la línea de tiempo, firmada con tu nombre, y el paciente ya la puede ver desde su cuenta.</li>
+  </ol>
+
+  <div class="nota ojo"><p><span class="t">Ojo.</span>Las entradas no se pueden editar ni borrar una vez guardadas, igual que en una historia clínica en papel. Revisá el texto antes de tocar Guardar.</p></div>
+</section>
+
+<section class="capitulo" id="cap-avisos">
+  <div class="num-cap">Capítulo 5</div>
+  <h1>Tus avisos: notificaciones y monitor de eventos</h1>
+  <div class="bajada">Cómo te enterás de lo que pasa con tus turnos, sin tener que estar recargando la página.</div>
+
+  <h2>Notificaciones</h2>
+  <p>Cada vez que un turno se confirma o se cancela, MediConecta les avisa a las dos partes. Al paciente le arma un aviso por email y al profesional le deja un aviso dentro de la aplicación. Los dos aparecen en <b>Notificaciones</b>, con el número de avisos sin leer al lado del menú.</p>
+
+  <div class="captura">
+    <img src="img/m09-profesional-notificaciones.jpg">
+    <div class="pie-foto">La bandeja de la Dra. López después de que Juan confirmó su turno. El aviso nuevo está marcado con una línea azul.</div>
+  </div>
+
+  <p>No hace falta recargar: la bandeja se actualiza sola cada pocos segundos. Cuando ya los leíste, tocá <b>Marcar todas como leídas</b> y el número del menú desaparece.</p>
+
+  <div class="nota tip"><p><span class="t">Sobre el email.</span>En esta versión el correo todavía no sale a tu casilla: el aviso queda registrado y lo ves en la bandeja con la etiqueta “Email”. Conectar el envío real es uno de los próximos pasos.</p></div>
+
+  <h2>Monitor de eventos</h2>
+  <p>El <b>Monitor de eventos</b> es la pantalla más técnica de la aplicación, pero vale la pena conocerla. Cada vez que uno de tus turnos se confirma o se cancela, el sistema genera un “evento” que procesan dos servicios por separado: el que arma las notificaciones y el que deja registro de cada cambio (la auditoría). El monitor te muestra, para cada evento, si cada servicio ya lo procesó y cuánto tardó, en milisegundos.</p>
+
+  <div class="captura">
+    <img src="img/m11-monitor.jpg">
+    <div class="pie-foto">Los eventos de los turnos de la Dra. López: cada confirmación y cada cancelación, procesadas por los dos servicios en alrededor de un cuarto de segundo.</div>
+  </div>
+
+  <p>Lo normal es ver todo en verde, con un tilde y unos pocos cientos de milisegundos. Si alguno dice <b>Pendiente</b>, significa que ese servicio todavía no lo procesó, por ejemplo porque está detenido. El aviso no se pierde: queda guardado y se procesa en cuanto el servicio vuelve, y en ese momento el monitor pasa solo a verde. Solo ves los eventos de tus propios turnos.</p>
+</section>
+
+<section class="capitulo" id="cap-faq">
+  <div class="num-cap">Capítulo 6</div>
+  <h1>¿Qué hago si…?</h1>
+  <div class="bajada">Las situaciones que más se repiten, con su solución.</div>
+
+  <div class="faq"><div class="q">…busco a un profesional y no me aparece ningún horario?</div>
+  <div class="a">Ese profesional no tiene horarios libres a futuro. Probá con otro de la misma especialidad o volvé a mirar más tarde: los horarios aparecen apenas el profesional los publica.</div></div>
+
+  <div class="faq"><div class="q">…reservé un turno y desapareció el recuadro naranja?</div>
+  <div class="a">Pasaron los cinco minutos sin que lo confirmaras y el horario se liberó. Si sigue en la lista, reservalo de nuevo y confirmalo enseguida.</div></div>
+
+  <div class="faq"><div class="q">…me dice “Credenciales inválidas”?</div>
+  <div class="a">El email o la contraseña no coinciden. Revisá que el email esté bien escrito y que no tengas activadas las mayúsculas. Todavía no hay una opción para recuperar la contraseña.</div></div>
+
+  <div class="faq"><div class="q">…quiero cambiar el día de mi turno?</div>
+  <div class="a">Cancelá el turno que tenés en “Mis turnos” y reservá uno nuevo. El horario que liberaste queda disponible para otro paciente.</div></div>
+
+  <div class="faq"><div class="q">…soy profesional y no encuentro a un paciente en Historia Clínica?</div>
+  <div class="a">Solo aparecen los pacientes que tienen un turno confirmado con vos. Si el paciente canceló, o todavía no confirmó, no figura en la lista.</div></div>
+
+  <div class="faq"><div class="q">…la notificación no llega?</div>
+  <div class="a">Esperá unos segundos: la bandeja se actualiza sola. Si querés saber qué pasó, mirá el Monitor de eventos. Si el servicio de notificaciones aparece como “Pendiente”, el aviso está en camino y va a llegar apenas se procese.</div></div>
+
+  <div class="faq"><div class="q">…me manda a la pantalla de inicio cuando quiero entrar a una sección?</div>
+  <div class="a">Tu sesión se cerró, por ejemplo porque pasó mucho tiempo sin actividad. Volvé a entrar con tu email y tu contraseña.</div></div>
+
+  <div class="bloque-glosario">
+  <h2>Palabras que vas a ver</h2>
+  <table class="glosario">
+    <tr><td>Turno disponible</td><td>Un horario que publicó un profesional y que nadie reservó todavía.</td></tr>
+    <tr><td>Reserva temporal (“En espera”)</td><td>Un turno retenido a tu nombre durante cinco minutos mientras decidís si lo confirmás.</td></tr>
+    <tr><td>Turno confirmado</td><td>Un turno que ya es tuyo. Lo ves en “Mis turnos” y el profesional ya recibió el aviso.</td></tr>
+    <tr><td>Entrada clínica</td><td>Cada diagnóstico o receta que un profesional carga en tu historia clínica.</td></tr>
+    <tr><td>Evento</td><td>El registro que genera el sistema cada vez que un turno se confirma o se cancela. A partir de él se arman los avisos.</td></tr>
+    <tr><td>Latencia</td><td>Cuánto tardó un servicio en procesar un evento, desde que se generó. Se mide en milisegundos (mil milisegundos son un segundo).</td></tr>
+  </table>
+  </div>
+</section>
+
+<section class="capitulo" id="cap-falta">
+  <div class="num-cap">Capítulo 7</div>
+  <h1>Lo que todavía no hace</h1>
+  <div class="bajada">Para que no busques algo que no está.</div>
+
+  <p>MediConecta está en desarrollo, y preferimos decirte de entrada qué falta. Las secciones <b>Telemedicina</b> y <b>Pagos</b> del menú todavía no funcionan: están marcadas como “Pronto” y van a permitir hacer la consulta por video y pagar los turnos que no cubre tu obra social. Tampoco se valida todavía la cobertura con la obra social al reservar.</p>
+
+  <p>Faltan además algunas comodidades que ya tenemos anotadas: reprogramar un turno sin cancelarlo, recuperar la contraseña por email, publicar varios horarios de una vez y que el profesional vea en su agenda la lista de los turnos que le confirmaron.</p>
+
+  <p>Si encontrás algo que no funciona como dice este manual, o se te ocurre algo que te gustaría que haga, avisanos: este manual se actualiza junto con la aplicación.</p>
+</section>
+
+</body>
+</html>

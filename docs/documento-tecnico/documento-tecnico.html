@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="UTF-8">
+<title>Trabajo Práctico: Desarrollo de Aplicaciones II — MediConecta, documento técnico</title>
+<meta name="author" content="Agustín Bodas, Máximo Bonarrico y Sergio Casanova">
+<style>
+  @page {
+    size: A4;
+    margin: 2.54cm;
+    @top-right {
+      content: counter(page);
+      font-family: Georgia, serif;
+      font-size: 11pt;
+      vertical-align: bottom;
+      padding-bottom: 0.6cm;
+    }
+  }
+  @page apaisada {
+    size: A4 landscape;
+  }
+  .figura-apaisada { page: apaisada; page-break-before: always; page-break-after: always; }
+  .figura-apaisada .figura { margin-top: 0; }
+  @page figura-grande {
+    margin: 1.8cm 1.6cm 1.6cm 1.6cm;
+  }
+
+  html { font-family: Georgia, serif; font-size: 11pt; color: #000; }
+  body { margin: 0; }
+
+  p {
+    line-height: 2;
+    margin: 0;
+    text-indent: 1.27cm;
+    text-align: left;
+    orphans: 3;
+    widows: 3;
+  }
+  p.sin-sangria { text-indent: 0; }
+
+  /* Niveles de título APA 7 */
+  h1 {
+    font-size: 11pt; font-weight: bold; text-align: center;
+    line-height: 2; margin: 0;
+    page-break-after: avoid;
+  }
+  h2 {
+    font-size: 11pt; font-weight: bold; text-align: left;
+    line-height: 2; margin: 0;
+    page-break-after: avoid;
+  }
+  h3 {
+    font-size: 11pt; font-weight: bold; font-style: italic; text-align: left;
+    line-height: 2; margin: 0;
+    page-break-after: avoid;
+  }
+  .salto { page-break-before: always; }
+
+  /* Carátula (formato APA de estudiante + datos institucionales) */
+  .caratula { text-align: center; line-height: 2; }
+  .caratula .institucion-cabecera {
+    margin-top: 0.4cm;
+    line-height: 1.5;
+  }
+  .caratula .sigla {
+    font-size: 26pt; font-weight: bold; letter-spacing: 0.18em;
+    line-height: 1.2;
+  }
+  .caratula .nombre-uni { font-size: 11pt; letter-spacing: 0.04em; }
+  .caratula .facultad { font-size: 11pt; }
+  .caratula .filete {
+    width: 6cm; margin: 0.5cm auto 0 auto; border-top: 0.8pt solid #000;
+  }
+  .caratula .titulo {
+    margin-top: 3.2cm; font-weight: bold; line-height: 2;
+  }
+  .caratula .subtitulo { font-weight: bold; }
+  .caratula .bloque { margin-top: 1.1cm; }
+  .caratula div { text-indent: 0; }
+
+  /* Índice */
+  .indice ul { list-style: none; padding: 0; margin: 0; }
+  .indice li { line-height: 2; }
+  .indice li.n2 { padding-left: 1.27cm; }
+  .indice a { color: #000; text-decoration: none; }
+  .indice a::after {
+    content: leader('.') target-counter(attr(href), page);
+  }
+
+  /* Figuras y tablas APA */
+  .figura { margin: 0.5cm 0 0.6cm 0; page-break-inside: avoid; }
+  .figura .num, .tabla .num { font-weight: bold; line-height: 2; text-indent: 0; }
+  .figura .tit, .tabla .tit { font-style: italic; line-height: 2; text-indent: 0; margin-bottom: 0.15cm; }
+  .figura img { display: block; max-width: 100%; margin: 0 auto; }
+  .figura .nota, .tabla .nota {
+    line-height: 1.5; text-indent: 0; margin-top: 0.2cm; font-size: 10pt;
+  }
+  .nota em.etq { font-style: italic; }
+  .figura-pagina { page: figura-grande; page-break-before: always; page-break-after: always; }
+  .figura-pagina .figura { margin-top: 0; }
+
+  .tabla { margin: 0.5cm 0 0.6cm 0; page-break-inside: avoid; }
+  table {
+    width: 100%; border-collapse: collapse; font-size: 10pt; line-height: 1.4;
+  }
+  thead th {
+    border-top: 0.8pt solid #000; border-bottom: 0.8pt solid #000;
+    text-align: left; font-weight: bold; padding: 4pt 5pt; vertical-align: bottom;
+  }
+  tbody td { padding: 4pt 5pt; vertical-align: top; }
+  tbody tr:last-child td { border-bottom: 0.8pt solid #000; }
+
+  code, .mono { font-family: "Courier New", monospace; font-size: 9.5pt; }
+
+  /* Referencias APA: sangría francesa */
+  .referencias p {
+    text-indent: -1.27cm; padding-left: 1.27cm;
+  }
+  ul.lista { margin: 0 0 0 1.27cm; padding: 0; }
+  ul.lista li { line-height: 2; }
+
+  .cu { margin: 0.25cm 0 0.5cm 0; page-break-inside: avoid; }
+  .cu-cab { font-weight: bold; font-size: 11pt; line-height: 2; }
+  .cu-id { color: #16308c; margin-right: 4pt; }
+  .cu .plan { font-weight: normal; font-style: italic; font-size: 9.5pt; color: #555; margin-left: 6pt; }
+  .cu table { font-size: 9.6pt; border-top: 0.8pt solid #000; border-bottom: 0.8pt solid #000; }
+  .cu td { padding: 3.5pt 5pt; vertical-align: top; border-bottom: 0.4pt solid #ccc; line-height: 1.4; }
+  .cu tr:last-child td { border-bottom: 0; }
+  .cu td.k { width: 24%; font-weight: bold; }
+  .cu ol { margin: 0; padding-left: 14pt; }
+  .cu ol li { line-height: 1.4; margin-bottom: 1pt; }
+  table.hu tr { page-break-inside: avoid; }
+  table.hu ul { margin: 0; padding-left: 11pt; }
+  table.hu li { line-height: 1.35; margin-bottom: 2pt; }
+  .mono { font-family: "Courier New", monospace; font-size: 9pt; }
+</style>
+
+</head>
+<body>
+<!-- ======================= CARÁTULA ======================= -->
+<section class="caratula">
+  <div class="institucion-cabecera">
+    <div class="sigla">UADE</div>
+    <div class="nombre-uni">UNIVERSIDAD ARGENTINA DE LA EMPRESA</div>
+    <div class="facultad">Facultad de Ingeniería y Ciencias Exactas</div>
+    <div class="facultad">Departamento de Tecnología Informática</div>
+    <div class="filete"></div>
+  </div>
+
+  <div class="titulo">Trabajo Práctico: Desarrollo de Aplicaciones II</div>
+  <div class="subtitulo">MediConecta: documento técnico y documentación funcional</div>
+  <div>Entrega Parcial N.º 2</div>
+
+  <div class="bloque">
+    <div>Grupo 4</div>
+    <div>Agustín Bodas, Máximo Bonarrico y Sergio Casanova</div>
+  </div>
+
+  <div class="bloque">
+    <div>Universidad Argentina de la Empresa</div>
+    <div>3.4.218 Desarrollo de Aplicaciones II, Comisión Lunes TT</div>
+    <div>Prof. Matías Ruiz</div>
+    <div>19 de octubre de 2026</div>
+  </div>
+</section>
+
+<!-- ======================= ÍNDICE ======================= -->
+<section class="indice salto">
+  <h1>Índice</h1>
+  <ul>
+    <li><a href="#intro">Introducción</a></li>
+    <li><a href="#p1">Parte I: Arquitectura de integración</a></li>
+    <li class="n2"><a href="#soa">Componentes y sistemas externos</a></li>
+    <li class="n2"><a href="#clasif">Clasificación de las integraciones</a></li>
+    <li class="n2"><a href="#proceso">Proceso de negocio asincrónico</a></li>
+    <li class="n2"><a href="#broker">Configuración del broker</a></li>
+    <li class="n2"><a href="#garantias">Garantías ante fallas y pruebas</a></li>
+    <li class="n2"><a href="#monitor">Monitor de eventos</a></li>
+    <li><a href="#p2">Parte II: Documentación funcional</a></li>
+    <li class="n2"><a href="#actores">Actores</a></li>
+    <li class="n2"><a href="#cu">Casos de uso</a></li>
+    <li class="n2"><a href="#hu">Historias de usuario</a></li>
+    <li class="n2"><a href="#rn">Reglas de negocio</a></li>
+    <li class="n2"><a href="#lim">Limitaciones conocidas</a></li>
+    <li><a href="#conclusiones">Conclusiones</a></li>
+    <li><a href="#referencias">Referencias</a></li>
+    <li><a href="#apendice">Apéndice: declaración de uso de inteligencia artificial generativa</a></li>
+  </ul>
+</section>
+
+<!-- ======================= INTRODUCCIÓN ======================= -->
+<section class="salto">
+  <h1 id="intro">MediConecta: documento técnico y documentación funcional</h1>
+
+  <p>Este documento acompaña la Entrega Parcial N.º 2 de MediConecta, la plataforma que conecta pacientes con profesionales de la salud para gestionar turnos e historia clínica. La consigna de esta instancia pide tres cosas: definir la arquitectura de integración del sistema, clasificar de forma justificada cada integración externa en sincrónica o asincrónica, y poner en marcha al menos un proceso de negocio de punta a punta con mensajería asincrónica real y un broker configurado (Cátedra de Desarrollo de Aplicaciones II, 2026). El anexo de la consigna agrega, para esta misma fecha, la documentación funcional del sistema desde la perspectiva de cada actor.</p>
+
+  <p>Por eso el documento está dividido en dos partes. La primera es técnica y cubre la integración: qué componentes se comunican con qué, por qué canal y con qué garantías, incluyendo las pruebas que hicimos contra la base de datos real. La segunda es funcional y está escrita para que se entienda sin leer código: quiénes usan el sistema, qué puede hacer cada uno, cómo se comporta en cada caso y qué reglas respeta. Complementan este documento el manual de usuario, el documento maestro de diagramas, que explica en detalle los diez diagramas de la solución, y la guía de la presentación.</p>
+</section>
+
+<!-- ======================= PARTE I ======================= -->
+<section class="salto">
+  <h1 id="p1">Parte I: Arquitectura de integración</h1>
+
+  <h2 id="soa">Componentes y sistemas externos</h2>
+
+  <p>MediConecta está construida con componentes Jakarta EE desplegados en un único servidor de aplicaciones, WildFly 41, que además aloja el broker de mensajería ActiveMQ Artemis (Eclipse Foundation, 2022; Apache Software Foundation, s.f.). Hoy funcionan seis componentes de negocio: usuarios, turnos, historia clínica, notificaciones, auditoría y monitoreo. Los componentes de obras sociales, pagos, telemedicina y facturación están diseñados y se implementan en la Entrega Obligatoria N.º 2. La Figura 1 muestra cómo se conectan entre sí y con los tres sistemas externos del dominio.</p>
+
+  <div class="figura">
+    <div class="num">Figura 1</div>
+    <div class="tit">Arquitectura de integración de MediConecta</div>
+    <img src="../diagramas/01-integracion-soa.png" style="max-height:14.5cm">
+    <div class="nota"><em class="etq">Nota.</em> Línea llena: implementado. Línea punteada: planificado para la Entrega Obligatoria N.º 2 (09/11).</div>
+  </div>
+
+  <h2 id="clasif">Clasificación de las integraciones</h2>
+
+  <p>Para decidir el canal de cada integración usamos una regla simple: si quien la inicia necesita la respuesta para poder seguir, la integración es sincrónica; si se trata de una consecuencia que puede procesarse después, o que le interesa a más de un componente, es asincrónica (Hohpe y Woolf, 2003). Dentro de las sincrónicas, el protocolo lo define el sistema externo: SOAP para el sistema legado de la obra social y REST para los partners modernos. La Tabla 1 aplica esa regla a cada caso.</p>
+
+  <div class="tabla">
+    <div class="num">Tabla 1</div>
+    <div class="tit">Clasificación justificada de las integraciones</div>
+    <table>
+      <thead><tr><th style="width:21%">Integración</th><th style="width:19%">Tipo y canal</th><th>Justificación</th><th style="width:13%">Estado</th></tr></thead>
+      <tbody>
+        <tr><td>Notificaciones de turnos</td><td>Asincrónica · tópico <span class="mono">turnos</span></td><td>El paciente no necesita esperar a que se envíe un aviso para ver su turno confirmado. Si el envío falla, se reintenta sin deshacer la reserva.</td><td>Implementada</td></tr>
+        <tr><td>Auditoría de cambios</td><td>Asincrónica · mismo tópico</td><td>Es otro interesado en el mismo evento. El tópico permite sumarlo sin modificar el servicio de turnos.</td><td>Implementada</td></tr>
+        <tr><td>Facturación a obras sociales</td><td>Asincrónica · tópico con selector</td><td>Solo le interesan las confirmaciones y cancelaciones y puede procesarlas en lote. Filtra por la propiedad <span class="mono">tipoEvento</span>.</td><td>Planificada</td></tr>
+        <tr><td>Autorización de prestaciones</td><td>Asincrónica · cola punto a punto</td><td>Cada solicitud debe procesarse exactamente una vez; la cola admite consumidores en competencia para los picos de demanda.</td><td>Planificada</td></tr>
+        <tr><td>Validación de cobertura</td><td>Sincrónica · SOAP con WSDL</td><td>El sistema de la obra social es legado y solo expone SOAP. El paciente necesita saber en el momento si tiene cobertura.</td><td>Planificada</td></tr>
+        <tr><td>Pago de turnos particulares</td><td>Sincrónica · REST</td><td>La pasarela es un servicio moderno y el resultado del cobro se necesita antes de confirmar el turno.</td><td>Planificada</td></tr>
+        <tr><td>Videoconsulta</td><td>Sincrónica · REST</td><td>La sala se crea en el momento de iniciar la consulta.</td><td>Planificada</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 id="proceso">Proceso de negocio asincrónico</h2>
+
+  <p>El proceso implementado de punta a punta es la notificación de cambios en los turnos. Arranca cuando un paciente confirma o cancela un turno y termina cuando el profesional recibe el aviso en su bandeja y el cambio queda auditado. En el medio intervienen el servicio de turnos, el broker y dos componentes consumidores que no se conocen entre sí. La Figura 2 muestra la secuencia.</p>
+
+  <div class="figura">
+    <div class="num">Figura 2</div>
+    <div class="tit">Secuencia del proceso asincrónico al confirmar un turno</div>
+    <img src="../diagramas/04-secuencia-confirmar-turno.png">
+    <div class="nota"><em class="etq">Nota.</em> El bloque <em>par</em> indica que las dos entregas ocurren en paralelo, en hilos del broker.</div>
+  </div>
+
+  <p>La decisión más importante del proceso es que la publicación del evento ocurre dentro de la misma transacción que actualiza el turno. El contexto JMS que usa el publicador está enlistado en la transacción JTA del componente que lo llama, así que el mensaje recién se entrega cuando la transacción se confirma; si hay un rollback, el mensaje se descarta (patrón Transactional Client; Hohpe y Woolf, 2003). En la misma transacción se registra el evento en la tabla <span class="mono">evento_publicado</span>, que después usa el monitor. Del lado de los consumidores, cada uno es un <em>Message-Driven Bean</em> con una suscripción durable al tópico, de modo que el broker le retiene los mensajes si está caído.</p>
+
+  <p>El evento viaja en formato JSON y contiene solo lo necesario para notificar: identificadores, fecha del turno y datos de contacto. Nunca incluye diagnósticos ni otros datos clínicos, porque la historia clínica es información sensible según la Ley 25.326 de Protección de los Datos Personales (2000) y la mensajería no la necesita.</p>
+
+  <h2 id="broker">Configuración del broker</h2>
+
+  <p>El broker no es simulado: es el ActiveMQ Artemis embebido en WildFly, que solo está disponible en el perfil <span class="mono">standalone-full.xml</span>. La configuración se aplica con un script de la consola de administración incluido en el repositorio (<span class="mono">wildfly/configurar-mensajeria.cli</span>), que crea el tópico y define su política ante fallas. La Tabla 2 resume los recursos configurados.</p>
+
+  <div class="tabla">
+    <div class="num">Tabla 2</div>
+    <div class="tit">Recursos de mensajería configurados en el broker</div>
+    <table>
+      <thead><tr><th style="width:30%">Recurso</th><th>Configuración</th></tr></thead>
+      <tbody>
+        <tr><td>Tópico <span class="mono">turnos</span></td><td>JNDI <span class="mono">java:/jms/topic/turnos</span>. Mensajes persistentes.</td></tr>
+        <tr><td>Suscripción <span class="mono">notificaciones</span></td><td>Durable, <span class="mono">clientId</span> <span class="mono">mediconecta-notificaciones</span>, consumida por <span class="mono">NotificacionesSubscriber</span>.</td></tr>
+        <tr><td>Suscripción <span class="mono">auditoria</span></td><td>Durable, <span class="mono">clientId</span> <span class="mono">mediconecta-auditoria</span>, consumida por <span class="mono">AuditoriaSubscriber</span>.</td></tr>
+        <tr><td>Política de reintentos</td><td>Hasta 3 entregas, con 5 segundos entre cada una (<span class="mono">address-setting</span> sobre <span class="mono">jms.topic.turnos</span>).</td></tr>
+        <tr><td>Cola de mensajes fallidos</td><td><span class="mono">jms.queue.DLQ</span>: recibe los mensajes que fallan tres veces. Los vencidos van a <span class="mono">jms.queue.ExpiryQueue</span>.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 id="garantias">Garantías ante fallas y pruebas</h2>
+
+  <p>Un proceso asincrónico tiene que seguir siendo correcto cuando algo sale mal. Diseñamos cuatro garantías y las probamos todas contra la base de datos real en Supabase, además de dos pruebas automáticas que recorren la aplicación con un navegador. La Tabla 3 resume qué se probó y qué resultado se obtuvo.</p>
+
+  <div class="tabla">
+    <div class="num">Tabla 3</div>
+    <div class="tit">Pruebas del proceso asincrónico y resultados</div>
+    <table>
+      <thead><tr><th style="width:24%">Escenario</th><th style="width:22%">Patrón que lo cubre</th><th>Resultado observado</th></tr></thead>
+      <tbody>
+        <tr><td>Confirmar y cancelar un turno</td><td>Publish-Subscribe Channel</td><td>Cada evento llegó a los dos suscriptores: 2 notificaciones y 1 registro de auditoría por evento, procesados en unos 250 a 330 ms.</td></tr>
+        <tr><td>Falla después de publicar, antes del commit</td><td>Transactional Client</td><td>La transacción se revirtió y el mensaje no se entregó: 0 notificaciones y 0 registros de auditoría.</td></tr>
+        <tr><td>El mismo evento entregado dos veces</td><td>Idempotent Receiver</td><td>Cada suscriptor lo procesó una sola vez; la segunda copia se descartó.</td></tr>
+        <tr><td>Suscriptor detenido y reinicio completo del servidor</td><td>Durable Subscriber</td><td>El broker retuvo 1 mensaje; al reiniciar WildFly se procesó sin pérdida.</td></tr>
+        <tr><td>Mensaje que no se puede procesar</td><td>Dead Letter Channel</td><td>Tres intentos a las 15:44:57, 15:45:02 y 15:45:07 y luego traslado a la DLQ, sin bloquear al resto.</td></tr>
+        <tr><td>Recorrido completo con navegador</td><td>—</td><td>14 verificaciones correctas (<span class="mono">pruebas/prueba_e2e.py</span>) y 7 sobre el monitor, con el suscriptor frenado desde la consola (<span class="mono">pruebas/prueba_monitor.py</span>).</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>Las pruebas también sirvieron para encontrar problemas que no eran de la mensajería. Las páginas tardaban unos 3,4 segundos en cargar porque cada request hacía alrededor de treinta consultas a la base; con memoización por request el tiempo bajó a 0,8 segundos. Además corregimos un error que mostraba una página “Unauthorized” ante una contraseña incorrecta, el registro que aceptaba campos vacíos y la agenda que ofrecía horarios ya vencidos. Por último, adaptamos la interfaz a tablet y celular, como exige el anexo: en pantallas chicas el menú lateral pasa a ser una barra superior desplazable y las tablas se desplazan dentro de su tarjeta, sin desbordar la página.</p>
+
+  <h2 id="monitor">Monitor de eventos</h2>
+
+  <p>Para que el proceso asincrónico se pueda observar sin abrir los logs del servidor, agregamos una pantalla, el Monitor de eventos (Figura 3). Para cada evento de los turnos del usuario muestra cuándo se publicó y, por cada suscriptor, si ya lo procesó y con qué latencia, o si lo tiene pendiente. Se alimenta del cruce entre <span class="mono">evento_publicado</span> y <span class="mono">evento_procesado</span>, y se actualiza solo cada tres segundos.</p>
+
+  <div class="figura">
+    <div class="num">Figura 3</div>
+    <div class="tit">Monitor de eventos con un suscriptor detenido</div>
+    <img src="img/monitor-pendiente.jpg" style="max-height:10cm">
+    <div class="nota"><em class="etq">Nota.</em> Con el suscriptor de auditoría detenido desde la consola, la cancelación figura como pendiente para ese suscriptor. Al reactivarlo, el estado cambió solo a procesado, con una latencia de 5118 ms, que es el tiempo que el broker retuvo el mensaje.</div>
+  </div>
+
+  <p>El monitor también aplica seguridad en dos niveles. La anotación <span class="mono">@RolesAllowed</span> restringe el acceso a pacientes y profesionales (seguridad declarativa), y el servicio toma el usuario del principal autenticado en lugar de recibirlo como parámetro, de modo que cada uno ve solo los eventos de sus propios turnos (seguridad programática por titularidad). Los datos viajan a la vista como objetos de transferencia y no como entidades (Alur et al., 2003).</p>
+</section>
+
+<!-- ======================= PARTE II ======================= -->
+<section class="salto">
+  <h1 id="p2">Parte II: Documentación funcional</h1>
+
+  <p>Esta parte describe el comportamiento esperado de MediConecta desde la perspectiva de quienes la usan, como pide el anexo de la consigna. Primero se presentan los actores, después los casos de uso con sus flujos, las historias de usuario con sus criterios de aceptación y, por último, las reglas de negocio y las limitaciones conocidas. Los casos de uso se describen con la plantilla habitual de actor, precondiciones, flujo principal, flujos alternativos y postcondición, y cada uno indica si ya está implementado (Cockburn, 2001).</p>
+
+  <h2 id="actores">Actores</h2>
+
+  <div class="tabla">
+    <div class="num">Tabla 4</div>
+    <div class="tit">Actores del sistema</div>
+    <table>
+      <thead><tr><th style="width:22%">Actor</th><th style="width:15%">Tipo</th><th>Qué busca en MediConecta</th></tr></thead>
+      <tbody>
+        <tr><td>Paciente</td><td>Persona</td><td>Encontrar un horario con un profesional, reservarlo sin que se lo saquen mientras decide, enterarse de los cambios y consultar su historia clínica.</td></tr>
+        <tr><td>Profesional de la salud</td><td>Persona</td><td>Publicar sus horarios, saber cuándo un paciente confirma o cancela y registrar diagnósticos y recetas.</td></tr>
+        <tr><td>Administrador de clínica</td><td>Persona</td><td>Gestionar agendas y turnos de varios profesionales. Previsto en la consigna; todavía no tiene diseño ni implementación.</td></tr>
+        <tr><td>Obra social o prepaga</td><td>Sistema externo legado</td><td>Recibir consultas de cobertura y solicitudes de autorización (SOAP).</td></tr>
+        <tr><td>Pasarela de pago</td><td>Sistema externo moderno</td><td>Procesar el cobro de turnos particulares (REST).</td></tr>
+        <tr><td>Proveedor de videoconsulta</td><td>Sistema externo moderno</td><td>Crear y gestionar las salas de telemedicina (REST).</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 id="cu">Casos de uso</h2>
+
+  <p>La Figura 4 muestra el diagrama de casos de uso. Debajo se especifican los doce casos implementados y, de forma resumida, los dos planificados que ya tienen definido su canal de integración.</p>
+
+  <div class="figura">
+    <div class="num">Figura 4</div>
+    <div class="tit">Diagrama de casos de uso</div>
+    <img src="../diagramas/07-casos-de-uso.png" style="max-height:15cm">
+    <div class="nota"><em class="etq">Nota.</em> Los casos con borde punteado están planificados para la Entrega Obligatoria N.º 2.</div>
+  </div>
+
+    <div class="cu">
+    <div class="cu-cab"><span class="cu-id">CU-01</span> Registrarse</div>
+    <table>
+      <tr><td class="k">Actor</td><td>Paciente o profesional</td></tr>
+      <tr><td class="k">Estado</td><td>Implementado</td></tr>
+      <tr><td class="k">Precondiciones</td><td>La persona no tiene una cuenta con ese email.</td></tr>
+      <tr><td class="k">Flujo principal</td><td><ol><li>Elige el tipo de usuario: paciente o profesional.</li><li>El sistema muestra los campos que corresponden: obra social para el paciente; matrícula y especialidad para el profesional.</li><li>Completa nombre, email y contraseña, y los datos propios de su tipo.</li><li>Confirma con “Registrarme”.</li><li>El sistema verifica que los datos obligatorios estén completos y que el email no esté registrado.</li><li>El sistema crea el paciente o el profesional, guarda la contraseña con hash PBKDF2 y muestra “Registro exitoso, ya podés iniciar sesión”.</li></ol></td></tr>
+      <tr><td class="k">Flujos alternativos</td><td>5a. Falta un dato obligatorio: el sistema indica cuál (“Completá tu nombre”, “Completá tu email”, “Elegí una contraseña”) y no crea la cuenta.<br>5b. El email ya existe: el sistema informa “El email … ya está registrado” y no crea la cuenta.</td></tr>
+      <tr><td class="k">Postcondición</td><td>Existe una cuenta nueva con el rol elegido.</td></tr>
+    </table>
+  </div>
+  <div class="cu">
+    <div class="cu-cab"><span class="cu-id">CU-02</span> Iniciar y cerrar sesión</div>
+    <table>
+      <tr><td class="k">Actor</td><td>Paciente o profesional</td></tr>
+      <tr><td class="k">Estado</td><td>Implementado</td></tr>
+      <tr><td class="k">Precondiciones</td><td>La persona tiene una cuenta.</td></tr>
+      <tr><td class="k">Flujo principal</td><td><ol><li>Ingresa email y contraseña y confirma con “Ingresar”.</li><li>El sistema valida las credenciales contra la base de datos.</li><li>El sistema abre la sesión con el rol del usuario y muestra la Agenda.</li><li>Al tocar “Cerrar sesión”, el sistema invalida la sesión y vuelve a la pantalla de inicio.</li></ol></td></tr>
+      <tr><td class="k">Flujos alternativos</td><td>2a. Credenciales incorrectas: el sistema muestra “Credenciales inválidas” sin indicar cuál dato falló.<br>Sin sesión, cualquier intento de abrir una página interna redirige a la pantalla de inicio.</td></tr>
+      <tr><td class="k">Postcondición</td><td>El usuario queda autenticado con su rol, o la sesión queda cerrada.</td></tr>
+    </table>
+  </div>
+  <div class="cu">
+    <div class="cu-cab"><span class="cu-id">CU-03</span> Publicar disponibilidad</div>
+    <table>
+      <tr><td class="k">Actor</td><td>Profesional</td></tr>
+      <tr><td class="k">Estado</td><td>Implementado</td></tr>
+      <tr><td class="k">Precondiciones</td><td>El profesional inició sesión.</td></tr>
+      <tr><td class="k">Flujo principal</td><td><ol><li>En la Agenda, ingresa fecha y hora con el formato dd/mm/aaaa hh:mm.</li><li>Confirma con “Publicar”.</li><li>El sistema crea un turno en estado disponible y muestra “Disponibilidad publicada”.</li></ol></td></tr>
+      <tr><td class="k">Flujos alternativos</td><td>1a. El formato de la fecha no es válido: el sistema rechaza el valor y no crea el turno.<br>Si quien intenta publicar no tiene el rol de profesional, el servicio rechaza la operación.</td></tr>
+      <tr><td class="k">Postcondición</td><td>El horario aparece en la búsqueda de los pacientes.</td></tr>
+    </table>
+  </div>
+  <div class="cu">
+    <div class="cu-cab"><span class="cu-id">CU-04</span> Buscar disponibilidad</div>
+    <table>
+      <tr><td class="k">Actor</td><td>Paciente</td></tr>
+      <tr><td class="k">Estado</td><td>Implementado</td></tr>
+      <tr><td class="k">Precondiciones</td><td>El paciente inició sesión.</td></tr>
+      <tr><td class="k">Flujo principal</td><td><ol><li>En la Agenda, elige un profesional de la lista (cada uno con su especialidad).</li><li>Confirma con “Ver turnos disponibles”.</li><li>El sistema lista los turnos disponibles con fecha futura de ese profesional, del más próximo al más lejano.</li></ol></td></tr>
+      <tr><td class="k">Flujos alternativos</td><td>3a. El profesional no tiene horarios disponibles a futuro: la lista queda vacía.</td></tr>
+      <tr><td class="k">Postcondición</td><td>El paciente ve los horarios que puede reservar.</td></tr>
+    </table>
+  </div>
+  <div class="cu">
+    <div class="cu-cab"><span class="cu-id">CU-05</span> Reservar turno</div>
+    <table>
+      <tr><td class="k">Actor</td><td>Paciente</td></tr>
+      <tr><td class="k">Estado</td><td>Implementado</td></tr>
+      <tr><td class="k">Precondiciones</td><td>El paciente buscó la disponibilidad de un profesional (CU-04).<br>El turno está disponible.</td></tr>
+      <tr><td class="k">Flujo principal</td><td><ol><li>Elige un horario y confirma con “Reservar”.</li><li>El sistema asocia el turno al paciente, lo pasa a estado de espera (hold) y lo retiene durante 5 minutos.</li><li>El sistema muestra el recuadro “Turno reservado temporalmente” con la fecha y la hora.</li></ol></td></tr>
+      <tr><td class="k">Flujos alternativos</td><td>2a. Otro paciente lo reservó antes: el sistema informa “El turno ya no está disponible.”<br>2b. El paciente ya tiene otro turno retenido: el sistema informa “Ya existe un turno en hold en esta conversación.”<br>3a. Pasan 5 minutos sin confirmación: el contenedor libera el turno, que vuelve a estar disponible.</td></tr>
+      <tr><td class="k">Postcondición</td><td>El turno queda retenido a nombre del paciente.</td></tr>
+    </table>
+  </div>
+  <div class="cu">
+    <div class="cu-cab"><span class="cu-id">CU-06</span> Confirmar turno</div>
+    <table>
+      <tr><td class="k">Actor</td><td>Paciente</td></tr>
+      <tr><td class="k">Estado</td><td>Implementado</td></tr>
+      <tr><td class="k">Precondiciones</td><td>El paciente tiene un turno retenido (CU-05).</td></tr>
+      <tr><td class="k">Flujo principal</td><td><ol><li>Confirma con “Confirmar turno”.</li><li>El sistema pasa el turno a confirmado y, en la misma transacción, publica el evento TURNO_CONFIRMADO (incluye CU-08).</li><li>El sistema muestra “Turno confirmado para el …” y el turno aparece en “Mis turnos”.</li></ol></td></tr>
+      <tr><td class="k">Flujos alternativos</td><td>1a. El plazo de 5 minutos venció: el sistema informa “No hay ningún turno en hold para confirmar.”<br>2a. Falla el guardado: la transacción se revierte y el evento no se publica.</td></tr>
+      <tr><td class="k">Postcondición</td><td>El turno está confirmado y el cambio quedó publicado.</td></tr>
+    </table>
+  </div>
+  <div class="cu">
+    <div class="cu-cab"><span class="cu-id">CU-07</span> Cancelar turno</div>
+    <table>
+      <tr><td class="k">Actor</td><td>Paciente</td></tr>
+      <tr><td class="k">Estado</td><td>Implementado</td></tr>
+      <tr><td class="k">Precondiciones</td><td>El paciente tiene un turno confirmado propio.</td></tr>
+      <tr><td class="k">Flujo principal</td><td><ol><li>En “Mis turnos”, elige el turno y confirma con “Cancelar”.</li><li>El sistema verifica que el turno esté confirmado y que pertenezca al paciente.</li><li>El sistema libera el turno, que vuelve a estar disponible, y publica el evento TURNO_CANCELADO (incluye CU-08).</li><li>El sistema muestra “Turno cancelado”.</li></ol></td></tr>
+      <tr><td class="k">Flujos alternativos</td><td>2a. El turno no existe, no está confirmado o es de otro paciente: el sistema informa “El turno no existe, no está confirmado o no te pertenece.”</td></tr>
+      <tr><td class="k">Postcondición</td><td>El horario queda disponible para otros pacientes y el cambio quedó publicado.</td></tr>
+    </table>
+  </div>
+  <div class="cu">
+    <div class="cu-cab"><span class="cu-id">CU-08</span> Notificar cambio de turno</div>
+    <table>
+      <tr><td class="k">Actor</td><td>Sistema (disparado por CU-06 y CU-07)</td></tr>
+      <tr><td class="k">Estado</td><td>Implementado</td></tr>
+      <tr><td class="k">Precondiciones</td><td>Se confirmó o canceló un turno y la transacción se confirmó.</td></tr>
+      <tr><td class="k">Flujo principal</td><td><ol><li>El broker entrega el evento a las dos suscripciones del tópico, en paralelo.</li><li>El componente de notificaciones verifica que el evento no se haya procesado antes.</li><li>Genera un aviso por email para el paciente (envío simulado) y un aviso dentro de la aplicación para el profesional.</li><li>El componente de auditoría verifica lo mismo y registra el cambio con sus identificadores y horarios.</li></ol></td></tr>
+      <tr><td class="k">Flujos alternativos</td><td>2a. El evento ya fue procesado por ese componente: se descarta sin efectos.<br>1a. Un componente está detenido: el broker retiene el mensaje y lo entrega cuando vuelve.<br>3a. El procesamiento falla: el broker reintenta tres veces, con 5 segundos entre intentos, y después envía el mensaje a la cola de mensajes fallidos.</td></tr>
+      <tr><td class="k">Postcondición</td><td>Ambas partes tienen su aviso y el cambio quedó auditado.</td></tr>
+    </table>
+  </div>
+  <div class="cu">
+    <div class="cu-cab"><span class="cu-id">CU-09</span> Ver notificaciones</div>
+    <table>
+      <tr><td class="k">Actor</td><td>Paciente o profesional</td></tr>
+      <tr><td class="k">Estado</td><td>Implementado</td></tr>
+      <tr><td class="k">Precondiciones</td><td>El usuario inició sesión.</td></tr>
+      <tr><td class="k">Flujo principal</td><td><ol><li>El menú muestra la cantidad de avisos sin leer.</li><li>El usuario abre Notificaciones y ve sus avisos, del más reciente al más antiguo.</li><li>La bandeja se actualiza sola cada 5 segundos.</li><li>El usuario puede marcar todos los avisos como leídos.</li></ol></td></tr>
+      <tr><td class="k">Flujos alternativos</td><td>2a. No hay avisos: el sistema muestra “Todavía no tenés notificaciones.”</td></tr>
+      <tr><td class="k">Postcondición</td><td>Los avisos quedan marcados como leídos, si así lo eligió.</td></tr>
+    </table>
+  </div>
+  <div class="cu">
+    <div class="cu-cab"><span class="cu-id">CU-10</span> Consultar historia clínica</div>
+    <table>
+      <tr><td class="k">Actor</td><td>Paciente o profesional</td></tr>
+      <tr><td class="k">Estado</td><td>Implementado</td></tr>
+      <tr><td class="k">Precondiciones</td><td>El usuario inició sesión.</td></tr>
+      <tr><td class="k">Flujo principal</td><td><ol><li>El paciente abre Historia Clínica y ve su propia historia, en modo solo lectura.</li><li>El profesional abre Historia Clínica, elige un paciente entre los que tienen un turno confirmado con él y confirma con “Ver historia”.</li><li>El sistema muestra los datos del paciente y la línea de tiempo de diagnósticos y recetas, con fecha y profesional.</li></ol></td></tr>
+      <tr><td class="k">Flujos alternativos</td><td>3a. La historia no tiene entradas: el sistema muestra “Todavía no hay entradas registradas en esta historia clínica.”<br>2a. El profesional no tiene pacientes con turno confirmado: la lista de selección queda vacía.</td></tr>
+      <tr><td class="k">Postcondición</td><td>Sin cambios en el sistema.</td></tr>
+    </table>
+  </div>
+  <div class="cu">
+    <div class="cu-cab"><span class="cu-id">CU-11</span> Cargar entrada clínica</div>
+    <table>
+      <tr><td class="k">Actor</td><td>Profesional</td></tr>
+      <tr><td class="k">Estado</td><td>Implementado</td></tr>
+      <tr><td class="k">Precondiciones</td><td>El profesional abrió la historia de un paciente (CU-10).</td></tr>
+      <tr><td class="k">Flujo principal</td><td><ol><li>En “Agregar entrada”, elige el tipo: diagnóstico o receta.</li><li>Escribe la descripción.</li><li>Confirma con “Guardar”.</li><li>El sistema registra la entrada con la fecha y el profesional, y la muestra primera en la línea de tiempo.</li></ol></td></tr>
+      <tr><td class="k">Flujos alternativos</td><td>Si quien intenta guardar no tiene el rol de profesional, el servicio rechaza la operación.</td></tr>
+      <tr><td class="k">Postcondición</td><td>La entrada forma parte de la historia y el paciente la puede ver.</td></tr>
+    </table>
+  </div>
+  <div class="cu">
+    <div class="cu-cab"><span class="cu-id">CU-12</span> Monitorear eventos</div>
+    <table>
+      <tr><td class="k">Actor</td><td>Paciente o profesional</td></tr>
+      <tr><td class="k">Estado</td><td>Implementado</td></tr>
+      <tr><td class="k">Precondiciones</td><td>El usuario inició sesión.</td></tr>
+      <tr><td class="k">Flujo principal</td><td><ol><li>El usuario abre Monitor de eventos.</li><li>El sistema identifica al usuario a partir de la sesión autenticada.</li><li>El sistema muestra hasta 20 eventos recientes de los turnos del usuario y, por cada suscriptor, si lo procesó y con qué latencia, junto con los totales.</li><li>La pantalla se actualiza sola cada 3 segundos.</li></ol></td></tr>
+      <tr><td class="k">Flujos alternativos</td><td>3a. No hay eventos: el sistema invita a confirmar o cancelar un turno para verlos.<br>3b. Un suscriptor todavía no procesó el evento: la columna muestra “Pendiente” hasta que lo procese.</td></tr>
+      <tr><td class="k">Postcondición</td><td>Sin cambios en el sistema.</td></tr>
+    </table>
+  </div>
+  <h3>Casos de uso planificados</h3>
+  <div class="cu">
+    <div class="cu-cab"><span class="cu-id">CU-13</span> Validar cobertura <span class="plan">planificado · 09/11</span></div>
+    <table>
+      <tr><td class="k">Actores</td><td>Paciente; obra social (sistema legado)</td></tr>
+      <tr><td class="k">Descripción</td><td>Al confirmar un turno, el sistema consulta por SOAP al sistema de la obra social si el paciente tiene cobertura para la prestación. Si el legado no responde, se aplica un circuito de protección y el turno queda con la cobertura pendiente de revalidación por cola.</td></tr>
+    </table>
+  </div>
+  <div class="cu">
+    <div class="cu-cab"><span class="cu-id">CU-14</span> Pagar turno particular <span class="plan">planificado · 09/11</span></div>
+    <table>
+      <tr><td class="k">Actores</td><td>Paciente; pasarela de pago</td></tr>
+      <tr><td class="k">Descripción</td><td>Si el paciente no tiene cobertura, el sistema cobra el turno por REST a la pasarela antes de confirmarlo. Reservar, cobrar y confirmar forman un único flujo transaccional: si el cobro falla, la reserva se revierte.</td></tr>
+    </table>
+  </div>
+</section>
+
+<section class="salto">
+  <h2 id="hu">Historias de usuario</h2>
+
+  <p>Las historias de usuario expresan las mismas funcionalidades desde el valor que le aportan a cada actor. Los criterios de aceptación están redactados en el formato <em>dado, cuando, entonces</em>, y son los que usamos para verificar el comportamiento, en buena parte de forma automática con las pruebas de navegador.</p>
+
+    <div class="tabla" style="page-break-inside:auto">
+    <div class="num">Tabla 5</div>
+    <div class="tit">Historias de usuario y criterios de aceptación</div>
+    <table class="hu">
+      <thead><tr><th style="width:8%">ID</th><th style="width:13%">Actor</th><th style="width:33%">Historia</th><th>Criterios de aceptación</th></tr></thead>
+      <tbody>
+        <tr><td>HU-01</td><td>Paciente</td><td>Como paciente, quiero reservar un horario y tener unos minutos para confirmarlo, para que nadie me lo saque mientras decido.</td><td><ul><li>Dado un turno disponible, cuando lo reservo, entonces queda en espera a mi nombre y deja de aparecer para otros pacientes.</li><li>Dado un turno en espera, cuando pasan 5 minutos sin confirmar, entonces vuelve a estar disponible.</li></ul></td></tr>
+        <tr><td>HU-02</td><td>Paciente</td><td>Como paciente, quiero confirmar mi turno y ver que quedó registrado, para tener la certeza de que me van a atender.</td><td><ul><li>Dado un turno en espera, cuando lo confirmo, entonces aparece en “Mis turnos” y veo un aviso con la fecha.</li><li>Dado que confirmé un turno, cuando abro Notificaciones, entonces tengo el aviso de confirmación.</li></ul></td></tr>
+        <tr><td>HU-03</td><td>Paciente</td><td>Como paciente, quiero cancelar un turno al que no voy a poder ir, para liberar el horario.</td><td><ul><li>Dado un turno confirmado propio, cuando lo cancelo, entonces desaparece de “Mis turnos” y vuelve a estar disponible para otros.</li><li>Dado que cancelé, cuando el profesional abre sus notificaciones, entonces tiene el aviso de la cancelación.</li></ul></td></tr>
+        <tr><td>HU-04</td><td>Paciente</td><td>Como paciente, quiero ver solo horarios que todavía puedo usar, para no perder tiempo con turnos vencidos.</td><td><ul><li>Dado un profesional con horarios pasados y futuros, cuando busco su disponibilidad, entonces solo veo los futuros.</li></ul></td></tr>
+        <tr><td>HU-05</td><td>Paciente</td><td>Como paciente, quiero consultar mi historia clínica, para tener a mano mis diagnósticos y recetas.</td><td><ul><li>Dado que un profesional cargó una entrada, cuando abro Historia Clínica, entonces la veo con fecha y nombre del profesional, sin poder modificarla.</li></ul></td></tr>
+        <tr><td>HU-06</td><td>Profesional</td><td>Como profesional, quiero publicar los horarios en que atiendo, para que los pacientes puedan reservarlos.</td><td><ul><li>Dado un horario futuro con el formato correcto, cuando lo publico, entonces los pacientes lo ven como disponible.</li></ul></td></tr>
+        <tr><td>HU-07</td><td>Profesional</td><td>Como profesional, quiero enterarme cuando un paciente confirma o cancela, sin tener que recargar la página.</td><td><ul><li>Dado que tengo abierta la bandeja, cuando un paciente confirma un turno conmigo, entonces en pocos segundos aparece el aviso y el contador del menú aumenta.</li></ul></td></tr>
+        <tr><td>HU-08</td><td>Profesional</td><td>Como profesional, quiero registrar diagnósticos y recetas de mis pacientes, para llevar su historia clínica.</td><td><ul><li>Dado un paciente con turno confirmado conmigo, cuando guardo una entrada, entonces aparece primera en su línea de tiempo con mi nombre.</li><li>Dado un paciente sin turno confirmado conmigo, cuando abro Historia Clínica, entonces no figura en la lista.</li></ul></td></tr>
+        <tr><td>HU-09</td><td>Paciente o profesional</td><td>Como usuario, quiero ver si el sistema ya procesó los avisos de mis turnos, para saber que no se perdió ninguno.</td><td><ul><li>Dado un turno confirmado, cuando abro el Monitor de eventos, entonces veo el evento procesado por notificaciones y auditoría con su latencia.</li><li>Dado un suscriptor detenido, cuando se cancela un turno, entonces veo ese suscriptor como “Pendiente”, y procesado en cuanto se reactiva.</li><li>Dado otro usuario sin turnos, cuando abre el monitor, entonces no ve mis eventos.</li></ul></td></tr>
+        <tr><td>HU-10</td><td>Paciente o profesional</td><td>Como usuario, quiero que el registro me avise si me falta un dato, para no crear una cuenta incompleta.</td><td><ul><li>Dado el formulario de registro, cuando lo envío sin nombre, email o contraseña, entonces se indica qué falta y no se crea la cuenta.</li><li>Dado un email ya registrado, cuando intento registrarme con él, entonces el sistema lo informa.</li></ul></td></tr>
+      </tbody>
+    </table>
+    <div class="nota"><em class="etq">Nota.</em> HU-01 a HU-04, HU-07, HU-09 y HU-10 se verifican de forma automática con las pruebas de navegador del repositorio.</div>
+  </div>
+
+  <h2 id="rn">Reglas de negocio</h2>
+
+  <div class="tabla">
+    <div class="num">Tabla 6</div>
+    <div class="tit">Reglas de negocio implementadas</div>
+    <table>
+      <thead><tr><th style="width:9%">ID</th><th>Regla</th><th style="width:30%">Dónde se aplica</th></tr></thead>
+      <tbody>
+        <tr><td>RN-01</td><td>Un turno reservado queda retenido durante 5 minutos. Si no se confirma, vuelve a estar disponible.</td><td>EJB <span class="mono">@Stateful</span> con <span class="mono">@StatefulTimeout</span> y <span class="mono">@PreDestroy</span></td></tr>
+        <tr><td>RN-02</td><td>Un paciente puede tener un solo turno retenido a la vez dentro de su sesión.</td><td><span class="mono">ServicioDeTurnosBean.reservarHold</span></td></tr>
+        <tr><td>RN-03</td><td>Solo se puede reservar un turno disponible y con fecha futura.</td><td>Servicio de turnos y <span class="mono">TurnoDAO</span></td></tr>
+        <tr><td>RN-04</td><td>Solo el paciente titular puede cancelar un turno, y solo si está confirmado. Al cancelarlo, el horario vuelve a estar disponible.</td><td><span class="mono">ServicioDeTurnosBean.cancelar</span></td></tr>
+        <tr><td>RN-05</td><td>Cada email se puede registrar una sola vez. Nombre, email y contraseña son obligatorios.</td><td>Servicio de usuarios y formulario de registro</td></tr>
+        <tr><td>RN-06</td><td>Las contraseñas se guardan con hash PBKDF2, nunca en texto plano.</td><td>Jakarta Security</td></tr>
+        <tr><td>RN-07</td><td>Solo un profesional puede publicar disponibilidad y cargar entradas en una historia clínica.</td><td><span class="mono">@RolesAllowed("PROFESIONAL")</span></td></tr>
+        <tr><td>RN-08</td><td>Las entradas de la historia clínica no se editan ni se eliminan.</td><td>No hay operación que lo permita</td></tr>
+        <tr><td>RN-09</td><td>Toda confirmación o cancelación genera un evento; si la operación falla, el evento no se publica.</td><td>Transacción JTA compartida con el envío JMS</td></tr>
+        <tr><td>RN-10</td><td>Un evento se procesa una sola vez por suscriptor, aunque el broker lo entregue más de una vez.</td><td>Tabla <span class="mono">evento_procesado</span></td></tr>
+        <tr><td>RN-11</td><td>Los eventos no contienen datos clínicos.</td><td><span class="mono">EventoTurno.Builder</span></td></tr>
+        <tr><td>RN-12</td><td>Cada usuario ve solo los eventos de sus propios turnos.</td><td><span class="mono">ServicioDeMonitoreoBean</span> (principal autenticado)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 id="lim">Limitaciones conocidas</h2>
+
+  <p>Preferimos documentar lo que todavía falta antes que dejar que aparezca en una prueba. Del lado funcional, el profesional no tiene en su agenda una lista de los turnos que le confirmaron (los ve indirectamente en la historia clínica), la disponibilidad se publica de a un horario por vez, no existe la reprogramación de un turno ni la recuperación de contraseña, y el envío real de emails está simulado. Del lado técnico, la verificación de que un paciente solo acceda a su propia historia clínica se hace hoy en la capa de presentación; el servicio controla el rol pero todavía no la titularidad, y es la primera mejora de seguridad prevista.</p>
+</section>
+
+<!-- ======================= CONCLUSIONES ======================= -->
+<section>
+  <h1 id="conclusiones">Conclusiones</h1>
+
+  <p>Con esta entrega MediConecta dejó de ser un conjunto de componentes que se llaman directamente entre sí para tener su primer proceso de negocio desacoplado por mensajería. El cambio no se ve en la pantalla del paciente, que sigue siendo la misma, sino en todo lo que pasa después de confirmar un turno, y por eso sumamos el Monitor de eventos: para que ese comportamiento se pueda ver y verificar dentro de la propia aplicación.</p>
+
+  <p>La documentación funcional, por su parte, nos obligó a escribir con precisión reglas que hasta ahora estaban solo en el código, y en ese proceso encontramos y corregimos comportamientos incorrectos, como el registro sin datos y los horarios vencidos ofrecidos como disponibles. Para la Entrega Obligatoria N.º 2 quedan las integraciones sincrónicas, la cola punto a punto y un flujo transaccional de varios pasos, que ya figuran en la arquitectura de la Figura 1.</p>
+</section>
+
+<!-- ======================= REFERENCIAS ======================= -->
+<section class="referencias salto">
+  <h1 id="referencias">Referencias</h1>
+  <p>Alur, D., Crupi, J. y Malks, D. (2003). <em>Core J2EE patterns: Best practices and design strategies</em> (2.ª ed.). Prentice Hall.</p>
+  <p>Apache Software Foundation. (s.f.). <em>ActiveMQ Artemis documentation</em>. https://activemq.apache.org/components/artemis/documentation/</p>
+  <p>Cátedra de Desarrollo de Aplicaciones II. (2026). <em>Trabajo práctico integrador: Consigna general y cronograma de entregas</em> [Material de cátedra]. Universidad Argentina de la Empresa.</p>
+  <p>Cockburn, A. (2001). <em>Writing effective use cases</em>. Addison-Wesley.</p>
+  <p>Eclipse Foundation. (2022). <em>Jakarta EE Platform 10</em>. https://jakarta.ee/specifications/platform/10/</p>
+  <p>Hohpe, G. y Woolf, B. (2003). <em>Enterprise integration patterns: Designing, building, and deploying messaging solutions</em>. Addison-Wesley.</p>
+  <p>Ley 25.326 de Protección de los Datos Personales. (2000). Boletín Oficial de la República Argentina.</p>
+</section>
+
+<!-- ======================= APÉNDICE ======================= -->
+<section class="salto">
+  <h1 id="apendice">Apéndice</h1>
+  <h1>Declaración de uso de inteligencia artificial generativa</h1>
+  <p>De acuerdo con la consigna del trabajo práctico (Cátedra de Desarrollo de Aplicaciones II, 2026), declaramos que en esta entrega usamos Claude, un asistente de inteligencia artificial generativa desarrollado por Anthropic, como herramienta de productividad: para generar el código base de la mensajería y del monitor de eventos, configurar el broker en WildFly, automatizar las pruebas de navegador, generar los diagramas a partir del código y redactar un primer borrador de este documento y del manual de usuario.</p>
+  <p>El grupo revisó el contenido contra el código y contra el comportamiento real de la aplicación. Cada integrante está en condiciones de explicar y defender cualquier parte del trabajo.</p>
+</section>
+
+</body>
+</html>

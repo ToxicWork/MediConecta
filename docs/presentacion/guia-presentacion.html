@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="UTF-8">
+<title>Guía para la presentación — MediConecta, Entrega Parcial N.º 2</title>
+<meta name="author" content="Agustín Bodas, Máximo Bonarrico y Sergio Casanova">
+<style>
+  @page {
+    size: A4;
+    margin: 2.2cm 2.2cm 2.2cm 2.2cm;
+    @top-right { content: counter(page); font-family: Georgia, serif; font-size: 10pt; color: #555; }
+    @top-left { content: "MediConecta · Guía para la presentación"; font-family: Georgia, serif; font-size: 9pt; color: #777; }
+  }
+  @page :first { @top-left { content: none; } @top-right { content: none; } }
+
+  html { font-family: Georgia, serif; font-size: 10.5pt; color: #1a2238; }
+  body { margin: 0; }
+  p { line-height: 1.55; margin: 0 0 0.35cm 0; }
+  h1 { font-size: 17pt; color: #16308c; margin: 0.2cm 0 0.35cm 0; page-break-after: avoid; }
+  h2 { font-size: 13pt; color: #16308c; margin: 0.55cm 0 0.25cm 0; page-break-after: avoid; }
+  h3 { font-size: 11pt; color: #1a2238; margin: 0.4cm 0 0.15cm 0; page-break-after: avoid; }
+  .salto { page-break-before: always; }
+  ul, ol { margin: 0 0 0.35cm 0; padding-left: 0.6cm; }
+  li { line-height: 1.5; margin-bottom: 0.08cm; }
+  code, .mono { font-family: "Courier New", monospace; font-size: 9pt; background: #eef3ff; padding: 0 2px; border-radius: 2px; }
+  pre { font-family: "Courier New", monospace; font-size: 8.4pt; background: #f4f6fb; border: 0.6pt solid #d5dbea; border-radius: 4px; padding: 6pt 8pt; line-height: 1.4; white-space: pre-wrap; word-break: break-all; margin: 0 0 0.35cm 0; page-break-inside: avoid; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 9.5pt; margin: 0.1cm 0 0.45cm 0; }
+  th { text-align: left; background: #16308c; color: #fff; padding: 4pt 6pt; font-weight: bold; }
+  td { padding: 4pt 6pt; border-bottom: 0.5pt solid #d5dbea; vertical-align: top; line-height: 1.4; }
+  tr { page-break-inside: avoid; }
+
+  .portada { text-align: center; padding-top: 3.2cm; }
+  .portada .sigla { font-size: 24pt; font-weight: bold; letter-spacing: 0.18em; color: #16308c; }
+  .portada .uni { font-size: 10pt; letter-spacing: 0.05em; margin-top: 0.1cm; }
+  .portada .tit { font-size: 22pt; font-weight: bold; color: #16308c; margin-top: 3cm; line-height: 1.25; }
+  .portada .sub { font-size: 13pt; margin-top: 0.35cm; color: #333; }
+  .portada .datos { margin-top: 3cm; line-height: 1.7; font-size: 11pt; }
+
+  .caja { border: 0.8pt solid #c9d6f7; background: #f6f8fe; border-radius: 6px; padding: 8pt 11pt; margin: 0 0 0.4cm 0; page-break-inside: avoid; }
+  .caja.alerta { border-color: #e6b56a; background: #fff8ec; }
+  .caja.ok { border-color: #9fd3b2; background: #f0faf3; }
+  .caja p:last-child, .caja ul:last-child { margin-bottom: 0; }
+  .etq { font-weight: bold; color: #16308c; }
+  .parada { border-left: 0; margin: 0 0 0.45cm 0; page-break-inside: avoid; }
+  .parada .cab { font-weight: bold; color: #16308c; font-size: 11pt; }
+  .parada .ruta { font-family: "Courier New", monospace; font-size: 8.8pt; color: #555; }
+  .q { font-weight: bold; margin-top: 0.3cm; page-break-after: avoid; }
+  .a { margin-left: 0.4cm; }
+  .check li { list-style: none; margin-left: -0.5cm; }
+  .check li::before { content: "☐  "; color: #16308c; }
+</style>
+</head>
+<body>
+
+<section class="portada">
+  <div class="sigla">UADE</div>
+  <div class="uni">UNIVERSIDAD ARGENTINA DE LA EMPRESA · Facultad de Ingeniería y Ciencias Exactas</div>
+  <div class="tit">Guía para la presentación</div>
+  <div class="sub">MediConecta · Entrega Parcial N.º 2 · Mensajería asincrónica</div>
+  <div class="datos">
+    Trabajo Práctico: Desarrollo de Aplicaciones II<br>
+    Comisión Lunes TT · Prof. Matías Ruiz<br>
+    Grupo 4: Agustín Bodas, Máximo Bonarrico y Sergio Casanova<br>
+    19 de octubre de 2026
+  </div>
+</section>
+
+<section class="salto">
+  <h1>Para qué sirve esta guía</h1>
+  <p>Es el libreto del grupo para mañana: qué preparar antes, en qué orden mostrar las cosas, qué decir en cada diapositiva, qué partes del código abrir frente al profesor y cómo responder las preguntas más probables. Está pensada para leerla una vez entera y tenerla a mano durante la presentación.</p>
+
+  <div class="caja">
+    <p><span class="etq">Lo que pidió el profesor y cómo lo cubrimos.</span></p>
+    <ul>
+      <li><b>“Usar la mayor cantidad de patrones de diseño posible”.</b> Hoy hay 13 patrones con código real, no solo nombrados (diapositiva 10). El recorrido por el código de la sección 4 los muestra encadenados en un mismo flujo, que es lo que más impresiona.</li>
+      <li><b>“Agregar cosas fuera del marco del ejemplo”.</b> El <b>Monitor de eventos</b>, una pantalla que muestra en vivo qué suscriptor procesó cada evento y cuánto tardó; bandeja de notificaciones con contador en vivo, auditoría como segundo suscriptor, pruebas de fallas (rollback, duplicados, caída, DLQ), optimización de rendimiento (4 veces más rápida), prueba automática de punta a punta y diez diagramas con su documento maestro. La sección 7 propone qué más sumar para el 09/11.</li>
+      <li><b>“Indagar más en el código durante la presentación”.</b> La sección 4 es un recorrido de diez paradas por el código, con archivo y línea, y la sección 5 tiene dos demostraciones en vivo con la consola de WildFly que muestran el broker por dentro.</li>
+    </ul>
+  </div>
+
+  <div class="caja alerta">
+    <p><span class="etq">La objeción más probable: “¿no es la misma demo que la Entrega 1?”.</span> La pantalla del paciente es la misma a propósito: el proceso asincrónico se engancha a la operación que ya existía. Lo nuevo es todo lo que pasa <i>después</i> del clic. Por eso la presentación abre con la diapositiva comparativa (2) y la demo se hace con la profesional parada en el <b>Monitor de eventos</b> y la consola del broker a la vista, no en la agenda.</p>
+  </div>
+
+  <h1>1. Antes de entrar al aula</h1>
+  <ul class="check">
+    <li>Abrir el panel de Supabase y confirmar que el proyecto <b>no está pausado</b>. El plan gratuito lo pausa después de una semana sin uso; si pasa, WildFly arranca con el error <code>tenant/user ... not found</code>.</li>
+    <li>Compilar y desplegar: <code>mvn clean package</code> y copiar <code>target/mediconecta.war</code> a <code>standalone/deployments</code> de WildFly.</li>
+    <li>Levantar con <code>./wildfly/iniciar-servidor.sh</code> (usa el perfil <code>standalone-full.xml</code>, que trae el broker). Esperar el mensaje <code>WFLYSRV0025 ... started</code> y verificar en el log las dos líneas <code>Started message driven bean</code>.</li>
+    <li>Abrir dos ventanas del navegador, una normal y otra de incógnito, para tener dos sesiones a la vez: paciente <code>juan.perez@mediconecta.test</code> y profesional <code>ana.lopez@mediconecta.test</code>, ambos con contraseña <code>demo1234</code>. La de la profesional, parada en <b>Monitor de eventos</b>.</li>
+    <li>Con la profesional, publicar uno o dos horarios con fecha futura antes de empezar, para no perder tiempo en la demo.</li>
+    <li>Tener el IDE abierto con los archivos de la sección 4 en pestañas, en ese orden.</li>
+    <li>Tener una terminal lista con <code>jboss-cli.sh --connect</code> para las demostraciones de la sección 5.</li>
+    <li>Llevar como respaldo el PDF de la presentación (<code>docs/presentacion/MediConecta_Entrega2.pdf</code>), por si la compu del aula no tiene PowerPoint.</li>
+  </ul>
+
+  <div class="caja alerta">
+    <p><span class="etq">Plan B si algo no levanta.</span> Si Supabase no responde o no hay red, no improvisen. Muestren las diapositivas 5 a 7, que tienen capturas reales de la app funcionando, y pasen directo al recorrido por el código. Todo lo que se muestra en el código existe y se puede abrir sin necesidad de que la app esté corriendo.</p>
+  </div>
+
+  <h1>2. Reparto sugerido</h1>
+  <p>Unos quince minutos en total. Cada uno presenta una parte, pero los tres tienen que poder contestar sobre cualquiera, porque la consigna evalúa la comprensión individual.</p>
+  <table>
+    <tr><th style="width:24%">Integrante</th><th style="width:22%">Diapositivas</th><th>Qué le toca</th></tr>
+    <tr><td>Máximo Bonarrico</td><td>1 a 7</td><td>Apertura, comparación con la Entrega 1, qué sumamos, el flujo y la demo en vivo con el Monitor de eventos</td></tr>
+    <tr><td>Agustín Bodas</td><td>8 y 9</td><td>Sincrónico frente a asincrónico, y las garantías ante fallas, con la demo de suscriptor caído desde la consola</td></tr>
+    <tr><td>Sergio Casanova</td><td>10 a 13</td><td>Patrones, extras, lo que viene y la apertura del código</td></tr>
+  </table>
+  <p>Es una sugerencia: lo importante es que cada uno ensaye su parte en voz alta al menos una vez y que los tres lean la sección de preguntas.</p>
+</section>
+
+<section class="salto">
+  <h1>3. Guion diapositiva por diapositiva</h1>
+  <table>
+    <tr><th style="width:5%">#</th><th style="width:9%">Min.</th><th style="width:23%">Diapositiva</th><th>Qué decir (las notas del orador de la PPTX tienen el detalle)</th></tr>
+    <tr><td>1</td><td>0:30</td><td>Portada</td><td>Qué es MediConecta en una frase y que esta entrega suma la primera integración asincrónica real, con broker configurado.</td></tr>
+    <tr><td>2</td><td>1:00</td><td>Entrega 1 vs. 2</td><td>Anticipar la objeción: la pantalla es la misma, lo que pasa después del clic no. Leer la tabla de arriba a abajo.</td></tr>
+    <tr><td>3</td><td>0:45</td><td>Qué sumamos</td><td>Los cuatro puntos. El broker no es simulado: es ActiveMQ Artemis dentro de WildFly.</td></tr>
+    <tr><td>4</td><td>1:30</td><td>El flujo</td><td>La caja punteada es una sola transacción: si el turno no se guarda, el mensaje no sale. A la derecha, dos suscriptores que no se conocen.</td></tr>
+    <tr><td>5–7</td><td>4:00</td><td>Demo</td><td>En vivo, con el Monitor de eventos (ver abajo). Las capturas quedan de respaldo.</td></tr>
+    <tr><td>8</td><td>1:15</td><td>Sincrónico vs. asincrónico</td><td>La regla: si el usuario necesita la respuesta para seguir, sincrónico; si puede esperar o tiene varios interesados, asincrónico.</td></tr>
+    <tr><td>9</td><td>1:15</td><td>Fallas</td><td>Los cuatro casos, todos probados. El del suscriptor caído ya se vio en vivo en la demo.</td></tr>
+    <tr><td>10</td><td>1:30</td><td>Patrones</td><td>Los 13, y sobre todo que están encadenados (ver la parada 1 del recorrido).</td></tr>
+    <tr><td>11</td><td>1:00</td><td>Además de lo pedido</td><td>Rendimiento, pruebas automáticas, diagramas y el bug de login corregido.</td></tr>
+    <tr><td>12</td><td>0:45</td><td>Lo que viene</td><td>Ya está en el diagrama de integración con línea punteada.</td></tr>
+    <tr><td>13</td><td>—</td><td>Abramos el código</td><td>Invitar al profesor a elegir qué abrir; si no elige, seguir la sección 4.</td></tr>
+  </table>
+
+  <h2>La demo en vivo</h2>
+  <p>Tres cosas a la vista desde el principio, si se puede en la misma pantalla: la ventana del paciente, la de la profesional abierta en <b>Monitor de eventos</b> y una terminal con <code>jboss-cli.sh --connect</code>.</p>
+  <ol>
+    <li><b>Paciente:</b> en Agenda, elegir a la Dra. Ana Lopez, “Ver turnos disponibles” y “Reservar”. Aparece el cartel ámbar del hold: es el EJB <code>@Stateful</code> con <code>@StatefulTimeout</code> de 5 minutos.</li>
+    <li>Tocar “Confirmar turno”. Responde en un segundo y medio, más o menos.</li>
+    <li><b>Monitor de la profesional</b>, sin tocar nada: en menos de tres segundos aparece una fila “Confirmado” con <b>✓ y los milisegundos</b> de Notificaciones y de Auditoría. Decir: “esto no existía en la Entrega 1: es el broker trabajando”.</li>
+    <li><b>Consola:</b> frenar el suscriptor de auditoría:
+      <pre>/deployment=mediconecta.war/subsystem=ejb3/message-driven-bean=AuditoriaSubscriber:stop-delivery</pre></li>
+    <li><b>Paciente:</b> cancelar ese turno. En el monitor: Notificaciones ✓ y Auditoría <b>Pendiente</b>; el contador de “entregas pendientes” sube a 1. Si quieren, mostrar también que el broker lo tiene retenido:
+      <pre>/subsystem=messaging-activemq/server=default/jms-topic=turnos:count-messages-for-subscription(client-id=mediconecta-auditoria,subscription-name=auditoria)</pre></li>
+    <li><b>Consola:</b> reactivar, y en el monitor Auditoría pasa sola a ✓, con una latencia de varios segundos: es el tiempo que el broker guardó el mensaje.
+      <pre>/deployment=mediconecta.war/subsystem=ejb3/message-driven-bean=AuditoriaSubscriber:start-delivery</pre></li>
+    <li>Cerrar mostrando la bandeja de Notificaciones de la profesional, con los avisos y el contador del menú.</li>
+  </ol>
+  <p>Opcional: en el log de WildFly, el productor aparece en el hilo del request (<code>default task-N</code>) y los consumidores en hilos del broker (<code>activemq-client-global</code>).</p>
+  <pre>grep -E "encolado en topico|SMTP simulado|Auditoría\]" &lt;WILDFLY_HOME&gt;/standalone/log/server.log | tail -6</pre>
+</section>
+
+<section class="salto">
+  <h1>4. Recorrido por el código</h1>
+  <p>Este es el corazón de la presentación, porque es lo que el profesor pidió explícitamente. El orden sigue el viaje de un turno confirmado, de la pantalla a la base, así cada parada se apoya en la anterior. En cada una hay qué mostrar y qué decir; las líneas corresponden al código actual.</p>
+
+  <div class="parada">
+    <div class="cab">Parada 1 · La fachada que coordina todo</div>
+    <div class="ruta">negocio/ServicioDeTurnosBean.java · líneas 39–40 y 93–107</div>
+    <p>Mostrar <code>@Stateful</code> y <code>@StatefulTimeout</code> arriba de la clase, y después el método <code>confirmar()</code>. Decir: “Este método es una fachada. La pantalla hace una sola llamada y acá adentro se busca el turno, se cambia su estado, se guarda y se publica el evento, todo en una única transacción que abre el contenedor. Además, esta clase es el <i>director</i> del Builder: arma el evento paso a paso”. Señalar <code>@RolesAllowed("PACIENTE")</code> en la línea 93: seguridad declarativa.</p>
+  </div>
+
+  <div class="parada">
+    <div class="cab">Parada 2 · El hold que se libera solo</div>
+    <div class="ruta">negocio/ServicioDeTurnosBean.java · líneas 156–167</div>
+    <p>Mostrar <code>@PreDestroy</code>. Decir: “Si el paciente no confirma en cinco minutos, el contenedor destruye la conversación y, antes, llama a este método, que devuelve el turno a disponible. No escribimos ningún temporizador: el ciclo de vida lo maneja el contenedor EJB”.</p>
+  </div>
+
+  <div class="parada">
+    <div class="cab">Parada 3 · El Builder del evento</div>
+    <div class="ruta">mensajeria/EventoTurno.java · líneas 51–68</div>
+    <p>Mostrar <code>build()</code>. Decir: “El builder valida lo obligatorio y siempre genera el <code>idEvento</code> con un UUID. Ese identificador es la clave de la idempotencia, así que el builder hace imposible publicar un evento sin él. Fíjense que el evento no lleva ningún dato clínico: es minimización de datos, porque la historia clínica es un dato sensible (Ley 25.326)”.</p>
+  </div>
+
+  <div class="parada">
+    <div class="cab">Parada 4 · Publicar dentro de la transacción</div>
+    <div class="ruta">mensajeria/PublicadorEventosTurno.java · líneas 30 y 38–47</div>
+    <p>Mostrar el <code>JMSContext</code> inyectado. Decir: “Este contexto usa la connection factory XA de WildFly, así que el envío se enlista en la transacción del que llama. El mensaje queda pendiente y sale recién con el commit. Es el patrón Transactional Client. La propiedad <code>tipoEvento</code> nos permite, más adelante, que facturación filtre solo los eventos que le interesan. Y en la misma transacción se guarda el evento en <code>evento_publicado</code>, que es lo que después le permite al monitor saber qué suscriptor tiene algo pendiente”.</p>
+  </div>
+
+  <div class="parada">
+    <div class="cab">Parada 5 · El consumidor durable</div>
+    <div class="ruta">mensajeria/NotificacionesSubscriber.java · líneas 24–30 y 44–52</div>
+    <p>Mostrar la anotación <code>@MessageDriven</code> con su <code>activationConfig</code>. Decir: “Suscripción durable con nombre y <code>clientId</code>: si este componente está caído, el broker le guarda los mensajes. El <code>maxSession</code> en 1 es porque una suscripción durable con <code>clientId</code> admite una sola conexión”. Después mostrar <code>onMessage</code>: primero registra el evento como procesado y después recorre los procesadores con <code>Instance&lt;ProcesadorNotificacion&gt;</code>, es decir, CDI descubre solo todas las implementaciones.</p>
+  </div>
+
+  <div class="parada">
+    <div class="cab">Parada 6 · Template Method y Factory Method</div>
+    <div class="ruta">notificaciones/ProcesadorNotificacion.java · líneas 25–37 · ProcesadorEmail.java · ProcesadorAvisoProfesional.java</div>
+    <p>Mostrar que <code>procesar()</code> es <code>final</code>: fija el orden (crear, enviar, guardar). Las subclases solo redefinen los pasos. Decir: “Sumar SMS es agregar una subclase, sin tocar el MDB”. Pregunta trampa posible: ¿por qué es <code>@Dependent</code>? Porque los beans con scope normal (<code>@ApplicationScoped</code>) usan un proxy, y un proxy no puede interceptar métodos <code>final</code>; Weld rechaza el despliegue.</p>
+  </div>
+
+  <div class="parada">
+    <div class="cab">Parada 7 · Idempotencia de verdad</div>
+    <div class="ruta">dao/EventoProcesadoDAO.java · líneas 21–26</div>
+    <p>Decir: “Primero buscamos si el evento ya se procesó; si sí, se descarta sin romper la transacción. Pero la consulta sola no alcanza: dos entregas simultáneas podrían pasar la consulta a la vez. Por eso la tabla tiene la clave <code>suscriptor:idEvento</code> como primaria: la segunda falla al commitear, el broker la reentrega y ahí se descarta”.</p>
+  </div>
+
+  <div class="parada">
+    <div class="cab">Parada 8 · El broker configurado</div>
+    <div class="ruta">wildfly/configurar-mensajeria.cli · líneas 18 y 21</div>
+    <p>Mostrar la creación del tópico y el <code>address-setting</code>: tres intentos, cinco segundos entre cada uno, y después a la DLQ. Decir: “Esto es lo que pide la consigna con ‘broker configurado’: no es un mock”.</p>
+  </div>
+
+  <div class="parada">
+    <div class="cab">Parada 9 · Fuera del marco: rendimiento y un bug</div>
+    <div class="ruta">seguridad/MecanismoAutenticacion.java · líneas 50–59 · web/LoginBean.java · línea 90 · web/AgendaBean.java · líneas 61–73</div>
+    <p>Decir: “Medimos que cada página tardaba 3,4 segundos. Encontramos que el mecanismo de autenticación consultaba la base en cada request, incluso para los CSS y los JS, y que JSF evaluaba los getters varias veces por render. Lo resolvimos guardando el resultado durante el request, y bajó a 0,8 segundos. Lo delicado fue <code>getMisTurnos</code>: la tabla lee la lista antes de ejecutar la acción, así que hay que invalidarla al confirmar o cancelar”. También mostrar el <code>SEND_FAILURE</code> de la línea 52, que corrige el error “Unauthorized” ante una contraseña incorrecta.</p>
+  </div>
+
+  <div class="parada">
+    <div class="cab">Parada 10 · El monitor: Transfer Object y seguridad por titularidad</div>
+    <div class="ruta">negocio/ServicioDeMonitoreoBean.java · líneas 35, 54 y 63–77 · negocio/dto/FilaMonitorDTO.java</div>
+    <p>Decir: “El monitor cruza tres tablas: los eventos publicados, lo que registró cada suscriptor y el usuario. A la vista no le pasamos entidades sino Transfer Objects con solo lo que muestra. Y fíjense la línea 54: el usuario no viene de un parámetro sino del principal autenticado, con <code>SessionContext</code>. <code>@RolesAllowed</code> decide quién entra; esto decide qué ve cada uno. Así nadie puede pedir los eventos de otro cambiando un id”. La latencia es la diferencia entre <code>publicado_en</code> y <code>procesado_en</code> (línea 77).</p>
+  </div>
+
+  <div class="caja ok">
+    <p><span class="etq">Si el profesor pide ver las pruebas.</span> Está en el repositorio: <code>pruebas/prueba_e2e.py</code> recorre la app con un navegador real y hace 14 verificaciones, y <code>pruebas/prueba_monitor.py</code> hace otras 7 sobre el monitor, incluido el escenario del suscriptor frenado desde la consola. Se corren con <code>python pruebas/&lt;archivo&gt;</code> (requieren <code>pip install playwright</code> y Chrome).</p>
+  </div>
+</section>
+
+<section class="salto">
+  <h1>5. Demostraciones con la consola de WildFly</h1>
+  <p>La demostración A ya está integrada en la demo en vivo, con el monitor. Acá quedan los comandos sueltos por si el profesor pide repetirla o verla desde la consola.</p>
+
+  <h3>A. Suscriptor caído: el mensaje no se pierde</h3>
+  <p>Frenar la entrega al suscriptor de auditoría:</p>
+  <pre>/deployment=mediconecta.war/subsystem=ejb3/message-driven-bean=AuditoriaSubscriber:stop-delivery</pre>
+  <p>Confirmar un turno desde la app. Las notificaciones llegan igual, pero la auditoría no. Ver el mensaje retenido en el broker (tiene que dar <code>1L</code>):</p>
+  <pre>/subsystem=messaging-activemq/server=default/jms-topic=turnos:count-messages-for-subscription(client-id=mediconecta-auditoria,subscription-name=auditoria)</pre>
+  <p>Reanudar la entrega y repetir el conteo, que vuelve a 0. En el log aparece la línea de auditoría del evento retenido:</p>
+  <pre>/deployment=mediconecta.war/subsystem=ejb3/message-driven-bean=AuditoriaSubscriber:start-delivery</pre>
+  <p>Lo probamos incluso reiniciando WildFly entero en el medio, y el mensaje también sobrevivió.</p>
+
+  <h3>B. La cola de mensajes fallidos</h3>
+  <pre>/subsystem=messaging-activemq/server=default/jms-queue=DLQ:count-messages</pre>
+  <p>Debería dar 0. Sirve para explicar el Dead Letter Channel aunque no haya mensajes rotos: si un mensaje fallara tres veces, quedaría ahí sin trabar al resto.</p>
+</section>
+
+<section class="salto">
+  <h1>6. Preguntas probables y cómo contestarlas</h1>
+
+  <p class="q">¿No es la misma demo que la Entrega 1?</p>
+  <p class="a">La pantalla del paciente sí, a propósito: el proceso se engancha a la operación que ya existía. Pero en la Entrega 1 el clic terminaba en un UPDATE; ahora publica un evento en un broker real, lo procesan dos componentes independientes, le llega el aviso a otro usuario y el monitor muestra cuánto tardó cada uno. Y si frenamos un suscriptor, el mensaje no se pierde. Nada de eso existía.</p>
+
+  <p class="q">¿Para qué guardan <code>evento_publicado</code> si el mensaje ya está en el broker?</p>
+  <p class="a">Porque la aplicación no puede leer la suscripción de otro sin consumirla. Guardar el evento en la misma transacción en la que se envía nos da un registro confiable de lo publicado, y cruzándolo con <code>evento_procesado</code> sabemos qué falta procesar. Es la misma idea del patrón <i>Transactional Outbox</i>, usada acá para observabilidad.</p>
+
+  <p class="q">¿Por qué un tópico y no una cola para las notificaciones?</p>
+  <p class="a">Porque el mismo evento le interesa a más de un componente (notificaciones y auditoría hoy, facturación después) y cada uno hace algo distinto. Una cola entrega cada mensaje a un solo consumidor; un tópico se lo entrega a todos los suscriptores, y el productor no tiene que conocerlos.</p>
+
+  <p class="q">¿Qué pasa si se cae el broker?</p>
+  <p class="a">Los mensajes son persistentes: Artemis los guarda en su journal en disco. Al volver, entrega lo pendiente. Lo verificamos reiniciando WildFly con un mensaje retenido.</p>
+
+  <p class="q">¿Qué pasa si algo falla después de enviar el mensaje pero antes del commit?</p>
+  <p class="a">La transacción hace rollback y el mensaje se descarta, porque el envío estaba enlistado en ella. Nadie recibe un aviso de un turno que no se guardó. También lo probamos.</p>
+
+  <p class="q">¿La base de datos participa en una transacción XA?</p>
+  <p class="a">Respuesta honesta: no. El datasource de PostgreSQL no es XA; el broker sí. El gestor de transacciones de WildFly (Narayana) admite un único recurso no XA en una transacción distribuida, y lo confirma último (<i>Last Resource Commit Optimization</i>). Para esta entrega alcanza; para un entorno real convendría un datasource XA o el patrón <i>Transactional Outbox</i>.</p>
+
+  <p class="q">¿Por qué el servicio de turnos es stateful y no guardan el hold en la base?</p>
+  <p class="a">Porque el hold es parte de una conversación con un paciente puntual y vive lo que dura su decisión. Con <code>@Stateful</code> y <code>@StatefulTimeout</code> el contenedor libera el turno solo cuando vence el plazo. Igual, el estado HOLD también se guarda en el turno para que nadie más lo vea disponible.</p>
+
+  <p class="q">¿Por qué los MDB no usan <code>@RunAs</code>?</p>
+  <p class="a">Porque llaman a DAOs, que no tienen restricciones de rol. Si un MDB tuviera que invocar un EJB con <code>@RolesAllowed</code>, necesitaría <code>@RunAs("SISTEMA")</code>, como está previsto en el documento de diseño para facturación.</p>
+
+  <p class="q">¿Por qué JSON y no un ObjectMessage con el objeto Java?</p>
+  <p class="a">Porque desacopla: el consumidor no necesita las mismas clases que el productor, otro componente hecho en otra tecnología podría consumirlo, y se evita la deserialización de objetos Java, que es un riesgo de seguridad conocido. Además se lee en los logs.</p>
+
+  <p class="q">¿El email se envía de verdad?</p>
+  <p class="a">No: el envío SMTP está simulado y se registra en el log como <code>[SMTP simulado]</code>. Lo que se evalúa en esta entrega es la mensajería, y eso sí es real. Conectar un SMTP es cambiar una sola clase (<code>ProcesadorEmail.enviar</code>).</p>
+
+  <p class="q">¿Cómo escalarían el consumo si hubiera muchos eventos?</p>
+  <p class="a">Hoy cada suscripción durable usa una sola sesión. Para escalar se usan suscripciones compartidas de JMS 2.0, o, para tareas que deben hacerse una sola vez, una cola con varios consumidores en competencia (<i>Competing Consumers</i>), que es lo que planificamos para las autorizaciones.</p>
+
+  <p class="q">¿Qué cambiarían si empezaran de nuevo?</p>
+  <p class="a">Pondríamos la memoización por request desde el principio, porque el problema de rendimiento estuvo oculto hasta que medimos, y definiríamos antes la matriz de roles completa, incluido el administrador de clínica.</p>
+</section>
+
+<section class="salto">
+  <h1>7. Ideas para sumar antes del 09/11</h1>
+  <p>Pensadas en lo que pidió el profesor: más patrones y funcionalidades que vayan más allá del ejemplo, aprovechando lo que ya está construido.</p>
+  <table>
+    <tr><th style="width:30%">Idea</th><th style="width:30%">Patrón que suma</th><th>Por qué vale la pena</th></tr>
+    <tr><td>Lista de espera: al cancelarse un turno, avisar al primero en espera</td><td>Strategy (orden de llegada o prioridad), tercer suscriptor del tópico</td><td>Funcionalidad fuera del ejemplo que reutiliza la mensajería: no toca el servicio de turnos.</td></tr>
+    <tr><td>Recordatorio automático 24 horas antes del turno</td><td>Timer de EJB (<code>@Schedule</code>) y Singleton</td><td>Muestra otro servicio del contenedor y genera eventos nuevos.</td></tr>
+    <tr><td>Estados del turno como clases</td><td>State</td><td>Hoy es un enum; con State, transiciones inválidas como “cancelar un turno atendido” se vuelven imposibles por diseño.</td></tr>
+    <tr><td>Validaciones antes de reservar (superposición de turnos, afiliado activo)</td><td>Chain of Responsibility</td><td>Cada regla es un eslabón; sumar una no toca el servicio.</td></tr>
+    <tr><td>Integración con la obra social</td><td>Adapter/Gateway y Circuit Breaker</td><td>Ya es obligatorio para el 09/11 (SOAP); con el breaker se suma el desafío opcional de resiliencia.</td></tr>
+    <tr><td>Reprogramar un turno</td><td>Nuevo tipo de evento con el Builder existente</td><td>La consigna menciona la reprogramación y todavía no la tenemos.</td></tr>
+    <tr><td>Temas claro y oscuro</td><td>—</td><td>Puntos extra explícitos del anexo.</td></tr>
+  </table>
+  <div class="caja ok">
+    <p><span class="etq">Responsive (obligatorio del anexo): resuelto.</span> En pantallas de menos de 900 píxeles la barra lateral pasa arriba como un menú desplazable y las tablas se desplazan dentro de su tarjeta. Si el profesor achica la ventana o la abre en el celular, se adapta. Probado a 390, 820 y 1366 píxeles de ancho sin desborde horizontal.</p>
+  </div>
+</section>
+
+</body>
+</html>
