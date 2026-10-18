@@ -1,2 +1,3 @@
 /target/
 wildfly/*.local.cli
+.DS_Store
