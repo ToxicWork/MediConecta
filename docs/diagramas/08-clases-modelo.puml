@@ -1,0 +1,106 @@
+@startuml 08-clases-modelo
+!include _estilo.iuml
+title MediConecta — Modelo de dominio (entidades JPA)
+hide empty methods
+
+abstract class Usuario <<Entity>> {
+  - id : Long
+  - nombreCompleto : String
+  - email : String
+  - password : String  [hash PBKDF2]
+}
+class Paciente <<Entity>> {
+  - obraSocial : String
+}
+class Profesional <<Entity>> {
+  - matricula : String
+  - especialidad : String
+}
+class Turno <<Entity>> {
+  - id : Long
+  - fechaHora : LocalDateTime
+  - version : int  [@Version]
+  + marcarEnHold(Paciente)
+  + confirmar()
+  + liberar()
+}
+class HistoriaClinica <<Entity>> {
+  - id : Long
+  + agregarEntrada(EntradaClinica)
+}
+class EntradaClinica <<Entity>> {
+  - id : Long
+  - descripcion : String
+  - fecha : LocalDateTime
+}
+class Notificacion <<Entity>> {
+  - id : Long
+  - destinatarioId : Long
+  - destino : String
+  - asunto : String
+  - cuerpo : String
+  - idEvento : String
+  - creadaEn : LocalDateTime
+  - leida : boolean
+  + marcarLeida()
+}
+class RegistroAuditoria <<Entity>> {
+  - id : Long
+  - idEvento : String
+  - tipoEvento : String
+  - turnoId, pacienteId, profesionalId : Long
+  - ocurridoEn, registradoEn : LocalDateTime
+}
+class EventoPublicado <<Entity>> {
+  - idEvento : String
+  - tipoEvento : String
+  - turnoId, pacienteId, profesionalId : Long
+  - fechaHoraTurno, publicadoEn : LocalDateTime
+}
+class EventoProcesado <<Entity>> {
+  - clave : String  [suscriptor:idEvento]
+  - procesadoEn : LocalDateTime
+}
+enum Rol {
+  PACIENTE
+  PROFESIONAL
+}
+enum EstadoTurno {
+  DISPONIBLE
+  HOLD
+  CONFIRMADO
+  CANCELADO
+}
+enum TipoEntrada {
+  DIAGNOSTICO
+  RECETA
+}
+enum CanalNotificacion {
+  EMAIL
+  IN_APP
+}
+
+Usuario <|-- Paciente
+Usuario <|-- Profesional
+Usuario --> "1" Rol : rol
+Turno "*" --> "1" Profesional : profesional
+Turno "*" --> "0..1" Paciente : paciente
+Turno --> "1" EstadoTurno : estado
+HistoriaClinica "0..1" --> "1" Paciente : paciente
+HistoriaClinica "1" *-- "0..*" EntradaClinica : entradas
+EntradaClinica "*" --> "1" Profesional : profesional
+EntradaClinica "*" --> "0..1" Turno : turno
+EntradaClinica --> "1" TipoEntrada : tipo
+Notificacion --> "1" CanalNotificacion : canal
+Notificacion ..> Usuario : <<destinatarioId>>
+RegistroAuditoria ..> Turno : <<turnoId>>
+EventoPublicado ..> Turno : <<turnoId>>
+
+legend right
+  |= Notación |= Significado |
+  | A ──> B  "1" / "0..1" / "~*" | Asociación navegable: A tiene un atributo de tipo B\n(número = cuántos B; texto = nombre del atributo) |
+  | A "1" ◆── "0..*" B | Composición: las entradas no existen sin su historia\n(cascade ALL + orphanRemoval) |
+  | A ──▷ B | Generalización (herencia, SINGLE_TABLE) |
+  | A - - -> B | Dependencia lógica: guarda solo el id, sin relación JPA |
+endlegend
+@enduml

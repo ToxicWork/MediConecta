@@ -1,0 +1,38 @@
+@startuml 05-secuencia-fallas
+!include _estilo.iuml
+title Mensajería ante fallas (comportamiento verificado en pruebas)
+
+participant "ServicioDeTurnosBean" as ST
+queue "topico.turnos" as TOP
+participant "Suscriptor (MDB)" as MDB
+database "PostgreSQL" as DB
+queue "DLQ" as DLQ
+
+== A. Falla en la transacción del productor (Transactional Client) ==
+ST -> TOP : send(evento)  [enlistado en la JTA]
+ST -> ST : excepción antes del commit
+ST -> DB : rollback
+TOP -> TOP : el mensaje se descarta
+note right : ningún suscriptor lo recibe:\nno se notifica un turno que no se guardó
+
+== B. Mensaje duplicado (Idempotent Receiver) ==
+TOP -> MDB : onMessage(idEvento = X)
+MDB -> DB : find evento_procesado(suscriptor, X) → no existe
+MDB -> DB : INSERT evento_procesado + procesa
+TOP -> MDB : onMessage(idEvento = X)  [reentrega]
+MDB -> DB : find evento_procesado(suscriptor, X) → existe
+MDB -> MDB : descarta (EventoDuplicadoException)
+
+== C. Suscriptor caído (Durable Subscriber) ==
+TOP -> TOP : suscripción "auditoria" sin consumidor activo\nel broker **retiene** el mensaje (persistente)
+... reinicio del servidor ...
+TOP -> MDB : entrega el mensaje retenido al volver
+
+== D. Mensaje que no se puede procesar (Dead Letter Channel) ==
+loop 3 intentos, 5 s entre cada uno (address-setting jms.topic.turnos)
+  TOP -> MDB : onMessage(mensaje inválido)
+  MDB --> TOP : excepción → rollback, se reintenta
+end
+TOP -> DLQ : mueve el mensaje a jms.queue.DLQ
+note right : la cola sigue procesando\nel resto de los mensajes
+@enduml

@@ -1,0 +1,62 @@
+@startuml 01-integracion-soa
+!include _estilo.iuml
+title MediConecta — Arquitectura de integración (SOA)
+
+
+actor "Paciente" as PAC
+actor "Profesional" as PRO
+
+rectangle "MediConecta (WildFly 41 · Jakarta EE 10)" #F7F9FE {
+  component "Presentación\nJSF + PrimeFaces" as WEB
+  component "ServicioDeUsuarios\n<<Stateless>>" as SU
+  component "ServicioDeTurnos\n<<Stateful>>" as ST
+  component "ServicioDeHistoriaClinica\n<<Stateless>>" as SHC
+  component "ServicioDeNotificaciones\n<<MDB + Stateless>>" as SN
+  component "Auditoría\n<<MDB>>" as AUD
+  component "ServicioDeFacturacion\n<<MDB>>" as SF #FFFFFF;line.dashed
+  component "ServicioDeObrasSociales\n(CoberturaSoapAdapter)" as SOS #FFFFFF;line.dashed
+  component "ServicioDePagos" as SP #FFFFFF;line.dashed
+  component "ServicioDeTelemedicina" as STM #FFFFFF;line.dashed
+
+  queue "topico.turnos\n(pub/sub, durable)" as TOP #E5F7EC
+  queue "cola.autorizaciones\n(punto a punto)" as COLA #FFFFFF;line.dashed
+  queue "DLQ" as DLQ #FDEAEA
+}
+
+database "Supabase\nPostgreSQL" as DB
+node "Obra social / prepaga\n(sistema LEGADO)" as OS #FFF4E4
+node "Pasarela de pago\n(partner moderno)" as PG #FFF4E4
+node "Proveedor de video\n(partner moderno)" as VID #FFF4E4
+
+PAC --> WEB : HTTPS
+PRO --> WEB : HTTPS
+WEB --> SU : local (EJB)
+WEB --> ST : local (EJB)
+WEB --> SHC : local (EJB)
+WEB --> SN : local (EJB)
+
+ST --> TOP : JMS publish\nTURNO_CONFIRMADO / CANCELADO\n(dentro de la transacción JTA)
+TOP --> SN : JMS (durable)
+TOP --> AUD : JMS (durable)
+TOP ..> SF : JMS (selector tipoEvento)
+TOP --> DLQ : 3 intentos fallidos
+
+ST ..> COLA : JMS
+COLA ..> SOS : JMS
+SOS ..> OS : SOAP / WSDL\n(síncrono)
+ST ..> SP : local
+SP ..> PG : REST / JSON\n(síncrono)
+STM ..> VID : REST / JSON\n(síncrono)
+
+SU --> DB : JPA / JDBC
+ST --> DB
+SHC --> DB
+SN --> DB
+AUD --> DB
+
+legend right
+  |= Línea |= Estado |
+  | llena | implementado y funcionando (Entrega Parcial N.º 2) |
+  | punteada | planificado para la Entrega Obligatoria N.º 2 (09/11) |
+endlegend
+@enduml

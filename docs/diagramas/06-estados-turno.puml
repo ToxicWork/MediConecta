@@ -1,0 +1,19 @@
+@startuml 06-estados-turno
+!include _estilo.iuml
+title Ciclo de vida de un Turno (EstadoTurno)
+hide empty description
+
+[*] --> DISPONIBLE : publicarDisponibilidad()\n[PROFESIONAL]
+DISPONIBLE --> HOLD : reservarHold()\n[PACIENTE]
+HOLD --> CONFIRMADO : confirmar()\n[PACIENTE] / publica TURNO_CONFIRMADO
+HOLD --> DISPONIBLE : expira @StatefulTimeout (5 min)\n@PreDestroy libera el turno
+CONFIRMADO --> DISPONIBLE : cancelar()\n[PACIENTE titular] / publica TURNO_CANCELADO
+
+state CANCELADO #EEEEEE
+note right of CANCELADO
+  Valor definido en el enum
+  pero sin uso hoy: cancelar()
+  devuelve el turno a DISPONIBLE
+  para que otro paciente lo tome.
+end note
+@enduml

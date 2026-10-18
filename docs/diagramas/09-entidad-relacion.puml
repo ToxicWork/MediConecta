@@ -1,0 +1,98 @@
+@startuml 09-entidad-relacion
+!include _estilo.iuml
+title MediConecta — Modelo de datos (PostgreSQL / Supabase)
+hide circle
+hide empty methods
+skinparam linetype ortho
+
+entity usuario {
+  * id : bigint <<PK>>
+  --
+  * tipo_usuario : varchar  (PACIENTE | PROFESIONAL)
+  * nombre_completo : varchar
+  * email : varchar <<UNIQUE>>
+  * password : varchar
+  * rol : varchar
+  obra_social : varchar
+  matricula : varchar
+  especialidad : varchar
+}
+entity turno {
+  * id : bigint <<PK>>
+  --
+  * profesional_id : bigint <<FK>>
+  paciente_id : bigint <<FK>>
+  * fecha_hora : timestamp
+  * estado : varchar
+  * version : integer
+}
+entity historia_clinica {
+  * id : bigint <<PK>>
+  --
+  * paciente_id : bigint <<FK, UNIQUE>>
+}
+entity entrada_clinica {
+  * id : bigint <<PK>>
+  --
+  * historia_clinica_id : bigint <<FK>>
+  * profesional_id : bigint <<FK>>
+  turno_id : bigint <<FK>>
+  * tipo : varchar
+  * descripcion : varchar(2000)
+  * fecha : timestamp
+}
+entity notificacion #E5F7EC {
+  * id : bigint <<PK>>
+  --
+  * destinatario_id : bigint
+  * destino : varchar
+  * canal : varchar
+  * asunto : varchar
+  * cuerpo : varchar(1000)
+  * id_evento : varchar(36)
+  * creada_en : timestamp
+  * leida : boolean
+}
+entity registro_auditoria #E5F7EC {
+  * id : bigint <<PK>>
+  --
+  * id_evento : varchar(36)
+  * tipo_evento : varchar
+  * turno_id : bigint
+  * paciente_id : bigint
+  * profesional_id : bigint
+  * ocurrido_en : timestamp
+  * registrado_en : timestamp
+}
+entity evento_publicado #E5F7EC {
+  * id_evento : varchar(36) <<PK>>
+  --
+  * tipo_evento : varchar
+  * turno_id : bigint
+  * fecha_hora_turno : timestamp
+  * paciente_id : bigint
+  * profesional_id : bigint
+  * publicado_en : timestamp
+}
+entity evento_procesado #E5F7EC {
+  * clave : varchar(80) <<PK>>
+  --
+  * procesado_en : timestamp
+}
+
+usuario ||--o{ turno : profesional_id
+usuario |o--o{ turno : paciente_id
+usuario ||--o| historia_clinica : paciente_id
+historia_clinica ||--o{ entrada_clinica
+usuario ||--o{ entrada_clinica : profesional_id
+turno |o--o{ entrada_clinica : turno_id
+
+legend right
+  En verde: tablas de la Entrega Parcial N.º 2 (mensajería).
+  Guardan ids sin FK a propósito: las escriben los MDB
+  a partir del evento, desacoplados del modelo transaccional.
+  evento_procesado.clave = "suscriptor:idEvento" (idempotencia).
+  Monitor: latencia = evento_procesado.procesado_en - evento_publicado.publicado_en.
+  Notación pata de gallo: || exactamente uno · o| cero o uno · o{ cero o muchos.
+endlegend
+@enduml

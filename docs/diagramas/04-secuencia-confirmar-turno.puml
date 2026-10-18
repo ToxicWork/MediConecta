@@ -1,0 +1,54 @@
+@startuml 04-secuencia-confirmar-turno
+!include _estilo.iuml
+title Proceso asincrónico: confirmar turno → notificaciones y auditoría
+autonumber
+
+actor Paciente
+participant "agenda.xhtml\nAgendaBean" as AB
+participant "ServicioDeTurnosBean\n<<Stateful>>" as ST
+participant "TurnoDAO" as TD
+participant "PublicadorEventosTurno\n<<Stateless>>" as PUB
+participant "EventoPublicadoDAO" as EPD
+queue "topico.turnos\n(Artemis)" as TOP
+participant "NotificacionesSubscriber\n<<MDB>>" as NS
+participant "AuditoriaSubscriber\n<<MDB>>" as AS
+database "PostgreSQL" as DB
+
+Paciente -> AB : Confirmar turno
+AB -> ST : confirmar()
+activate ST
+note over ST, PUB #E8F0FE : Transacción JTA (REQUIRED)\nla abre el contenedor EJB
+ST -> TD : buscarPorId(turnoEnHold)
+ST -> ST : turno.confirmar()  [HOLD → CONFIRMADO]
+ST -> TD : actualizar(turno)
+ST -> PUB : publicar(EventoTurno.builder()\n  .tipo(TURNO_CONFIRMADO).turno(t).build())
+PUB -> EPD : guardar(EventoPublicado)  [misma transacción]
+PUB -> TOP : send(JSON, tipoEvento=TURNO_CONFIRMADO)
+note right of TOP : el mensaje queda **pendiente**:\nno se entrega hasta el commit
+ST -> ST : fin de confirmar()
+deactivate ST
+== al salir del método, el contenedor EJB hace commit (BD + JMS juntos) ==
+ST -> DB : UPDATE turno + INSERT evento_publicado  (commit)
+TOP -> TOP : el mensaje se libera a las suscripciones
+ST --> AB : turno confirmado
+AB --> Paciente : "Turno confirmado"\n(no espera a los consumidores)
+
+par entrega a cada suscripción durable (hilos del broker)
+  TOP -> NS : onMessage(evento)
+  activate NS
+  NS -> DB : evento_procesado ← (notificaciones, idEvento)
+  NS -> NS : ProcesadorEmail.procesar(evento)\n[SMTP simulado al paciente]
+  NS -> DB : INSERT notificacion (EMAIL, paciente)
+  NS -> NS : ProcesadorAvisoProfesional.procesar(evento)
+  NS -> DB : INSERT notificacion (IN_APP, profesional)
+  deactivate NS
+else
+  TOP -> AS : onMessage(evento)
+  activate AS
+  AS -> DB : evento_procesado ← (auditoria, idEvento)
+  AS -> DB : INSERT registro_auditoria
+  deactivate AS
+end
+
+... la bandeja (cada 5 s) muestra las notificaciones y el Monitor de eventos (cada 3 s) la latencia de cada suscriptor ...
+@enduml

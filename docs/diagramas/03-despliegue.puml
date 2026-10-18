@@ -1,0 +1,32 @@
+@startuml 03-despliegue
+!include _estilo.iuml
+title MediConecta — Despliegue
+
+node "Equipo del usuario" {
+  artifact "Navegador web" as NAV
+}
+
+node "Servidor de aplicaciones\nWildFly 41.0.1 · JDK 21\nperfil standalone-full.xml" as WF {
+  artifact "mediconecta.war" as WAR
+  component "Undertow\n(HTTP :8080)" as UT
+  component "Contenedor EJB\n(Stateless, Stateful, MDB)" as EJB
+  component "Elytron + Jakarta Security\n(identity store sobre la BD)" as SEC
+  component "ActiveMQ Artemis embebido\ntopico.turnos · DLQ · ExpiryQueue" as MQ
+  component "Narayana (JTA)\ntransacciones" as JTA
+  component "Pool JDBC\njava:/mediconectaDS" as DS
+}
+
+cloud "Supabase (AWS sa-east-1)" {
+  database "PostgreSQL\n(Session pooler :5432, SSL)" as PG
+}
+
+NAV --> UT : HTTP
+UT --> WAR
+WAR --> EJB
+EJB --> SEC
+EJB --> MQ : JMS (in-vm, XA)
+EJB --> JTA
+JTA --> DS
+JTA --> MQ
+DS --> PG : JDBC / SSL
+@enduml

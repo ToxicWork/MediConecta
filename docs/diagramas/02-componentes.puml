@@ -1,0 +1,82 @@
+@startuml 02-componentes
+!include _estilo.iuml
+title MediConecta — Componentes e interfaces (implementado)
+
+package "Presentación (web)" {
+  [LoginBean] as LB
+  [AgendaBean] as AB
+  [HistoriaBean] as HB
+  [NotificacionesBean] as NB
+  [MonitorBean] as MB
+}
+
+package "Negocio (EJB)" {
+  interface "ServicioDeUsuarios" as I_SU
+  interface "ServicioDeTurnos" as I_ST
+  interface "ServicioDeHistoriaClinica" as I_SHC
+  interface "ServicioDeNotificaciones" as I_SN
+  interface "ServicioDeMonitoreo" as I_SM
+  [ServicioDeUsuariosBean\n<<Stateless>>] as SU
+  [ServicioDeTurnosBean\n<<Stateful>>] as ST
+  [ServicioDeHistoriaClinicaBean\n<<Stateless>>] as SHC
+  [ServicioDeNotificacionesBean\n<<Stateless>>] as SN
+  [ServicioDeMonitoreoBean\n<<Stateless>>] as SM
+  [UsuarioFactory] as UF
+}
+
+package "Mensajería (JMS)" {
+  [PublicadorEventosTurno\n<<Stateless>>] as PUB
+  [NotificacionesSubscriber\n<<MessageDriven>>] as NS
+  [AuditoriaSubscriber\n<<MessageDriven>>] as AS
+  [ProcesadorNotificacion\n(Email, AvisoProfesional)] as PN
+}
+
+package "Datos (DAO + JPA)" {
+  [UsuarioDAO] as UD
+  [TurnoDAO] as TD
+  [HistoriaClinicaDAO] as HD
+  [NotificacionDAO] as ND
+  [EventoProcesadoDAO] as ED
+  [RegistroAuditoriaDAO] as RD
+  [EventoPublicadoDAO] as PD
+}
+
+queue "topico.turnos" as TOP
+
+SU -up- I_SU
+ST -up- I_ST
+SHC -up- I_SHC
+SN -up- I_SN
+SM -up- I_SM
+
+LB ..> I_SU
+AB ..> I_SU
+AB ..> I_ST
+HB ..> I_SHC
+HB ..> I_ST
+NB ..> I_SN
+MB ..> I_SM
+
+SU --> UF
+SU --> UD
+ST --> TD
+ST --> UD
+ST --> PUB
+SHC --> HD
+SHC --> UD
+SHC --> TD
+SN --> ND
+SM --> PD
+SM --> ED
+SM --> UD
+
+PUB --> TOP
+PUB --> PD
+TOP --> NS
+TOP --> AS
+NS --> ED
+NS --> PN
+PN --> ND
+AS --> ED
+AS --> RD
+@enduml

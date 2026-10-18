@@ -1,0 +1,54 @@
+@startuml 07-casos-de-uso
+!include _estilo.iuml
+title MediConecta — Casos de uso
+left to right direction
+
+actor Paciente
+actor Profesional
+actor "Obra social\n(legado SOAP)" as OS
+actor "Pasarela de pago\n(REST)" as PG
+
+rectangle MediConecta {
+  usecase "Registrarse" as UC1
+  usecase "Iniciar / cerrar sesión" as UC2
+  usecase "Buscar disponibilidad" as UC3
+  usecase "Reservar turno (hold 5 min)" as UC4
+  usecase "Confirmar turno" as UC5
+  usecase "Cancelar turno" as UC6
+  usecase "Publicar disponibilidad" as UC7
+  usecase "Cargar diagnóstico / receta" as UC8
+  usecase "Consultar historia clínica" as UC9
+  usecase "Ver notificaciones" as UC10
+  usecase "Notificar cambio de turno\n(asincrónico)" as UC11
+  usecase "Monitorear eventos\nde sus turnos" as UC14
+  usecase "Validar cobertura" as UC12 #FFFFFF;line.dashed
+  usecase "Pagar turno particular" as UC13 #FFFFFF;line.dashed
+}
+
+Paciente --> UC1
+Paciente --> UC2
+Paciente --> UC3
+Paciente --> UC4
+Paciente --> UC5
+Paciente --> UC6
+Paciente --> UC9
+Paciente --> UC10
+Paciente --> UC14
+Profesional --> UC1
+Profesional --> UC2
+Profesional --> UC7
+Profesional --> UC8
+Profesional --> UC9
+Profesional --> UC10
+Profesional --> UC14
+
+UC5 .> UC4 : <<include>>
+UC5 .> UC11 : <<include>>
+UC6 .> UC11 : <<include>>
+UC5 ..> UC12 : <<include>>
+UC13 ..> UC5 : <<extend>>
+UC12 -- OS
+UC13 -- PG
+
+note bottom of UC12 : punteado = planificado (09/11)
+@enduml

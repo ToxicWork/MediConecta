@@ -1,0 +1,334 @@
+@startuml 10-clases-patrones
+!include _estilo.iuml
+title MediConecta — Diagrama de clases con patrones de diseño (implementado)
+hide empty members
+left to right direction
+skinparam nodesep 40
+skinparam ranksep 55
+skinparam class {
+  BackgroundColor #FFFFFF
+  BorderColor #3B4A6B
+  StereotypeFontSize 10
+}
+skinparam packageStyle rectangle
+skinparam packageBorderColor #9AA6C2
+
+' Colores por patrón (ver leyenda)
+!$DAO = "#DCEBFF"
+!$FAC = "#FFE6C7"
+!$FAB = "#EBDDF7"
+!$BLD = "#D9F2DF"
+!$TPL = "#FFF6C2"
+!$MSG = "#FADDE6"
+!$DTO = "#D7F0EC"
+
+package "Presentación (JSF)" {
+  class LoginBean <<SessionScoped>> {
+    + login() : String
+    + registrar() : String
+    + getUsuarioActual() : Usuario
+  }
+  class AgendaBean <<SessionScoped>> {
+    + reservarHold(turnoId : Long)
+    + confirmar()
+    + cancelar(turnoId : Long)
+    + publicarDisponibilidad()
+  }
+  class HistoriaBean <<ViewScoped>> {
+    + agregarEntrada()
+  }
+  class MonitorBean <<RequestScoped>> {
+    + getFilas() : List<FilaMonitorDTO>
+    + getResumen() : ResumenMonitorDTO
+  }
+  class NotificacionesBean <<RequestScoped>> {
+    + getNotificaciones() : List<Notificacion>
+    + getNoLeidas() : long
+    + marcarTodasLeidas()
+  }
+}
+
+package "Negocio (EJB)" {
+  interface ServicioDeUsuarios <<Local>> {
+    + registrar(rol : Rol, datos : DatosRegistro, password : String) : Usuario
+    + buscarPorEmail(email : String) : Optional<Usuario>
+  }
+  interface ServicioDeTurnos <<Local>> {
+    + publicarDisponibilidad(profesionalId : Long, fechaHora : LocalDateTime) : Turno
+    + reservarHold(turnoId : Long, pacienteId : Long) : Turno
+    + confirmar() : Turno
+    + cancelar(turnoId : Long, pacienteId : Long) : Turno
+  }
+  interface ServicioDeHistoriaClinica <<Local>> {
+    + obtenerDePaciente(pacienteId : Long) : HistoriaClinica
+    + agregarEntrada(...) : EntradaClinica
+  }
+  interface ServicioDeNotificaciones <<Local>> {
+    + listarDeUsuario(usuarioId : Long) : List<Notificacion>
+    + contarNoLeidas(usuarioId : Long) : long
+  }
+
+  interface ServicioDeMonitoreo <<Local>> {
+    + eventosRecientesDelUsuarioActual() : List<FilaMonitorDTO>
+  }
+  class ServicioDeMonitoreoBean <<Stateless>> {
+    - contexto : SessionContext
+  }
+  class FilaMonitorDTO <<Transfer Object>> $DTO {
+    idEvento, tipoEvento : String
+    turnoId : Long
+    fechaHoraTurno, publicadoEn : LocalDateTime
+  }
+  class EstadoSuscriptorDTO <<Transfer Object>> $DTO {
+    suscriptor : String
+    procesado : boolean
+    latenciaMs : Long
+  }
+  class ResumenMonitorDTO <<Transfer Object>> $DTO {
+    publicados, procesados, pendientes
+    latenciaPromedioMs, latenciaMaximaMs
+    + {static} de(filas : List<FilaMonitorDTO>) : ResumenMonitorDTO
+  }
+
+  class ServicioDeUsuariosBean <<Stateless>>
+  class ServicioDeTurnosBean <<Stateful>> <<Facade>> <<Director (Builder)>> $FAC {
+    - turnoEnHoldId : Long
+  }
+  class ServicioDeHistoriaClinicaBean <<Stateless>>
+  class ServicioDeNotificacionesBean <<Stateless>>
+
+  class UsuarioFactory <<Factory>> $FAB {
+    + crear(rol : Rol, datos : DatosRegistro, hash : String) : Usuario
+  }
+  class DatosRegistro <<record>> $FAB {
+    nombreCompleto, email, obraSocial,
+    matricula, especialidad : String
+  }
+}
+
+package "Mensajería (JMS)" {
+  class PublicadorEventosTurno <<Stateless>> <<Transactional Client>> $MSG {
+    - jms : JMSContext
+    + publicar(evento : EventoTurno)
+  }
+  class "topico.turnos" as Topico <<JMS Topic>> <<Publish-Subscribe Channel>> $MSG
+  interface MessageListener <<jakarta.jms>> {
+    + onMessage(m : Message)
+  }
+  class NotificacionesSubscriber <<MessageDriven>> <<Durable Subscriber>> $MSG
+  class AuditoriaSubscriber <<MessageDriven>> <<Durable Subscriber>> $MSG
+
+  class EventoTurno <<record>> <<Producto (Builder)>> $BLD {
+    idEvento : String
+    tipo : TipoEventoTurno
+    ocurridoEn : LocalDateTime
+    turnoId, profesionalId, pacienteId : Long
+    fechaHoraTurno : LocalDateTime
+    profesionalNombre, especialidad,
+    pacienteNombre, pacienteEmail : String
+    + {static} builder() : Builder
+  }
+  class "EventoTurno.Builder" as Builder <<Builder>> $BLD {
+    - tipo : TipoEventoTurno
+    + tipo(t : TipoEventoTurno) : Builder
+    + turno(t : Turno) : Builder
+    + build() : EventoTurno
+  }
+  class EventoTurnoJson <<utility>> {
+    ~ {static} aJson(e : EventoTurno) : String
+    ~ {static} desdeMensaje(m : Message) : EventoTurno
+  }
+}
+
+package "Notificaciones" {
+  abstract class ProcesadorNotificacion <<AbstractClass (Template Method)>> <<Creator (Factory Method)>> $TPL {
+    + procesar(e : EventoTurno) «final»
+    # {abstract} crearNotificacion(e : EventoTurno) : Notificacion
+    # {abstract} enviar(n : Notificacion)
+  }
+  class ProcesadorEmail <<ConcreteClass>> $TPL {
+    # crearNotificacion(e : EventoTurno) : Notificacion
+    # enviar(n : Notificacion)
+  }
+  class ProcesadorAvisoProfesional <<ConcreteClass>> $TPL {
+    # crearNotificacion(e : EventoTurno) : Notificacion
+    # enviar(n : Notificacion)
+  }
+}
+
+package "Datos (DAO)" {
+  class UsuarioDAO <<DAO>> $DAO {
+    + guardar(u : Usuario)
+    + buscarPorEmail(email : String) : Optional<Usuario>
+  }
+  class TurnoDAO <<DAO>> $DAO {
+    + guardar(t : Turno)
+    + buscarPorId(id : Long) : Turno
+    + actualizar(t : Turno) : Turno
+  }
+  class HistoriaClinicaDAO <<DAO>> $DAO {
+    + buscarPorPaciente(id : Long) : HistoriaClinica
+  }
+  class NotificacionDAO <<DAO>> $DAO {
+    + guardar(n : Notificacion)
+    + buscarDeUsuario(id : Long) : List<Notificacion>
+  }
+  class EventoProcesadoDAO <<DAO>> <<Idempotent Receiver>> $DAO {
+    + registrar(suscriptor : String, idEvento : String)
+  }
+  class EventoPublicadoDAO <<DAO>> $DAO {
+    + guardar(e : EventoPublicado)
+    + buscarRecientesDeUsuario(id : Long, max : int) : List<EventoPublicado>
+  }
+  class RegistroAuditoriaDAO <<DAO>> $DAO {
+    + guardar(r : RegistroAuditoria)
+  }
+}
+
+package "Modelo (entidades JPA)" {
+  abstract class Usuario <<Entity>> <<Producto (Factory)>> $FAB {
+    - id : Long
+    - email : String
+    - rol : Rol
+  }
+  class Paciente <<Entity>> <<ProductoConcreto>> $FAB {
+    - obraSocial : String
+  }
+  class Profesional <<Entity>> <<ProductoConcreto>> $FAB {
+    - matricula : String
+    - especialidad : String
+  }
+  class Turno <<Entity>> {
+    - fechaHora : LocalDateTime
+    - estado : EstadoTurno
+    + confirmar()
+    + liberar()
+  }
+  class HistoriaClinica <<Entity>>
+  class Notificacion <<Entity>> <<Producto (Factory Method)>> $TPL {
+    - destinatarioId : Long
+    - canal : CanalNotificacion
+  }
+  class RegistroAuditoria <<Entity>>
+  class EventoPublicado <<Entity>> {
+    - idEvento : String
+    - publicadoEn : LocalDateTime
+  }
+  class EventoProcesado <<Entity>> {
+    - clave : String
+  }
+}
+
+' ===== Presentación -> Negocio (asociaciones: atributos @Inject) =====
+LoginBean --> "1" ServicioDeUsuarios : servicioDeUsuarios
+AgendaBean --> "1" ServicioDeUsuarios : servicioDeUsuarios
+AgendaBean --> "1" ServicioDeTurnos : servicioDeTurnos
+AgendaBean --> "1" LoginBean : loginBean
+HistoriaBean --> "1" ServicioDeHistoriaClinica : servicioDeHistoriaClinica
+HistoriaBean --> "1" ServicioDeTurnos : servicioDeTurnos
+NotificacionesBean --> "1" ServicioDeNotificaciones : servicioDeNotificaciones
+HistoriaBean --> "1" LoginBean : loginBean
+NotificacionesBean --> "1" LoginBean : loginBean
+MonitorBean --> "1" ServicioDeMonitoreo : servicioDeMonitoreo
+MonitorBean --> "1" LoginBean : loginBean
+MonitorBean --> "*" FilaMonitorDTO : filas
+MonitorBean --> "0..1" ResumenMonitorDTO : resumen
+
+' ===== Realizaciones =====
+ServicioDeUsuariosBean ..|> ServicioDeUsuarios
+ServicioDeTurnosBean ..|> ServicioDeTurnos
+ServicioDeHistoriaClinicaBean ..|> ServicioDeHistoriaClinica
+ServicioDeNotificacionesBean ..|> ServicioDeNotificaciones
+ServicioDeMonitoreoBean ..|> ServicioDeMonitoreo
+NotificacionesSubscriber ..|> MessageListener
+AuditoriaSubscriber ..|> MessageListener
+
+' ===== Facade: ServicioDeTurnosBean coordina el subsistema =====
+ServicioDeTurnosBean --> "1" TurnoDAO : turnoDAO
+ServicioDeTurnosBean --> "1" UsuarioDAO : usuarioDAO
+ServicioDeTurnosBean --> "1" PublicadorEventosTurno : publicadorEventos
+ServicioDeTurnosBean ..> Builder : <<use>>
+
+' ===== Factory =====
+ServicioDeUsuariosBean --> "1" UsuarioDAO : usuarioDAO
+ServicioDeUsuariosBean --> "1" UsuarioFactory : usuarioFactory
+UsuarioFactory ..> DatosRegistro : <<use>>
+UsuarioFactory ..> Paciente : <<create>>
+UsuarioFactory ..> Profesional : <<create>>
+
+ServicioDeHistoriaClinicaBean --> "1" HistoriaClinicaDAO : historiaClinicaDAO
+ServicioDeHistoriaClinicaBean --> "1" UsuarioDAO : usuarioDAO
+ServicioDeHistoriaClinicaBean --> "1" TurnoDAO : turnoDAO
+ServicioDeNotificacionesBean --> "1" NotificacionDAO : notificacionDAO
+
+' ===== Monitor: Transfer Object =====
+ServicioDeMonitoreoBean --> "1" UsuarioDAO : usuarioDAO
+ServicioDeMonitoreoBean --> "1" EventoPublicadoDAO : eventoPublicadoDAO
+ServicioDeMonitoreoBean --> "1" EventoProcesadoDAO : eventoProcesadoDAO
+ServicioDeMonitoreoBean ..> FilaMonitorDTO : <<create>>
+FilaMonitorDTO --> "1..*" EstadoSuscriptorDTO : suscriptores
+ResumenMonitorDTO ..> FilaMonitorDTO : <<use>>
+
+' ===== Builder =====
+EventoTurno +-- Builder
+Builder --> "0..1" Turno : turno
+Builder ..> EventoTurno : <<create>>
+
+' ===== Mensajería =====
+PublicadorEventosTurno --> "1" Topico : topicoTurnos
+PublicadorEventosTurno --> "1" EventoPublicadoDAO : eventoPublicadoDAO
+PublicadorEventosTurno ..> EventoTurnoJson : <<use>>
+PublicadorEventosTurno ..> EventoTurno : <<send>>
+Topico ..> NotificacionesSubscriber : <<deliver>>
+Topico ..> AuditoriaSubscriber : <<deliver>>
+NotificacionesSubscriber ..> EventoTurnoJson : <<use>>
+AuditoriaSubscriber ..> EventoTurnoJson : <<use>>
+NotificacionesSubscriber --> "1" EventoProcesadoDAO : eventosProcesados
+NotificacionesSubscriber --> "1..*" ProcesadorNotificacion : procesadores
+AuditoriaSubscriber --> "1" EventoProcesadoDAO : eventosProcesados
+AuditoriaSubscriber --> "1" RegistroAuditoriaDAO : registroAuditoriaDAO
+AuditoriaSubscriber ..> RegistroAuditoria : <<create>>
+
+' ===== Template Method / Factory Method =====
+ProcesadorEmail --|> ProcesadorNotificacion
+ProcesadorAvisoProfesional --|> ProcesadorNotificacion
+ProcesadorNotificacion --> "1" NotificacionDAO : notificacionDAO
+ProcesadorNotificacion ..> Notificacion : <<create>>
+
+' ===== DAO -> entidades que gestionan =====
+UsuarioDAO ..> Usuario : <<persist>>
+TurnoDAO ..> Turno : <<persist>>
+HistoriaClinicaDAO ..> HistoriaClinica : <<persist>>
+NotificacionDAO ..> Notificacion : <<persist>>
+EventoProcesadoDAO ..> EventoProcesado : <<persist>>
+RegistroAuditoriaDAO ..> RegistroAuditoria : <<persist>>
+EventoPublicadoDAO ..> EventoPublicado : <<persist>>
+
+' ===== Modelo =====
+Paciente --|> Usuario
+Profesional --|> Usuario
+Turno "*" --> "1" Profesional : profesional
+Turno "*" --> "0..1" Paciente : paciente
+HistoriaClinica "0..1" --> "1" Paciente : paciente
+
+legend bottom
+  <b>Notación UML</b>
+  |= Flecha |= Significado |
+  | A ──> B  (con 1, 0..1, *, 1..*) | <b>Asociación</b>: A guarda una referencia a B en un atributo\n(el texto es el nombre del atributo; el número, cuántos B) |
+  | A - - -> B  «create» / «use» / «send» | <b>Dependencia</b>: A crea o usa B dentro de un método, sin guardarlo |
+  | A ──▷ B | <b>Generalización</b>: A hereda de B |
+  | A - - -▷ B | <b>Realización</b>: A implementa la interfaz B |
+  | A ⊕── B | <b>Clase anidada</b>: B está definida dentro de A |
+  | «Stateless», «Entity»... | Estereotipo: tipo de componente Jakarta EE |
+  | «Facade», «Builder»... | Estereotipo: rol de la clase en el patrón |
+  | <i>Omitido por legibilidad</i> | Atributos de la vista que guardan entidades (AgendaBean.turnoEnHold,\nHistoriaBean.historia, NotificacionesBean.notificaciones), SecurityContext/JMSContext\ny la clase de constantes Suscripciones |
+  <b>Patrones</b>
+  |<back:#DCEBFF>   DAO   </back>| UsuarioDAO, TurnoDAO, HistoriaClinicaDAO, NotificacionDAO, ... |
+  |<back:#FFE6C7>   Facade   </back>| ServicioDeTurnosBean |
+  |<back:#EBDDF7>   Factory   </back>| UsuarioFactory → Usuario / Paciente / Profesional |
+  |<back:#D9F2DF>   Builder   </back>| EventoTurno.Builder → EventoTurno (Director: ServicioDeTurnosBean) |
+  |<back:#FFF6C2>   Template Method + Factory Method   </back>| ProcesadorNotificacion y subclases → Notificacion |
+  |<back:#D7F0EC>   Transfer Object   </back>| FilaMonitorDTO, EstadoSuscriptorDTO, ResumenMonitorDTO (la vista nunca recibe entidades) |
+  |<back:#FADDE6>   Integración (Hohpe & Woolf)   </back>| Transactional Client, Pub/Sub Channel, Durable Subscriber, Idempotent Receiver |
+endlegend
+@enduml

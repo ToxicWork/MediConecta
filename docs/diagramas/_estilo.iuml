@@ -1,0 +1,22 @@
+skinparam defaultFontName Helvetica
+skinparam defaultFontSize 12
+skinparam shadowing false
+skinparam roundCorner 8
+skinparam ArrowColor #3B4A6B
+skinparam BorderColor #3B4A6B
+skinparam backgroundColor #FFFFFF
+skinparam titleFontSize 16
+skinparam titleFontStyle bold
+skinparam legendBackgroundColor #F4F6FB
+skinparam legendBorderColor #C9D1E3
+skinparam noteBackgroundColor #FFF8E1
+skinparam noteBorderColor #E0B84C
+skinparam class {
+  BackgroundColor #EEF3FF
+  BorderColor #2F5FE0
+  HeaderBackgroundColor #DCE6FF
+}
+skinparam component {
+  BackgroundColor #EEF3FF
+  BorderColor #2F5FE0
+}
