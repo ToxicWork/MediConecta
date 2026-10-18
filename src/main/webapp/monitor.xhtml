@@ -1,0 +1,86 @@
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:p="http://primefaces.org/ui"
+                template="/WEB-INF/templates/layout.xhtml">
+
+    <ui:param name="pageTitle" value="Monitor de eventos"/>
+    <ui:param name="activePage" value="monitor"/>
+
+    <f:metadata>
+        <f:viewAction action="#{monitorBean.verificarAcceso}"/>
+    </f:metadata>
+
+    <ui:define name="content">
+        <p class="page-subtitle">
+            Cada vez que se confirma o cancela uno de tus turnos se publica un evento en
+            <strong>topico.turnos</strong>. Acá ves, en vivo, cuándo lo procesó cada suscriptor y cuánto tardó.
+        </p>
+
+        <h:form id="formMonitor">
+            <p:poll interval="3" update="panelMonitor"/>
+
+            <h:panelGroup id="panelMonitor" layout="block">
+                <div class="stats">
+                    <div class="card stat">
+                        <div class="stat-num">#{monitorBean.resumen.publicados}</div>
+                        <div class="stat-label">eventos publicados</div>
+                    </div>
+                    <div class="card stat">
+                        <div class="stat-num stat-ok">#{monitorBean.resumen.procesados}</div>
+                        <div class="stat-label">entregas procesadas</div>
+                    </div>
+                    <div class="card stat">
+                        <div class="stat-num #{monitorBean.resumen.pendientes > 0 ? 'stat-warn' : ''}">#{monitorBean.resumen.pendientes}</div>
+                        <div class="stat-label">entregas pendientes</div>
+                    </div>
+                    <div class="card stat">
+                        <div class="stat-num">#{monitorBean.resumen.latenciaPromedioMs != null ? monitorBean.resumen.latenciaPromedioMs : '—'}<span class="stat-unit">#{monitorBean.resumen.latenciaPromedioMs != null ? ' ms' : ''}</span></div>
+                        <div class="stat-label">latencia promedio (máx. #{monitorBean.resumen.latenciaMaximaMs != null ? monitorBean.resumen.latenciaMaximaMs : '—'} ms)</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h3>Eventos recientes</h3>
+                            <div class="subtle">Se actualiza solo cada 3 segundos · latencia = desde que se publicó hasta que el suscriptor lo procesó</div>
+                        </div>
+                    </div>
+
+                    <h:panelGroup layout="block" styleClass="table-wrap" rendered="#{not empty monitorBean.filas}">
+                        <p:dataTable id="tablaEventos" value="#{monitorBean.filas}" var="fila">
+                            <p:column headerText="Publicado">
+                                <h:outputText value="#{fila.publicadoEn}">
+                                    <f:convertDateTime pattern="HH:mm:ss" type="localDateTime"/>
+                                </h:outputText>
+                            </p:column>
+                            <p:column headerText="Evento">
+                                <span class="tag #{fila.confirmacion ? 'tag-success' : 'tag-danger'}">#{fila.confirmacion ? 'Confirmado' : 'Cancelado'}</span>
+                            </p:column>
+                            <p:column headerText="Turno">
+                                <h:outputText value="#{fila.fechaHoraTurno}">
+                                    <f:convertDateTime pattern="dd/MM/yyyy HH:mm" type="localDateTime"/>
+                                </h:outputText>
+                            </p:column>
+                            <p:column headerText="Notificaciones">
+                                <span class="tag #{fila.suscriptores[0].procesado ? 'tag-success' : 'tag-warning'}">#{fila.suscriptores[0].procesado ? '✓ ' += fila.suscriptores[0].latenciaMs += ' ms' : 'Pendiente'}</span>
+                            </p:column>
+                            <p:column headerText="Auditoría">
+                                <span class="tag #{fila.suscriptores[1].procesado ? 'tag-success' : 'tag-warning'}">#{fila.suscriptores[1].procesado ? '✓ ' += fila.suscriptores[1].latenciaMs += ' ms' : 'Pendiente'}</span>
+                            </p:column>
+                            <p:column headerText="ID de evento">
+                                <span class="mono-id" title="#{fila.idEvento}">#{fila.idCorto}</span>
+                            </p:column>
+                        </p:dataTable>
+                    </h:panelGroup>
+
+                    <h:panelGroup layout="block" styleClass="empty-state" rendered="#{empty monitorBean.filas}">
+                        Todavía no hay eventos de tus turnos. Confirmá o cancelá un turno y miralo aparecer acá.
+                    </h:panelGroup>
+                </div>
+            </h:panelGroup>
+        </h:form>
+    </ui:define>
+</ui:composition>

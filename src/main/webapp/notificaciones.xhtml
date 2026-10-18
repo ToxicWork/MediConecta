@@ -1,0 +1,63 @@
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:p="http://primefaces.org/ui"
+                template="/WEB-INF/templates/layout.xhtml">
+
+    <ui:param name="pageTitle" value="Notificaciones"/>
+    <ui:param name="activePage" value="notificaciones"/>
+
+    <f:metadata>
+        <f:viewAction action="#{notificacionesBean.verificarAcceso}"/>
+    </f:metadata>
+
+    <ui:define name="content">
+        <p class="page-subtitle">
+            Avisos generados de forma asincrónica cuando se confirma o cancela un turno
+            (topico.turnos → ServicioDeNotificaciones).
+        </p>
+
+        <h:form id="formNotificaciones">
+            <!-- Las notificaciones las genera un MDB después del commit: se refresca la bandeja sola. -->
+            <p:poll interval="5" update="bandeja"/>
+
+            <h:panelGroup id="bandeja" layout="block" styleClass="card">
+                <div class="card-header">
+                    <div>
+                        <h3>Bandeja</h3>
+                        <div class="subtle">
+                            #{notificacionesBean.notificaciones.size()} notificación(es) ·
+                            #{notificacionesBean.noLeidas} sin leer
+                        </div>
+                    </div>
+                    <p:commandButton value="Marcar todas como leídas" action="#{notificacionesBean.marcarTodasLeidas}"
+                                     update="@form" styleClass="btn btn-primary btn-sm"
+                                     rendered="#{notificacionesBean.noLeidas > 0}"/>
+                </div>
+
+                <ui:repeat value="#{notificacionesBean.notificaciones}" var="n">
+                    <div class="notif #{n.leida ? '' : 'notif-unread'}">
+                        <div class="notif-head">
+                            <strong>#{n.asunto}</strong>
+                            <span class="tag #{n.canal == 'EMAIL' ? 'tag-info' : 'tag-success'}">
+                                #{n.canal == 'EMAIL' ? 'Email' : 'En la app'}
+                            </span>
+                        </div>
+                        <div class="notif-body">#{n.cuerpo}</div>
+                        <div class="notif-meta">
+                            <h:outputText value="#{n.creadaEn}">
+                                <f:convertDateTime pattern="dd/MM/yyyy HH:mm:ss" type="localDateTime"/>
+                            </h:outputText>
+                            · #{n.destino}
+                        </div>
+                    </div>
+                </ui:repeat>
+
+                <h:panelGroup layout="block" styleClass="empty-state" rendered="#{empty notificacionesBean.notificaciones}">
+                    Todavía no tenés notificaciones.
+                </h:panelGroup>
+            </h:panelGroup>
+        </h:form>
+    </ui:define>
+</ui:composition>

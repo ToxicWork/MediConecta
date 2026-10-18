@@ -2,6 +2,9 @@ package ar.edu.mediconecta.negocio;
 
 import ar.edu.mediconecta.dao.TurnoDAO;
 import ar.edu.mediconecta.dao.UsuarioDAO;
+import ar.edu.mediconecta.mensajeria.EventoTurno;
+import ar.edu.mediconecta.mensajeria.PublicadorEventosTurno;
+import ar.edu.mediconecta.mensajeria.TipoEventoTurno;
 import ar.edu.mediconecta.modelo.EstadoTurno;
 import ar.edu.mediconecta.modelo.Turno;
 import ar.edu.mediconecta.negocio.excepciones.TurnoNoDisponibleException;
@@ -29,6 +32,9 @@ import java.util.logging.Logger;
  * hace que el propio contenedor EJB invoque {@code @PreDestroy} si el paciente no
  * confirma a tiempo, liberando el turno automáticamente — evidencia concreta de que
  * el contenedor gestiona el ciclo de vida de este componente.
+ *
+ * <p>Confirmar y cancelar publican un {@link EventoTurno} en {@code topico.turnos} dentro de la
+ * misma transacción que actualiza el turno: si el cambio no se commitea, el evento no sale.
  */
 @Stateful
 @StatefulTimeout(value = 5, unit = TimeUnit.MINUTES)
@@ -42,6 +48,9 @@ public class ServicioDeTurnosBean implements ServicioDeTurnos {
 
     @Inject
     private UsuarioDAO usuarioDAO;
+
+    @Inject
+    private PublicadorEventosTurno publicadorEventos;
 
     private Long turnoEnHoldId;
 
@@ -89,6 +98,10 @@ public class ServicioDeTurnosBean implements ServicioDeTurnos {
         Turno turno = turnoDAO.buscarPorId(turnoEnHoldId);
         turno.confirmar();
         turnoDAO.actualizar(turno);
+        publicadorEventos.publicar(EventoTurno.builder()
+                .tipo(TipoEventoTurno.TURNO_CONFIRMADO)
+                .turno(turno)
+                .build());
         turnoEnHoldId = null;
         return turno;
     }
@@ -119,8 +132,14 @@ public class ServicioDeTurnosBean implements ServicioDeTurnos {
                 || turno.getPaciente() == null || !turno.getPaciente().getId().equals(pacienteId)) {
             throw new TurnoNoDisponibleException("El turno no existe, no está confirmado o no te pertenece.");
         }
+        // El evento se arma antes de liberar: liberar() desvincula al paciente del turno.
+        EventoTurno cancelado = EventoTurno.builder()
+                .tipo(TipoEventoTurno.TURNO_CANCELADO)
+                .turno(turno)
+                .build();
         turno.liberar();
         turnoDAO.actualizar(turno);
+        publicadorEventos.publicar(cancelado);
         return turno;
     }
 

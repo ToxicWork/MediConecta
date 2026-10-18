@@ -27,13 +27,10 @@
 
         <ul class="nav">
             <li>
-                <span class="nav-item disabled">
-                    <span class="nav-label">
-                        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9"/></svg>
-                        Panel
-                    </span>
-                    <span class="soon-badge">Pronto</span>
-                </span>
+                <h:link outcome="/monitor.xhtml" styleClass="nav-item #{activePage == 'monitor' ? 'active' : ''}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>
+                    Monitor de eventos
+                </h:link>
             </li>
             <li>
                 <h:link outcome="/agenda.xhtml" styleClass="nav-item #{activePage == 'agenda' ? 'active' : ''}">
@@ -66,13 +63,12 @@
                 </span>
             </li>
             <li>
-                <span class="nav-item disabled">
-                    <span class="nav-label">
-                        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 5.5-2 7-2 7h16s-2-1.5-2-7"/><path d="M10.5 20a1.5 1.5 0 0 0 3 0"/></svg>
-                        Notificaciones
-                    </span>
-                    <span class="soon-badge">Pronto</span>
-                </span>
+                <h:link outcome="/notificaciones.xhtml" styleClass="nav-item #{activePage == 'notificaciones' ? 'active' : ''}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 5.5-2 7-2 7h16s-2-1.5-2-7"/><path d="M10.5 20a1.5 1.5 0 0 0 3 0"/></svg>
+                    Notificaciones
+                    <h:outputText value="#{notificacionesBean.noLeidas}" styleClass="count-badge"
+                                  rendered="#{notificacionesBean.noLeidas > 0}"/>
+                </h:link>
             </li>
         </ul>
 
@@ -102,7 +98,7 @@
         </div>
 
         <div class="content">
-            <p:growl showDetail="true"/>
+            <p:growl showDetail="false"/>
             <ui:insert name="content"/>
         </div>
     </div>
