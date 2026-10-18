@@ -1,0 +1,23 @@
+## Entrega Parcial N.º 2: mensajería asincrónica sobre el broker ActiveMQ Artemis embebido en WildFly.
+## Artemis sólo viene en el perfil standalone-full.xml, así que a partir de esta entrega el servidor
+## se levanta con ese perfil (wildfly/iniciar-servidor.sh ya lo hace).
+##
+## Se ejecuta con el servidor APAGADO (edita standalone-full.xml en modo embebido):
+##   <WILDFLY_HOME>/bin/jboss-cli.sh --file=wildfly/configurar-mensajeria.cli
+## Después, el datasource de Supabase (también con el servidor apagado):
+##   <WILDFLY_HOME>/bin/jboss-cli.sh --commands="embed-server --server-config=standalone-full.xml,run-batch --file=wildfly/configurar-datasource.local.cli"
+##   (o levantar el server con -c standalone-full.xml y correr configurar-datasource.local.cli con --connect, como en la Entrega 1)
+
+embed-server --server-config=standalone-full.xml
+
+## Lo mismo que se hizo sobre standalone.xml en la Entrega 1 (ver SETUP.md)
+/subsystem=datasources/jdbc-driver=postgresql:add(driver-name=postgresql,driver-module-name=org.postgresql,driver-class-name=org.postgresql.Driver)
+/subsystem=undertow/application-security-domain=other:write-attribute(name=integrated-jaspi,value=false)
+
+## topico.turnos: Publish-Subscribe Channel con los eventos TURNO_CONFIRMADO / TURNO_CANCELADO
+/subsystem=messaging-activemq/server=default/jms-topic=turnos:add(entries=["java:/jms/topic/turnos"])
+
+## Dead Letter Channel: tras 3 entregas fallidas (con 5 s entre reintentos) el mensaje va a la DLQ
+/subsystem=messaging-activemq/server=default/address-setting=jms.topic.turnos:add(max-delivery-attempts=3,redelivery-delay=5000,dead-letter-address=jms.queue.DLQ,expiry-address=jms.queue.ExpiryQueue)
+
+stop-embedded-server
