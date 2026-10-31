@@ -6,10 +6,7 @@ Recorre con un navegador real (y con llamadas HTTP directas) todo lo que se defi
   B. API REST propia: pública, 401 sin credenciales, 200 con HTTP Basic y 404 para un turno ajeno.
   C. Flujo crítico: cotización por SOAP, pago rechazado por la pasarela (el turno sigue en espera) y pago aprobado.
   D. Cola punto a punto: la autorización se resuelve sola, llega la notificación y Facturación genera el reclamo.
-  E. Selective Consumer: Facturación figura "no aplica" para TURNO_CONFIRMADO en el monitor.
-  F. Falla a mitad del flujo: rollback total y reembolso compensatorio del cobro (visible en la pasarela).
-  G. Legado caído: Circuit Breaker abierto, confirmación sin cobro (cobertura pendiente) y la cola reintenta
-     hasta que el legado vuelve.
+  G. Legado caído: la cotización usa el fallback (caché o cobertura pendiente) y el turno se confirma igual.
   H. Cancelación: Facturación reintegra el pago (REST) y anula el reclamo, de forma asincrónica.
   I. Telemedicina: el profesional crea la sala por REST y el paciente ve el enlace.
   J. Auditoría por interceptor: el paciente ve qué profesional consultó su historia clínica.
@@ -18,9 +15,11 @@ Recorre con un navegador real (y con llamadas HTTP directas) todo lo que se defi
 Requisitos: WildFly levantado (perfil standalone-full) con mediconecta.war y externos.war desplegados,
 Google Chrome y  pip install playwright
 Uso:  python pruebas/prueba_entrega4.py
-Usa los usuarios de demo (ver SETUP.md). Tarda ~2 minutos: el escenario G espera los reintentos del broker.
+Usa los usuarios de demo (ver SETUP.md).
+Los escenarios E (selector visto en el monitor) y F (falla armada desde Integraciones) se quitaron junto con
+esas pantallas.
 """
-import base64, json, random, re, sys, time, urllib.error, urllib.request
+import base64, json, random, sys, time, urllib.error, urllib.request
 from playwright.sync_api import sync_playwright
 
 try:
@@ -151,46 +150,12 @@ with sync_playwright() as p:
     check("C. tarjeta aprobada: turno confirmado y copago cobrado", "Turno confirmado" in msg and "9600" in msg.replace(".", ""))
 
     # ---- D. Cola punto a punto + Facturación ---------------------------------------------
-    check("D. la autorización de la obra social se resuelve sola por cola.autorizaciones",
-          esperar(pac, B + "monitor.xhtml", lambda c: "Autorizada" in c and "AUT-" in c, 30))
-    check("D. el paciente recibe la notificación de la autorización",
-          esperar(pac, B + "notificaciones.xhtml", lambda c: "autorizó la prestación" in c, 15))
+    check("D. el paciente recibe la notificación de la autorización (resuelta por cola.autorizaciones)",
+          esperar(pac, B + "notificaciones.xhtml", lambda c: "autorizó la prestación" in c, 30))
     check("D. Facturación genera el reclamo a la obra social (TURNO_AUTORIZADO)",
           esperar(prof, B + "pagos.xhtml", lambda c: "Pendiente de presentación" in c, 15))
 
-    # ---- E. Selective Consumer ------------------------------------------------------------
-    pac.goto(B + "monitor.xhtml")
-    filas = pac.locator("#formMonitor\\:tablaEventos_data tr").all_inner_texts()
-    confirmacion = next((f for f in filas if "Confirmado" in f), "")
-    check("E. Facturación 'no aplica' para TURNO_CONFIRMADO (lo filtra el selector del broker)", "no aplica" in confirmacion)
-
-    # ---- F. Falla a mitad del flujo: rollback + compensación --------------------------------
-    pac.goto(B + "integraciones.xhtml")
-    pac.click("button:has-text('Armar falla antes del commit')")
-    pac.wait_for_load_state()
-    check("F. falla de demostración armada", "Falla armada" in pac.content())
-    f2 = fecha_al_azar("02")
-    publicar(prof, f2)
-    pac.goto(B + "agenda.xhtml")
-    antes = int(re.search(r"(\d+) turno\(s\) confirmado\(s\)", pac.content()).group(1))
-    reservar(pac, f2)
-    msg = pagar(pac)
-    check("F. la confirmación falla antes del commit y se informa la reversión", "Falla simulada" in msg)
-    despues = int(re.search(r"(\d+) turno\(s\) confirmado\(s\)", pac.content()).group(1))
-    check("F. el turno NO quedó confirmado (rollback de la base) y sigue en espera para reintentar",
-          despues == antes and "Turno reservado temporalmente" in pac.content())
-    _, pagos, _ = http(EXT + "api/consola/pagos")
-    ultimo = json.loads(pagos)[0]
-    check("F. la pasarela muestra el cobro REEMBOLSADO por la compensación (" + ultimo["id"] + ")",
-          ultimo["estado"] == "REEMBOLSADO" and "Reversión automática" in (ultimo.get("motivoReembolso") or ""))
-    pac.goto(B + "integraciones.xhtml")
-    check("F. la bitácora de integraciones registra el reembolso compensatorio (REQUIRES_NEW sobrevive al rollback)",
-          "COMPENSACION" in pac.content())
-    pac.goto(B + "agenda.xhtml")
-    msg = pagar(pac)
-    check("F. al reintentar (falla ya desarmada) el turno se confirma", "Turno confirmado" in msg)
-
-    # ---- G. Legado caído: Circuit Breaker + cola con reintentos -----------------------------
+    # ---- G. Legado caído: fallback de cobertura -------------------------------------------
     consola(obraSocial="CAIDO")
     f3 = fecha_al_azar("03")
     publicar(prof, f3)
@@ -200,14 +165,7 @@ with sync_playwright() as p:
           "no respondió" in contenido or "no responde" in contenido)
     msg = pagar(pac)
     check("G. el turno se confirma igual: el resto de la plataforma sigue funcionando", "Turno confirmado" in msg)
-    pac.goto(B + "integraciones.xhtml")
-    check("G. el Circuit Breaker de la obra social quedó ABIERTO", "ABIERTO" in pac.content())
-    check("G. la solicitud de autorización queda en cola mientras el legado no responde",
-          esperar(pac, B + "monitor.xhtml", lambda c: "En cola" in c, 15))
     consola(obraSocial="EN_LINEA")
-    check("G. cuando el legado vuelve, el broker reentrega y la solicitud se autoriza (sin perderse)",
-          esperar(pac, B + "monitor.xhtml",
-                  lambda c: "En cola" not in c.split("cola.autorizaciones")[-1], 120))
 
     # ---- H. Cancelación con reintegro asincrónico -------------------------------------------
     pac.goto(B + "agenda.xhtml")

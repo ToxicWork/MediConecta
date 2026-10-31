@@ -27,7 +27,6 @@ real, sobre el broker ActiveMQ Artemis embebido en WildFly (perfil `standalone-f
   `topico.turnos`. El envío JMS se enlista en la misma transacción JTA que actualiza el turno
   (Transactional Client): si hay rollback, el evento no sale.
 - `ServicioDeNotificaciones` y `AuditoriaSubscriber`: MDB con suscripción durable.
-- **Monitor de eventos** (`/monitor.xhtml`): qué suscriptor procesó cada evento y con qué latencia.
 - Patrones nuevos: Publish-Subscribe Channel, Durable Subscriber, Event-Driven Consumer, Idempotent
   Receiver, Dead Letter Channel, Builder, Template Method + Factory Method y Transfer Object.
 
@@ -59,8 +58,7 @@ real, sobre el broker ActiveMQ Artemis embebido en WildFly (perfil `standalone-f
   el paciente), `@RunAs("SISTEMA")` en los MDB, Bean Validation de los datos de pago y el número de
   tarjeta nunca se guarda.
 - **Temas visuales** estándar, claro y oscuro (opcional del anexo), alternables en tiempo real.
-- Pantallas nuevas: Pagos, Telemedicina e Integraciones (estado de los Circuit Breakers, bitácora
-  SOAP/REST y demo de falla transaccional).
+- Pantallas nuevas: Pagos y Telemedicina.
 - **Sistemas externos simulados** (`sistemas-externos/`, se despliega como `externos.war`): la obra
   social (SOAP), la pasarela y la videoconsulta (REST), con una consola para tirarlos abajo en vivo.
 
@@ -90,12 +88,10 @@ real, sobre el broker ActiveMQ Artemis embebido en WildFly (perfil `standalone-f
   Responsibility, Circuit Breaker, Retry, Builder, catálogo, selector).
 - De punta a punta con navegador real (requieren `pip install playwright` y Google Chrome, con la app
   desplegada):
-  - [`pruebas/prueba_entrega4.py`](pruebas/prueba_entrega4.py): 36 verificaciones de esta entrega
-    (SOAP, API REST, pago rechazado y aprobado, cola, selector, falla con compensación, legado caído,
-    cancelación con reintegro, telemedicina, auditoría y temas).
+  - [`pruebas/prueba_entrega4.py`](pruebas/prueba_entrega4.py): 25 verificaciones de esta entrega
+    (SOAP, API REST, pago rechazado y aprobado, cola, legado caído, cancelación con reintegro,
+    telemedicina, auditoría y temas).
   - [`pruebas/prueba_e2e.py`](pruebas/prueba_e2e.py): 13 verificaciones del recorrido básico.
-  - [`pruebas/prueba_monitor.py`](pruebas/prueba_monitor.py): 7 verificaciones del monitor con un
-    suscriptor detenido desde `jboss-cli`.
 
 ## Declaración de uso de inteligencia artificial generativa
 

@@ -1,7 +1,0 @@
-<ui:composition xmlns="http://www.w3.org/1999/xhtml"
-                xmlns:ui="jakarta.faces.facelets"
-                xmlns:h="jakarta.faces.html">
-    <h:outputText rendered="#{not s.aplica}" value="no aplica" styleClass="tag tag-neutral"/>
-    <h:outputText rendered="#{s.aplica and s.procesado}" value="✓ #{s.latenciaMs} ms" styleClass="tag tag-success"/>
-    <h:outputText rendered="#{s.pendiente}" value="Pendiente" styleClass="tag tag-warning"/>
-</ui:composition>

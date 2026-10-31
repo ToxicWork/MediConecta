@@ -195,8 +195,6 @@ El build de MediConecta genera el cliente SOAP con wsimport (`jaxws-maven-plugin
   obras sociales generados por Facturación.
 - `/telemedicina.xhtml` — teleconsultas confirmadas: el profesional crea la sala por REST y el paciente
   se une con su enlace.
-- `/integraciones.xhtml` — estado de los Circuit Breakers, bitácora de llamadas SOAP/REST y botón para
-  armar una falla antes del commit (demo transaccional).
 - `/api/v1/...` — API REST (ver `docs/api/README.md`).
 - `/notificaciones.xhtml` — bandeja de notificaciones. Al confirmar o cancelar un turno,
   `ServicioDeTurnos` publica un `EventoTurno` en `topico.turnos`; dos MDB suscriptos de forma
@@ -235,9 +233,8 @@ ad-hoc a partir del `CallerPrincipalCallback`/`GroupPrincipalCallback` que emite
 ```bash
 mvn package                        # 26 pruebas unitarias
 pip install playwright             # una sola vez; usa el Google Chrome instalado
-python pruebas/prueba_entrega4.py  # 36 verificaciones de la Entrega Obligatoria N.º 2 (~2 min)
+python pruebas/prueba_entrega4.py  # 25 verificaciones de la Entrega Obligatoria N.º 2
 python pruebas/prueba_e2e.py       # 13 verificaciones del recorrido básico
-python pruebas/prueba_monitor.py   # 7 verificaciones (frena y reactiva un MDB con jboss-cli)
 ```
 
 Los PDF de `docs/` se regeneran con `python docs/generar_pdf.py <html> <pdf>` (Chrome + PyMuPDF).
