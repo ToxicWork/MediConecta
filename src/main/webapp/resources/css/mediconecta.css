@@ -1,6 +1,15 @@
-/* MediConecta — sistema de diseño: todos los colores salen de variables CSS (tokens de diseño). */
+/* MediConecta — sistema de diseño
+ *
+ * Todos los colores salen de variables CSS (tokens de diseño). Los tres temas visuales sólo redefinen
+ * esas variables según el atributo data-tema del <html>:
+ *   - estandar (por defecto): la identidad de MediConecta, barra lateral azul en degradé;
+ *   - claro: superficies blancas y barra lateral clara, máximo contraste para leer;
+ *   - oscuro: superficies oscuras, para ambientes con poca luz.
+ * tema.js cambia el atributo en tiempo real (sin recargar) y lo recuerda en una cookie.
+ */
 
-:root {
+:root,
+html[data-tema="estandar"] {
   color-scheme: light;
   --color-sidebar-start: #2247c9;
   --color-sidebar-end: #16308c;
@@ -49,6 +58,96 @@
   --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
+html[data-tema="claro"] {
+  color-scheme: light;
+  --color-sidebar-start: #ffffff;
+  --color-sidebar-end: #ffffff;
+  --color-sidebar-fg: #111827;
+  --color-sidebar-item: #374151;
+  --color-sidebar-text: #6b7280;
+  --color-sidebar-hover: #f3f4f6;
+  --color-sidebar-active: #eef2ff;
+  --color-sidebar-active-marker: #2563eb;
+  --color-sidebar-border: #e5e7eb;
+  --color-sidebar-chip: #eef2ff;
+  --color-sidebar-muted: #9ca3af;
+  --color-badge-bg: #2563eb;
+  --color-badge-fg: #ffffff;
+  --color-primary: #2563eb;
+  --color-primary-dark: #1d4ed8;
+  --color-primary-contrast: #ffffff;
+  --color-focus-ring: rgba(37, 99, 235, 0.16);
+  --color-bg: #ffffff;
+  --color-card: #ffffff;
+  --color-border: #e5e7eb;
+  --color-text: #111827;
+  --color-text-secondary: #4b5563;
+  --color-input-bg: #ffffff;
+  --color-input-bg-focus: #ffffff;
+  --color-table-head: #f9fafb;
+  --color-row-hover: #f9fafb;
+  --color-btn-secondary-bg: #ffffff;
+  --color-btn-secondary-hover: #f3f4f6;
+  --color-notif-unread: #f5f8ff;
+  --color-warning-border: #fcd34d;
+  --color-warning-surface: #fffbeb;
+  --color-success-bg: #dcfce7;
+  --color-success-text: #15803d;
+  --color-danger-bg: #fee2e2;
+  --color-danger-text: #b91c1c;
+  --color-warning-bg: #fef3c7;
+  --color-warning-text: #92400e;
+  --color-info-bg: #dbeafe;
+  --color-info-text: #1d4ed8;
+  --color-neutral-bg: #f3f4f6;
+  --shadow-card: 0 0 0 1px rgba(17, 24, 39, .02);
+}
+
+html[data-tema="oscuro"] {
+  color-scheme: dark;
+  --color-sidebar-start: #0b1222;
+  --color-sidebar-end: #0b1222;
+  --color-sidebar-fg: #f1f5f9;
+  --color-sidebar-item: #cbd5e1;
+  --color-sidebar-text: #94a3b8;
+  --color-sidebar-hover: rgba(148, 163, 184, 0.10);
+  --color-sidebar-active: rgba(96, 165, 250, 0.16);
+  --color-sidebar-active-marker: #60a5fa;
+  --color-sidebar-border: #1e293b;
+  --color-sidebar-chip: #1e293b;
+  --color-sidebar-muted: #475569;
+  --color-badge-bg: #60a5fa;
+  --color-badge-fg: #0b1222;
+  --color-primary: #60a5fa;
+  --color-primary-dark: #3b82f6;
+  --color-primary-contrast: #0b1222;
+  --color-focus-ring: rgba(96, 165, 250, 0.22);
+  --color-bg: #0f172a;
+  --color-card: #131d33;
+  --color-border: #243150;
+  --color-text: #e2e8f0;
+  --color-text-secondary: #94a3b8;
+  --color-input-bg: #0f172a;
+  --color-input-bg-focus: #0b1222;
+  --color-table-head: #172238;
+  --color-row-hover: #182540;
+  --color-btn-secondary-bg: #172238;
+  --color-btn-secondary-hover: #1e2b46;
+  --color-notif-unread: #15223d;
+  --color-warning-border: #6b4a12;
+  --color-warning-surface: #1d1a12;
+  --color-success-bg: rgba(34, 197, 94, 0.14);
+  --color-success-text: #4ade80;
+  --color-danger-bg: rgba(248, 113, 113, 0.14);
+  --color-danger-text: #f87171;
+  --color-warning-bg: rgba(251, 191, 36, 0.14);
+  --color-warning-text: #fbbf24;
+  --color-info-bg: rgba(96, 165, 250, 0.16);
+  --color-info-text: #93c5fd;
+  --color-neutral-bg: #1e293b;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, .35);
+}
+
 * { box-sizing: border-box; }
 
 html, body {
@@ -60,6 +159,11 @@ html, body {
   font-size: 14.5px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Transición suave al cambiar de tema en vivo (no se aplica a la primera carga). */
+html.tema-cambiando, html.tema-cambiando * {
+  transition: background-color .25s ease, color .25s ease, border-color .25s ease !important;
 }
 
 h1, h2, h3, h4 { margin: 0 0 4px; font-weight: 700; color: var(--color-text); }
@@ -120,6 +224,7 @@ code, .mono {
 }
 
 .brand-mark svg { width: 19px; height: 19px; stroke: var(--color-sidebar-fg); }
+html[data-tema="claro"] .brand-mark svg { stroke: var(--color-primary); }
 
 .brand-text { line-height: 1.2; }
 .brand-text .name { font-weight: 700; font-size: 15.5px; color: var(--color-sidebar-fg); }
@@ -234,6 +339,40 @@ a.nav-item:hover { background: var(--color-sidebar-hover); text-decoration: none
 .content { padding: 26px 32px 56px; flex: 1; max-width: 1180px; width: 100%; }
 
 .page-subtitle { color: var(--color-text-secondary); font-size: 13.5px; margin-bottom: 22px; }
+
+/* ---------- Selector de tema ---------- */
+
+.tema-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-bg);
+}
+
+.tema-switch button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-family: var(--font-family);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 11px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.tema-switch button svg { width: 15px; height: 15px; stroke: currentColor; }
+.tema-switch button:hover { color: var(--color-text); }
+.tema-switch button.activo { background: var(--color-card); color: var(--color-primary); box-shadow: 0 1px 3px rgba(0, 0, 0, .12); }
+.tema-switch button:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 1px; }
+
+.auth-panel .tema-switch { position: absolute; top: 18px; right: 18px; }
 
 /* ---------- Grid helpers ---------- */
 
@@ -503,6 +642,7 @@ html .table-wrap .ui-datatable tbody tr:hover td { background: var(--color-row-h
 
 .auth-brand .brand-mark { width: 52px; height: 52px; border-radius: 14px; margin-bottom: 22px; }
 .auth-brand .brand-mark svg { width: 28px; height: 28px; stroke: var(--color-sidebar-fg); }
+html[data-tema="claro"] .auth-brand .brand-mark svg { stroke: var(--color-primary); }
 .auth-brand h1 { font-size: 30px; color: var(--color-sidebar-fg); margin-bottom: 10px; }
 .auth-brand p { color: var(--color-sidebar-text); font-size: 14.5px; max-width: 380px; }
 
@@ -543,6 +683,13 @@ html .table-wrap .ui-datatable tbody tr:hover td { background: var(--color-row-h
   border-radius: var(--radius-sm) !important;
   font-family: var(--font-family) !important;
 }
+html[data-tema="oscuro"] .ui-growl .ui-growl-item-container {
+  background: var(--color-card) !important;
+  color: var(--color-text) !important;
+  border: 1px solid var(--color-border) !important;
+}
+html[data-tema="oscuro"] .ui-growl .ui-growl-item-container .ui-growl-message,
+html[data-tema="oscuro"] .ui-growl .ui-growl-item-container .ui-growl-title { color: var(--color-text) !important; }
 
 /* ---------- Notificaciones ---------- */
 .count-badge {
@@ -578,6 +725,7 @@ html .table-wrap .ui-datatable tbody tr:hover td { background: var(--color-row-h
 }
 .stats .card.stat { margin-bottom: 0; padding: 18px 20px; }
 .stat-num { font-size: 30px; font-weight: 700; color: var(--color-primary-dark); line-height: 1.1; }
+html[data-tema="oscuro"] .stat-num { color: var(--color-primary); }
 .stat-num.stat-ok { color: var(--color-success-text); }
 .stat-num.stat-warn { color: var(--color-warning-text); }
 .stat-unit { font-size: 15px; font-weight: 600; margin-left: 2px; }
@@ -666,6 +814,8 @@ html .table-wrap .ui-datatable tbody tr:hover td { background: var(--color-row-h
 
 @media (max-width: 560px) {
   .topbar .greeting { display: none; }
+  .tema-switch button span { display: none; }
+  .tema-switch button { padding: 6px 9px; }
   .stats { grid-template-columns: 1fr 1fr; gap: 10px; }
   .stat-num { font-size: 24px; }
   .notif-head { flex-direction: column; align-items: flex-start; }

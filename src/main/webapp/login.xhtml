@@ -4,7 +4,7 @@
       xmlns:f="jakarta.faces.core"
       xmlns:ui="jakarta.faces.facelets"
       xmlns:p="http://primefaces.org/ui"
-      lang="es-AR">
+      lang="es-AR" data-tema="#{temaBean.actual}">
 <h:head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
@@ -12,6 +12,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com"/>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
     <h:outputStylesheet library="css" name="mediconecta.css"/>
+    <h:outputScript library="js" name="tema.js" target="head"/>
 </h:head>
 <h:body>
     <div class="auth-shell">
@@ -25,6 +26,7 @@
         </div>
 
         <div class="auth-panel">
+            <ui:include src="/WEB-INF/includes/selector-tema.xhtml"/>
             <div class="auth-card">
 
                 <p:growl showDetail="false"/>
