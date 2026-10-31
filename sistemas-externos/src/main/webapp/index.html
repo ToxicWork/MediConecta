@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sistemas externos simulados · consola de la demo</title>
+<style>
+  :root { --bg:#0f172a; --card:#111c33; --borde:#24324f; --texto:#e2e8f0; --tenue:#94a3b8; --ok:#22c55e; --warn:#f59e0b; --mal:#ef4444; --acento:#38bdf8; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background:var(--bg); color:var(--texto); font-size:14px; }
+  header { padding:18px 28px; border-bottom:1px solid var(--borde); display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+  header h1 { font-size:18px; margin:0; }
+  header p { margin:2px 0 0; color:var(--tenue); font-size:12.5px; }
+  main { padding:22px 28px; display:grid; gap:18px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+  .card { background:var(--card); border:1px solid var(--borde); border-radius:12px; padding:16px 18px; }
+  .card h2 { font-size:15px; margin:0 0 4px; }
+  .card .sub { color:var(--tenue); font-size:12px; margin-bottom:12px; }
+  .ancho { grid-column: 1 / -1; }
+  .botones { display:flex; gap:6px; flex-wrap:wrap; margin:8px 0; }
+  button { border:1px solid var(--borde); background:#0b1325; color:var(--texto); padding:7px 12px; border-radius:8px; cursor:pointer; font-size:12.5px; font-weight:600; }
+  button.activo { border-color:var(--acento); background:#0c2a40; color:#bae6fd; }
+  .estado { display:inline-block; padding:2px 9px; border-radius:20px; font-size:11.5px; font-weight:700; }
+  .EN_LINEA, .APROBAR, .APROBADO, .ABIERTA { background:#052e1a; color:var(--ok); }
+  .LENTO { background:#3a2604; color:var(--warn); }
+  .CAIDO, .RECHAZAR, .RECHAZADO { background:#3b0a0a; color:var(--mal); }
+  .REEMBOLSADO, .CERRADA { background:#1e293b; color:var(--tenue); }
+  table { width:100%; border-collapse:collapse; font-size:12.5px; }
+  th, td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--borde); vertical-align:top; }
+  th { color:var(--tenue); font-weight:600; font-size:11.5px; text-transform:uppercase; }
+  code { color:#bae6fd; font-size:12px; }
+  a { color:var(--acento); }
+  .tabla { max-height:340px; overflow:auto; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Sistemas externos simulados</h1>
+    <p>No forman parte de MediConecta: representan a la obra social (legado SOAP), la pasarela de pagos y el proveedor de videoconsulta (REST).</p>
+  </div>
+  <div style="color:var(--tenue);font-size:12px;">Se actualiza cada 2 s</div>
+</header>
+<main>
+  <section class="card">
+    <h2>Obra social · sistema legado (SOAP)</h2>
+    <div class="sub">WSDL: <a href="CoberturaService?wsdl" target="_blank"><code>/externos/CoberturaService?wsdl</code></a> · WS-Security UsernameToken</div>
+    <div>Estado: <span id="obraSocial" class="estado">…</span></div>
+    <div class="botones">
+      <button data-campo="obraSocial" data-valor="EN_LINEA">En línea</button>
+      <button data-campo="obraSocial" data-valor="LENTO">Lento (8 s)</button>
+      <button data-campo="obraSocial" data-valor="CAIDO">Caído</button>
+    </div>
+    <div>Auditoría médica: <span id="autorizaciones" class="estado">…</span></div>
+    <div class="botones">
+      <button data-campo="autorizaciones" data-valor="APROBAR">Aprobar autorizaciones</button>
+      <button data-campo="autorizaciones" data-valor="RECHAZAR">Rechazar autorizaciones</button>
+    </div>
+  </section>
+  <section class="card">
+    <h2>Pasarela de pagos (REST)</h2>
+    <div class="sub"><code>POST /externos/api/pasarela/v1/pagos</code> · Bearer + Idempotency-Key</div>
+    <div>Estado: <span id="pasarela" class="estado">…</span></div>
+    <div class="botones">
+      <button data-campo="pasarela" data-valor="EN_LINEA">En línea</button>
+      <button data-campo="pasarela" data-valor="CAIDO">Caída</button>
+    </div>
+    <div class="sub" style="margin-top:10px;">Tarjetas de prueba: <code>4111 1111 1111 1111</code> aprobada · <code>4000 0000 0000 0002</code> fondos insuficientes · <code>…0069</code> vencida</div>
+  </section>
+  <section class="card">
+    <h2>Videoconsulta (REST)</h2>
+    <div class="sub"><code>POST /externos/api/video/v1/salas</code> · X-Api-Key</div>
+    <div>Estado: <span id="videoconsulta" class="estado">…</span></div>
+    <div class="botones">
+      <button data-campo="videoconsulta" data-valor="EN_LINEA">En línea</button>
+      <button data-campo="videoconsulta" data-valor="CAIDO">Caído</button>
+    </div>
+  </section>
+
+  <section class="card ancho">
+    <h2>Pagos recibidos por la pasarela</h2>
+    <div class="sub">Si MediConecta revierte una confirmación después de cobrar, acá se ve el reembolso compensatorio.</div>
+    <div class="tabla"><table><thead><tr><th>Creado</th><th>Id</th><th>Referencia</th><th>Importe</th><th>Tarjeta</th><th>Estado</th><th>Detalle</th></tr></thead><tbody id="pagos"></tbody></table></div>
+  </section>
+
+  <section class="card ancho">
+    <h2>Llamadas recibidas</h2>
+    <div class="tabla"><table><thead><tr><th>Hora</th><th>Sistema</th><th>Operación</th><th>Resultado</th></tr></thead><tbody id="registro"></tbody></table></div>
+  </section>
+</main>
+<script>
+  const api = 'api/consola';
+  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const hora = s => s ? String(s).replace('T', ' ').substring(0, 19) : '';
+
+  async function refrescar() {
+    const estado = await (await fetch(api + '/estado')).json();
+    for (const campo of ['obraSocial', 'autorizaciones', 'pasarela', 'videoconsulta']) {
+      const el = document.getElementById(campo);
+      el.textContent = estado[campo]; el.className = 'estado ' + estado[campo];
+      document.querySelectorAll(`button[data-campo="${campo}"]`).forEach(b => b.classList.toggle('activo', b.dataset.valor === estado[campo]));
+    }
+    const pagos = await (await fetch(api + '/pagos')).json();
+    document.getElementById('pagos').innerHTML = pagos.map(p => `<tr><td>${hora(p.creadoEn)}</td><td><code>${esc(p.id)}</code></td>
+      <td>${esc(p.referencia)}</td><td>$ ${esc(p.importe)}</td><td>${esc(p.marca)} ···· ${esc(p.ultimos4)}</td>
+      <td><span class="estado ${esc(p.estado)}">${esc(p.estado)}</span></td>
+      <td>${esc(p.motivoRechazo || p.motivoReembolso || '')}</td></tr>`).join('') || '<tr><td colspan="7">Sin pagos todavía.</td></tr>';
+    const registro = await (await fetch(api + '/registro')).json();
+    document.getElementById('registro').innerHTML = registro.map(r => `<tr><td>${hora(r.cuando).substring(11)}</td><td>${esc(r.sistema)}</td>
+      <td>${esc(r.operacion)}</td><td>${esc(r.resultado)}</td></tr>`).join('') || '<tr><td colspan="4">Sin llamadas todavía.</td></tr>';
+  }
+
+  document.querySelectorAll('button[data-campo]').forEach(b => b.addEventListener('click', async () => {
+    await fetch(api + '/estado', { method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ [b.dataset.campo]: b.dataset.valor }) });
+    refrescar();
+  }));
+  refrescar();
+  setInterval(refrescar, 2000);
+</script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Cadena de handlers JAX-WS del legado: valida el UsernameToken antes de cada operación. -->
+<handler-chains xmlns="https://jakarta.ee/xml/ns/jakartaee">
+    <handler-chain>
+        <handler>
+            <handler-name>ValidadorUsernameToken</handler-name>
+            <handler-class>ar.externos.obrasocial.ValidadorUsernameTokenHandler</handler-class>
+        </handler>
+    </handler-chain>
+</handler-chains>

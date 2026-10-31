@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Simuladores de los sistemas EXTERNOS con los que se integra MediConecta. No forman parte de la
+  plataforma: representan a terceros y se despliegan como un WAR aparte (contexto /externos) para
+  que toda la integración viaje por HTTP real (SOAP y REST), igual que con un sistema de otra empresa.
+
+    - Obra social (sistema legado): servicio SOAP con WSDL  -> /externos/CoberturaService?wsdl
+    - Pasarela de pagos (partner moderno): API REST         -> /externos/api/pasarela/v1/pagos
+    - Proveedor de videoconsulta (partner moderno): REST    -> /externos/api/video/v1/salas
+    - Consola para la demo (estado de cada sistema)         -> /externos/
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>ar.edu</groupId>
+    <artifactId>mediconecta-sistemas-externos</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <packaging>war</packaging>
+
+    <name>MediConecta - simuladores de sistemas externos</name>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.release>17</maven.compiler.release>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>jakarta.platform</groupId>
+            <artifactId>jakarta.jakartaee-api</artifactId>
+            <version>10.0.0</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>externos</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <release>17</release>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-war-plugin</artifactId>
+                <version>3.4.0</version>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

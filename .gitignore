@@ -1,3 +1,5 @@
 /target/
+sistemas-externos/target/
 wildfly/*.local.cli
 .DS_Store
+docs/**/*.tmp.html

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sala de videoconsulta</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background:#0b1120; color:#e2e8f0; min-height:100vh; display:flex; flex-direction:column; }
+  header { padding:14px 22px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #1e293b; gap:12px; flex-wrap:wrap; }
+  header h1 { font-size:16px; margin:0; }
+  .chip { padding:3px 10px; border-radius:20px; font-size:12px; font-weight:700; background:#052e1a; color:#22c55e; }
+  .chip.cerrada { background:#3b0a0a; color:#ef4444; }
+  main { flex:1; display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:16px; padding:18px 22px; }
+  .video { position:relative; background:#111827; border:1px solid #1f2937; border-radius:14px; min-height:260px; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .video video { width:100%; height:100%; object-fit:cover; }
+  .avatar { width:84px; height:84px; border-radius:50%; background:#1e3a8a; display:flex; align-items:center; justify-content:center; font-size:30px; font-weight:700; }
+  .nombre { position:absolute; left:12px; bottom:10px; background:rgba(0,0,0,.55); padding:4px 10px; border-radius:8px; font-size:12.5px; }
+  footer { padding:14px 22px; border-top:1px solid #1e293b; display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+  button { border:0; border-radius:22px; padding:10px 18px; font-weight:700; cursor:pointer; background:#1f2937; color:#e2e8f0; }
+  button.colgar { background:#dc2626; }
+  .nota { color:#94a3b8; font-size:12px; text-align:center; padding:0 22px 12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1 id="titulo">Sala de videoconsulta</h1>
+  <span id="estado" class="chip">…</span>
+</header>
+<main>
+  <div class="video" id="local"><div class="avatar" id="avatarLocal">?</div><span class="nombre" id="nombreLocal">Vos</span></div>
+  <div class="video"><div class="avatar" id="avatarRemoto">?</div><span class="nombre" id="nombreRemoto">Esperando al otro participante…</span></div>
+</main>
+<footer>
+  <button id="camara">Activar cámara</button>
+  <button class="colgar" onclick="window.close()">Salir</button>
+</footer>
+<div class="nota">Sala provista por el proveedor externo de videoconsulta (simulado). MediConecta la creó por REST y sólo guarda el enlace.</div>
+<script>
+  const params = new URLSearchParams(location.search);
+  const rol = params.get('rol') === 'profesional' ? 'profesional' : 'paciente';
+  const inicial = s => (s || '?').trim().split(/\s+/).map(p => p[0]).slice(0, 2).join('').toUpperCase();
+  fetch('api/video/v1/salas/' + encodeURIComponent(params.get('id'))).then(r => r.json()).then(sala => {
+    document.getElementById('titulo').textContent = sala.titulo || 'Sala de videoconsulta';
+    const estado = document.getElementById('estado');
+    estado.textContent = sala.estado === 'ABIERTA' ? 'En curso' : 'Sala cerrada';
+    estado.classList.toggle('cerrada', sala.estado !== 'ABIERTA');
+    const yo = rol === 'profesional' ? sala.profesional : sala.paciente;
+    const otro = rol === 'profesional' ? sala.paciente : sala.profesional;
+    document.getElementById('nombreLocal').textContent = (yo || 'Vos') + ' (vos)';
+    document.getElementById('avatarLocal').textContent = inicial(yo);
+    document.getElementById('nombreRemoto').textContent = otro || 'Participante';
+    document.getElementById('avatarRemoto').textContent = inicial(otro);
+  }).catch(() => { document.getElementById('estado').textContent = 'Sala inexistente'; });
+  document.getElementById('camara').addEventListener('click', async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      const v = document.createElement('video'); v.autoplay = true; v.muted = true; v.playsInline = true; v.srcObject = stream;
+      const local = document.getElementById('local');
+      local.querySelector('.avatar').replaceWith(v);
+    } catch (e) { document.getElementById('camara').textContent = 'Cámara no disponible'; }
+  });
+</script>
+</body>
+</html>
