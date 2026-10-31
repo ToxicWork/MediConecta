@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="UTF-8">
+<title>Trabajo Práctico: Desarrollo de Aplicaciones II — MediConecta, documento técnico de la Entrega Obligatoria N.º 2</title>
+<meta name="author" content="Agustín Bodas, Máximo Bonarrico y Sergio Casanova">
+<style>
+  @page {
+    size: A4;
+    margin: 2.54cm;
+    @top-right {
+      content: counter(page);
+      font-family: Georgia, serif;
+      font-size: 11pt;
+      vertical-align: bottom;
+      padding-bottom: 0.6cm;
+    }
+  }
+  @page apaisada {
+    size: A4 landscape;
+  }
+  .figura-apaisada { page: apaisada; page-break-before: always; page-break-after: always; }
+  .figura-apaisada .figura { margin-top: 0; }
+  @page figura-grande {
+    margin: 1.8cm 1.6cm 1.6cm 1.6cm;
+  }
+
+  html { font-family: Georgia, serif; font-size: 11pt; color: #000; }
+  body { margin: 0; }
+
+  p {
+    line-height: 2;
+    margin: 0;
+    text-indent: 1.27cm;
+    text-align: left;
+    orphans: 3;
+    widows: 3;
+  }
+  p.sin-sangria { text-indent: 0; }
+
+  /* Niveles de título APA 7 */
+  h1 {
+    font-size: 11pt; font-weight: bold; text-align: center;
+    line-height: 2; margin: 0;
+    page-break-after: avoid;
+  }
+  h2 {
+    font-size: 11pt; font-weight: bold; text-align: left;
+    line-height: 2; margin: 0;
+    page-break-after: avoid;
+  }
+  h3 {
+    font-size: 11pt; font-weight: bold; font-style: italic; text-align: left;
+    line-height: 2; margin: 0;
+    page-break-after: avoid;
+  }
+  .salto { page-break-before: always; }
+
+  /* Carátula (formato APA de estudiante + datos institucionales) */
+  .caratula { text-align: center; line-height: 2; }
+  .caratula .institucion-cabecera {
+    margin-top: 0.4cm;
+    line-height: 1.5;
+  }
+  .caratula .sigla {
+    font-size: 26pt; font-weight: bold; letter-spacing: 0.18em;
+    line-height: 1.2;
+  }
+  .caratula .nombre-uni { font-size: 11pt; letter-spacing: 0.04em; }
+  .caratula .facultad { font-size: 11pt; }
+  .caratula .filete {
+    width: 6cm; margin: 0.5cm auto 0 auto; border-top: 0.8pt solid #000;
+  }
+  .caratula .titulo {
+    margin-top: 3.2cm; font-weight: bold; line-height: 2;
+  }
+  .caratula .subtitulo { font-weight: bold; }
+  .caratula .bloque { margin-top: 1.1cm; }
+  .caratula div { text-indent: 0; }
+
+  /* Índice */
+  .indice ul { list-style: none; padding: 0; margin: 0; }
+  .indice li { line-height: 2; }
+  .indice li.n2 { padding-left: 1.27cm; }
+  .indice a { color: #000; text-decoration: none; }
+  .indice a::after {
+    content: leader('.') target-counter(attr(href), page);
+  }
+
+  /* Figuras y tablas APA */
+  .figura { margin: 0.5cm 0 0.6cm 0; page-break-inside: avoid; }
+  .figura .num, .tabla .num { font-weight: bold; line-height: 2; text-indent: 0; }
+  .figura .tit, .tabla .tit { font-style: italic; line-height: 2; text-indent: 0; margin-bottom: 0.15cm; }
+  .figura img { display: block; max-width: 100%; margin: 0 auto; }
+  .figura .nota, .tabla .nota {
+    line-height: 1.5; text-indent: 0; margin-top: 0.2cm; font-size: 10pt;
+  }
+  .nota em.etq { font-style: italic; }
+  .figura-pagina { page: figura-grande; page-break-before: always; page-break-after: always; }
+  .figura-pagina .figura { margin-top: 0; }
+
+  .tabla { margin: 0.5cm 0 0.6cm 0; page-break-inside: avoid; }
+  table {
+    width: 100%; border-collapse: collapse; font-size: 10pt; line-height: 1.4;
+  }
+  thead th {
+    border-top: 0.8pt solid #000; border-bottom: 0.8pt solid #000;
+    text-align: left; font-weight: bold; padding: 4pt 5pt; vertical-align: bottom;
+  }
+  tbody td { padding: 4pt 5pt; vertical-align: top; }
+  tbody tr:last-child td { border-bottom: 0.8pt solid #000; }
+
+  code, .mono { font-family: "Courier New", monospace; font-size: 9.5pt; }
+
+  /* Referencias APA: sangría francesa */
+  .referencias p {
+    text-indent: -1.27cm; padding-left: 1.27cm;
+  }
+  ul.lista { margin: 0 0 0 1.27cm; padding: 0; }
+  ul.lista li { line-height: 2; }
+
+  .cu { margin: 0.25cm 0 0.5cm 0; page-break-inside: avoid; }
+  .cu-cab { font-weight: bold; font-size: 11pt; line-height: 2; }
+  .cu-id { color: #16308c; margin-right: 4pt; }
+  .cu .plan { font-weight: normal; font-style: italic; font-size: 9.5pt; color: #555; margin-left: 6pt; }
+  .cu table { font-size: 9.6pt; border-top: 0.8pt solid #000; border-bottom: 0.8pt solid #000; }
+  .cu td { padding: 3.5pt 5pt; vertical-align: top; border-bottom: 0.4pt solid #ccc; line-height: 1.4; }
+  .cu tr:last-child td { border-bottom: 0; }
+  .cu td.k { width: 24%; font-weight: bold; }
+  .cu ol { margin: 0; padding-left: 14pt; }
+  .cu ol li { line-height: 1.4; margin-bottom: 1pt; }
+  table.hu tr { page-break-inside: avoid; }
+  table.hu ul { margin: 0; padding-left: 11pt; }
+  table.hu li { line-height: 1.35; margin-bottom: 2pt; }
+  .mono { font-family: "Courier New", monospace; font-size: 9pt; }
+
+  /* Entrega Obligatoria N.º 2: el PDF se genera con Chrome (docs/generar_pdf.py), que numera las páginas
+     en el encabezado y completa el índice en dos pasadas (no soporta leader() ni target-counter()). */
+  @page { size: A4; margin: 2.54cm; }
+  .indice li { display: flex; align-items: baseline; gap: 4pt; }
+  .indice a::after { content: none; }
+  .indice .relleno { flex: 1; border-bottom: 1px dotted #000; transform: translateY(-3pt); }
+  .indice .pag { min-width: 1.2em; text-align: right; }
+  .figura img.alto { max-height: 21.5cm; width: auto; }
+  .figura img { max-width: 100%; }
+  thead { display: table-header-group; }
+  tr { page-break-inside: avoid; }
+  h1:not(:first-child) { margin-top: 0.5cm; }
+  /* Interlineado 1,5 en el cuerpo para respetar la extensión de 8 a 12 páginas que pide la consigna. */
+  p { line-height: 1.5; margin-bottom: 0.18cm; }
+  h1, h2, h3 { line-height: 1.6; }
+  h2 { margin-top: 0.25cm; }
+  .figura, .tabla { margin: 0.35cm 0 0.45cm 0; }
+  .figura .num, .tabla .num, .figura .tit, .tabla .tit { line-height: 1.5; }
+  .referencias p { line-height: 1.6; }
+</style>
+
+</head>
+<body>
+<!-- ======================= CARÁTULA ======================= -->
+<section class="caratula">
+  <div class="institucion-cabecera">
+    <div class="sigla">UADE</div>
+    <div class="nombre-uni">UNIVERSIDAD ARGENTINA DE LA EMPRESA</div>
+    <div class="facultad">Facultad de Ingeniería y Ciencias Exactas</div>
+    <div class="facultad">Departamento de Tecnología Informática</div>
+    <div class="filete"></div>
+  </div>
+
+  <div class="titulo">Trabajo Práctico: Desarrollo de Aplicaciones II</div>
+  <div class="subtitulo">MediConecta: integración sincrónica, mensajería completa y transacciones</div>
+  <div>Entrega Obligatoria N.º 2 (2.º Parcial)</div>
+
+  <div class="bloque">
+    <div>Grupo 4</div>
+    <div>Agustín Bodas, Máximo Bonarrico y Sergio Casanova</div>
+  </div>
+
+  <div class="bloque">
+    <div>Universidad Argentina de la Empresa</div>
+    <div>3.4.218 Desarrollo de Aplicaciones II, Comisión Lunes TT</div>
+    <div>Prof. Matías Ruiz</div>
+    <div>9 de noviembre de 2026</div>
+  </div>
+</section>
+
+<!-- ======================= ÍNDICE ======================= -->
+<section class="indice salto">
+  <h1>Índice</h1>
+  <ul>
+    <li><a href="#intro">Introducción</a><span class="relleno"></span><span class="pag" data-para="intro"></span></li>
+    <li><a href="#p1">Parte I: Arquitectura integrada</a><span class="relleno"></span><span class="pag" data-para="p1"></span></li>
+    <li class="n2"><a href="#componentes">Componentes del sistema</a><span class="relleno"></span><span class="pag" data-para="componentes"></span></li>
+    <li class="n2"><a href="#clasif">Clasificación de las integraciones</a><span class="relleno"></span><span class="pag" data-para="clasif"></span></li>
+    <li class="n2"><a href="#externos">Sistemas externos</a><span class="relleno"></span><span class="pag" data-para="externos"></span></li>
+    <li><a href="#p2">Parte II: Integración sincrónica</a><span class="relleno"></span><span class="pag" data-para="p2"></span></li>
+    <li class="n2"><a href="#soap">SOAP con el sistema legado de la obra social</a><span class="relleno"></span><span class="pag" data-para="soap"></span></li>
+    <li class="n2"><a href="#rest">REST con los partners modernos y API propia</a><span class="relleno"></span><span class="pag" data-para="rest"></span></li>
+    <li><a href="#p3">Parte III: Mensajería asincrónica completa</a><span class="relleno"></span><span class="pag" data-para="p3"></span></li>
+    <li class="n2"><a href="#cola">Proceso con cola punto a punto</a><span class="relleno"></span><span class="pag" data-para="cola"></span></li>
+    <li class="n2"><a href="#topico">Proceso con tópico y consumidor selectivo</a><span class="relleno"></span><span class="pag" data-para="topico"></span></li>
+    <li><a href="#p4">Parte IV: Transacciones declarativas</a><span class="relleno"></span><span class="pag" data-para="p4"></span></li>
+    <li class="n2"><a href="#flujo">El flujo crítico de confirmación</a><span class="relleno"></span><span class="pag" data-para="flujo"></span></li>
+    <li class="n2"><a href="#falla">Comportamiento ante una falla a mitad del flujo</a><span class="relleno"></span><span class="pag" data-para="falla"></span></li>
+    <li><a href="#p5">Parte V: Patrones, seguridad e interfaz</a><span class="relleno"></span><span class="pag" data-para="p5"></span></li>
+    <li class="n2"><a href="#patrones">Patrones de diseño incorporados</a><span class="relleno"></span><span class="pag" data-para="patrones"></span></li>
+    <li class="n2"><a href="#seguridad">Seguridad</a><span class="relleno"></span><span class="pag" data-para="seguridad"></span></li>
+    <li class="n2"><a href="#temas">Temas visuales en tiempo real</a><span class="relleno"></span><span class="pag" data-para="temas"></span></li>
+    <li><a href="#pruebas">Pruebas y resultados</a><span class="relleno"></span><span class="pag" data-para="pruebas"></span></li>
+    <li><a href="#lim">Limitaciones y trabajo futuro</a><span class="relleno"></span><span class="pag" data-para="lim"></span></li>
+    <li><a href="#conclusiones">Conclusiones</a><span class="relleno"></span><span class="pag" data-para="conclusiones"></span></li>
+    <li><a href="#referencias">Referencias</a><span class="relleno"></span><span class="pag" data-para="referencias"></span></li>
+    <li><a href="#anexoA">Apéndice A: evidencias de la aplicación funcionando</a><span class="relleno"></span><span class="pag" data-para="anexoA"></span></li>
+    <li><a href="#apendice">Apéndice B: declaración de uso de inteligencia artificial generativa</a><span class="relleno"></span><span class="pag" data-para="apendice"></span></li>
+  </ul>
+</section>
+
+<!-- ======================= INTRODUCCIÓN ======================= -->
+<section class="salto">
+  <h1 id="intro">MediConecta: integración sincrónica, mensajería completa y transacciones</h1>
+
+  <p>Este documento acompaña la Entrega Obligatoria N.º 2 de MediConecta, la plataforma que conecta pacientes con profesionales de la salud para gestionar turnos presenciales y por telemedicina, con cobertura de obras sociales. La consigna de esta instancia pide demostrar el sistema integrado: al menos dos procesos de negocio con mensajería asincrónica (uno con cola punto a punto y otro con tópico), al menos un servicio SOAP con su WSDL justificado como integración con un sistema legado, al menos un servicio REST justificado como integración con un partner moderno o como API de consumo externo, y transacciones declarativas en un flujo crítico de varios pasos (Cátedra de Desarrollo de Aplicaciones II, 2026a). El anexo resume esta instancia como "integración sincrónica (SOAP y REST), mensajería completa y transacciones" y exige que cada entrega sume valor verificable respecto de la anterior (Cátedra de Desarrollo de Aplicaciones II, 2026b).</p>
+
+  <p>Respecto de la Entrega Parcial N.º 2, MediConecta pasó de seis a diez componentes de negocio, se integró con tres sistemas externos por HTTP real (uno SOAP y dos REST), expone su propia API REST, suma un segundo proceso asincrónico con cola y convierte la confirmación de un turno en un flujo transaccional de siete pasos que cruza la base de datos, el broker y dos servicios web. Además se implementaron los tres temas visuales del anexo, que se alternan en tiempo real. La Tabla 1 vincula cada requisito con la sección donde se explica y con la prueba que lo verifica.</p>
+
+  <div class="tabla">
+    <div class="num">Tabla 1</div>
+    <div class="tit">Requisitos de la Entrega Obligatoria N.º 2 y dónde se cumplen</div>
+    <table>
+      <thead><tr><th style="width:30%">Requisito</th><th>Implementación</th><th style="width:22%">Verificación</th></tr></thead>
+      <tbody>
+        <tr><td>Proceso asincrónico con cola punto a punto</td><td><span class="mono">cola.autorizaciones</span>: autorización de prestaciones a la obra social, con consumidores en competencia (Parte III)</td><td>Prueba E4, escenarios D y G</td></tr>
+        <tr><td>Proceso asincrónico con tópico</td><td><span class="mono">topico.turnos</span> con tres suscriptores durables, uno con selector (Parte III)</td><td>Prueba E4, D, E y H; prueba del monitor</td></tr>
+        <tr><td>Servicio SOAP con WSDL (sistema legado)</td><td><span class="mono">CoberturaService</span> de la obra social, consumido con un cliente generado por wsimport (Parte II)</td><td>Prueba E4, A, C y G</td></tr>
+        <tr><td>Servicio REST (partner moderno / API externa)</td><td>Pasarela de pagos y videoconsulta como cliente; API <span class="mono">/api/v1</span> propia como servidor (Parte II)</td><td>Prueba E4, B, C, F, H e I</td></tr>
+        <tr><td>Transacciones declarativas en un flujo crítico</td><td><span class="mono">ProcesoConfirmacionTurno.confirmar</span> (REQUIRED) con compensación del cobro (Parte IV)</td><td>Prueba E4, escenario F</td></tr>
+        <tr><td>Temas claro, oscuro y estándar (opcional)</td><td>Variables CSS por tema y cambio en vivo sin recargar (Parte V)</td><td>Prueba E4, escenario K</td></tr>
+      </tbody>
+    </table>
+    <div class="nota"><em class="etq">Nota.</em> "Prueba E4" es <span class="mono">pruebas/prueba_entrega4.py</span>, que recorre la aplicación desplegada con un navegador real (36 verificaciones).</div>
+  </div>
+</section>
+
+<!-- ======================= PARTE I ======================= -->
+<section>
+  <h1 id="p1">Parte I: Arquitectura integrada</h1>
+
+  <h2 id="componentes">Componentes del sistema</h2>
+  <p>MediConecta sigue siendo un conjunto de componentes Jakarta EE 10 desplegados en WildFly 41 con el perfil <span class="mono">standalone-full</span>, que incluye el broker ActiveMQ Artemis (Eclipse Foundation, 2022). En esta entrega quedan implementados los ocho componentes candidatos que propone la consigna para el dominio, más dos de soporte: la agenda de consultas para la API y el monitoreo. Cada uno tiene una interfaz <span class="mono">@Local</span> explícita, su implementación EJB y sus DAO; las integraciones con terceros quedan detrás de un gateway, de modo que ningún servicio de negocio conoce SOAP ni HTTP. La Tabla 2 resume los componentes.</p>
+
+  <div class="tabla">
+    <div class="num">Tabla 2</div>
+    <div class="tit">Componentes de negocio de MediConecta</div>
+    <table>
+      <thead><tr><th style="width:27%">Componente</th><th style="width:17%">Tipo</th><th>Responsabilidad e integración</th></tr></thead>
+      <tbody>
+        <tr><td>ServicioDeUsuarios</td><td>Stateless</td><td>Registro y autenticación (PBKDF2), Factory de usuarios.</td></tr>
+        <tr><td>ServicioDeTurnos</td><td>Stateful</td><td>Conversación del hold de 5 minutos; delega la confirmación en <span class="mono">ProcesoConfirmacionTurno</span>.</td></tr>
+        <tr><td>ServicioDeHistoriaClinica</td><td>Stateless</td><td>Diagnósticos y recetas, con titularidad y auditoría de accesos.</td></tr>
+        <tr><td>ServicioDeObrasSociales</td><td>Stateless</td><td>Cobertura y autorización contra el legado (SOAP).</td></tr>
+        <tr><td>ServicioDePagos</td><td>Stateless</td><td>Cobros y reintegros por la pasarela (REST).</td></tr>
+        <tr><td>ServicioDeTelemedicina</td><td>Stateless</td><td>Salas de videoconsulta en el proveedor externo (REST).</td></tr>
+        <tr><td>ServicioDeNotificaciones</td><td>MDB + Stateless</td><td>Email al paciente y aviso al profesional por cada evento del tópico.</td></tr>
+        <tr><td>ServicioDeFacturacion</td><td>MDB + Stateless</td><td>Reclamos a la obra social y reintegros, con selector sobre el tópico.</td></tr>
+        <tr><td>ServicioDeAgenda</td><td>Stateless</td><td>Consultas sin estado conversacional para la API REST.</td></tr>
+        <tr><td>ServicioDeMonitoreo</td><td>Stateless</td><td>Monitor de eventos, cola, circuitos y bitácora de integraciones.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>La Figura 1 muestra cómo se conectan estos componentes entre sí y con los sistemas externos. A diferencia de la entrega anterior, todas las conexiones del diagrama están implementadas y funcionando.</p>
+
+  <div class="figura">
+    <div class="num">Figura 1</div>
+    <div class="tit">Arquitectura de integración de MediConecta</div>
+    <img src="../diagramas/01-integracion-soa.png" alt="Arquitectura de integración" style="max-height:15.5cm;">
+    <div class="nota"><em class="etq">Nota.</em> Fuente PlantUML en <span class="mono">docs/diagramas/01-integracion-soa.puml</span>.</div>
+  </div>
+
+  <h2 id="clasif">Clasificación de las integraciones</h2>
+  <p>Mantenemos la regla de la entrega anterior: una integración es sincrónica cuando quien la inicia necesita la respuesta para continuar, y asincrónica cuando es una consecuencia que puede procesarse después o que le interesa a más de un componente (Hohpe y Woolf, 2003). Dentro de las sincrónicas, el protocolo lo impone el tercero: SOAP para el legado de la obra social y REST para los partners modernos. La Tabla 3 aplica la regla a cada integración, ahora todas implementadas.</p>
+
+  <div class="tabla">
+    <div class="num">Tabla 3</div>
+    <div class="tit">Clasificación justificada de las integraciones</div>
+    <table>
+      <thead><tr><th style="width:22%">Integración</th><th style="width:20%">Tipo y canal</th><th>Justificación</th></tr></thead>
+      <tbody>
+        <tr><td>Validación de cobertura</td><td>Sincrónica · SOAP</td><td>El paciente necesita saber cuánto paga antes de confirmar, y la obra social es un sistema legado que sólo expone SOAP.</td></tr>
+        <tr><td>Cobro del copago o del turno particular</td><td>Sincrónica · REST</td><td>Sin un cobro aprobado no se confirma un turno con importe; la pasarela es un servicio moderno con API REST.</td></tr>
+        <tr><td>Sala de videoconsulta</td><td>Sincrónica · REST</td><td>El profesional necesita el enlace en el momento de entrar.</td></tr>
+        <tr><td>API pública <span class="mono">/api/v1</span></td><td>Sincrónica · REST</td><td>Consumo externo por partners (cartilla y turnos del usuario).</td></tr>
+        <tr><td>Autorización de la prestación</td><td>Asincrónica · cola</td><td>Cada solicitud debe procesarse una sola vez, el legado puede tardar o estar caído y el paciente no necesita esperar la respuesta.</td></tr>
+        <tr><td>Notificaciones, auditoría y facturación</td><td>Asincrónica · tópico</td><td>Varios interesados que reaccionan al mismo evento sin conocerse; Facturación filtra con un selector.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>La validación de cobertura y la autorización son dos operaciones distintas del mismo legado, y resolverlas por canales distintos es una decisión de diseño. La primera es una consulta sin efectos cuya respuesta cambia lo que el paciente paga, así que es sincrónica y tiene un plan alternativo si el legado no responde. La segunda es un trámite administrativo que la obra social resuelve con su auditoría médica: modelarla como mensaje en una cola permite que el turno se confirme igual y que la autorización llegue cuando el legado esté disponible, sin perderse.</p>
+
+  <h2 id="externos">Sistemas externos</h2>
+  <p>No hay una obra social, una pasarela ni un proveedor de video reales a los que conectarse, así que los simulamos en un proyecto Maven aparte (<span class="mono">sistemas-externos/</span>), desplegado como <span class="mono">externos.war</span>. Lo importante es que la integración no está simulada: MediConecta habla con ellos por HTTP, con el mismo contrato, autenticación y fallas que tendría un tercero. El simulador de la obra social publica su propio WSDL y valida un encabezado WS-Security; la pasarela exige una clave secreta y soporta <span class="mono">Idempotency-Key</span>; el proveedor de video exige una API key. Una consola web (<span class="mono">/externos/</span>) permite cambiar en vivo el estado de cada sistema (en línea, lento o caído) y ver los pagos recibidos, que es lo que usamos en la demo para mostrar cómo reacciona la plataforma.</p>
+</section>
+
+<!-- ======================= PARTE II ======================= -->
+<section>
+  <h1 id="p2">Parte II: Integración sincrónica</h1>
+
+  <h2 id="soap">SOAP con el sistema legado de la obra social</h2>
+  <p>El legado expone el servicio <span class="mono">CoberturaService</span> (SOAP 1.1, estilo document/literal) con dos operaciones, descriptas en la Tabla 4. Su WSDL se publica en <span class="mono">/externos/CoberturaService?wsdl</span> y una copia vive en el repositorio de MediConecta (<span class="mono">src/main/resources/wsdl</span>), porque el contrato de un tercero no lo controlamos y no queremos depender de que esté en línea para compilar. A partir de esa copia, el plugin <span class="mono">jaxws-maven-plugin</span> genera el cliente con wsimport en cada build. Las clases generadas nunca salen del paquete de integración: el dominio habla con la interfaz <span class="mono">CoberturaGateway</span> y el adaptador <span class="mono">CoberturaSoapAdapter</span> traduce en los dos sentidos (patrones Gateway y Adapter; Fowler, 2002; Gamma et al., 1994). Si el legado cambia su contrato, se regenera el cliente y se ajusta una sola clase.</p>
+
+  <div class="tabla">
+    <div class="num">Tabla 4</div>
+    <div class="tit">Operaciones del servicio SOAP del legado</div>
+    <table>
+      <thead><tr><th style="width:24%">Operación</th><th style="width:36%">Entrada</th><th>Salida</th></tr></thead>
+      <tbody>
+        <tr><td><span class="mono">validarCobertura</span></td><td>obra social, plan, n.º de afiliado, código de prestación, fecha</td><td>estado (CUBIERTO, NO_CUBIERTO, AFILIADO_SUSPENDIDO…), tipo y valor de copago, si requiere autorización, n.º de transacción</td></tr>
+        <tr><td><span class="mono">solicitarAutorizacion</span></td><td>id de solicitud (clave de deduplicación), afiliado, prestación, matrícula del prestador</td><td>AUTORIZADA con código o RECHAZADA con motivo</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>El legado sólo atiende a prestadores registrados. Implementamos el perfil UsernameToken de WS-Security (OASIS, 2006) con handlers estándar de JAX-WS en los dos extremos: del lado de MediConecta, <span class="mono">UsernameTokenClientHandler</span> agrega el encabezado <span class="mono">wsse:Security</span> a cada pedido; del lado del legado, un handler lo valida y, si falta o no coincide, responde un SOAP Fault <span class="mono">wsse:FailedAuthentication</span> sin ejecutar la operación.</p>
+
+  <p>Un sistema legado es justamente el que más probabilidades tiene de fallar o responder lento, y el desafío opcional de la consigna pide demostrar que, si un externo cae, el resto de la plataforma sigue funcionando. El adaptador aplica cuatro patrones de resiliencia en el mismo orden que MicroProfile Fault Tolerance (Nygard, 2018): un timeout de 2 segundos para conectar y 3 para responder; un reintento a los 500 ms, sólo en <span class="mono">validarCobertura</span> porque es una consulta sin efectos; un Circuit Breaker que tras tres fallas seguidas deja de llamar al legado durante 30 segundos; y un fallback que responde con la última validación exitosa (vigencia de 24 horas) o, si no la hay, con cobertura PENDIENTE. El documento de diseño preveía MicroProfile para esto, pero ese subsistema no está en el perfil <span class="mono">standalone-full</span>, que necesitamos por el broker; por eso aplicamos la alternativa que el propio documento contemplaba: un Circuit Breaker propio, con sus estados cerrado, abierto y semiabierto, probado con pruebas unitarias. La Figura 2 muestra la secuencia completa.</p>
+
+  <div class="figura">
+    <div class="num">Figura 2</div>
+    <div class="tit">Secuencia de la integración SOAP: cotización del turno</div>
+    <img class="alto" src="../diagramas/11-secuencia-cobertura-soap.png" alt="Secuencia SOAP">
+  </div>
+
+  <p>Con cobertura pendiente el turno se confirma sin cobro y la cola de autorizaciones termina de resolverlo cuando el legado vuelve. En la demo esto se ve tirando abajo el legado desde la consola: la cotización informa que se usó la caché o que la cobertura quedó pendiente, el circuito figura ABIERTO en el panel de integraciones (Figura A2) y la confirmación funciona igual.</p>
+
+  <h2 id="rest">REST con los partners modernos y API propia</h2>
+  <p>MediConecta usa REST en los dos sentidos. Como cliente, consume la pasarela de pagos y el proveedor de video con el cliente estándar de JAX-RS y JSON-B, cada uno detrás de su gateway y con su propio Circuit Breaker. Con la pasarela hay dos decisiones que vale la pena justificar. La primera es el reintento seguro: cada cobro lleva un <span class="mono">Idempotency-Key</span> propio, así que si la respuesta se pierde y el adaptador reintenta, la pasarela devuelve el mismo pago en lugar de cobrar dos veces. La segunda es que, a diferencia de la cobertura, no hay fallback: confirmar un turno particular sin cobrarlo sería regalar la consulta, así que si la pasarela no responde el turno sigue en espera y el paciente puede reintentar. Un pago rechazado (por ejemplo, fondos insuficientes) es una respuesta válida y no abre el circuito.</p>
+
+  <p>Como servidor, MediConecta expone una API REST de consumo externo pensada para partners como un portal de salud o la aplicación de una obra social (Tabla 5). Los recursos son EJB sin estado, de modo que la seguridad declarativa (<span class="mono">@RolesAllowed</span>, <span class="mono">@PermitAll</span>) se aplica directamente sobre cada operación. La autenticación es HTTP Basic sobre el mismo identity store de la aplicación web, sin crear sesión. Las respuestas son objetos de transferencia armados por un ensamblador, nunca entidades, y un <span class="mono">ExceptionMapper</span> traduce cualquier error a un JSON uniforme sin trazas ni nombres internos.</p>
+
+  <div class="tabla">
+    <div class="num">Tabla 5</div>
+    <div class="tit">API REST de MediConecta</div>
+    <table>
+      <thead><tr><th style="width:40%">Operación</th><th style="width:20%">Acceso</th><th>Respuesta</th></tr></thead>
+      <tbody>
+        <tr><td><span class="mono">GET /api/v1/profesionales</span></td><td>Pública</td><td>Cartilla: nombre, especialidad, matrícula.</td></tr>
+        <tr><td><span class="mono">GET /api/v1/profesionales/{id}/disponibilidad</span></td><td>Pública</td><td>Horarios libres con modalidad, código de prestación y precio.</td></tr>
+        <tr><td><span class="mono">GET /api/v1/turnos</span></td><td>Paciente o profesional</td><td>Turnos del usuario autenticado; 401 con <span class="mono">WWW-Authenticate</span> si no hay credenciales.</td></tr>
+        <tr><td><span class="mono">GET /api/v1/turnos/{id}</span></td><td>Paciente o profesional</td><td>El turno, sólo si es del usuario; si es ajeno responde 404, igual que si no existiera.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="figura">
+    <div class="num">Figura 3</div>
+    <div class="tit">Secuencias REST: API propia (servidor) y videoconsulta (cliente)</div>
+    <img class="alto" src="../diagramas/16-secuencia-api-rest-telemedicina.png" alt="Secuencias REST">
+  </div>
+</section>
+
+<!-- ======================= PARTE III ======================= -->
+<section>
+  <h1 id="p3">Parte III: Mensajería asincrónica completa</h1>
+
+  <p>El sistema tiene ahora dos procesos de negocio asincrónicos de punta a punta, uno por cada estilo de canal, sobre el broker Artemis embebido. La Tabla 6 resume los recursos configurados; el script <span class="mono">wildfly/configurar-mensajeria.cli</span> deja listo un servidor nuevo y <span class="mono">configurar-integracion-entrega4.cli</span> agrega la cola a uno que ya tenía la configuración anterior.</p>
+
+  <div class="tabla">
+    <div class="num">Tabla 6</div>
+    <div class="tit">Recursos de mensajería</div>
+    <table>
+      <thead><tr><th style="width:28%">Recurso</th><th>Configuración</th></tr></thead>
+      <tbody>
+        <tr><td><span class="mono">topico.turnos</span></td><td>Eventos TURNO_CONFIRMADO, TURNO_CANCELADO, TURNO_AUTORIZADO y AUTORIZACION_RECHAZADA. Tres suscripciones durables: notificaciones, auditoria y facturacion (con selector). Tres intentos y DLQ.</td></tr>
+        <tr><td><span class="mono">cola.autorizaciones</span></td><td>Point-to-Point Channel. Mensajes persistentes con vencimiento de 24 horas. Ocho intentos con espera creciente (10, 20, 40 y luego 60 segundos), después DLQ; los vencidos van a ExpiryQueue.</td></tr>
+        <tr><td><span class="mono">AutorizacionConsumer</span></td><td>MDB con <span class="mono">maxSession=2</span>: dos sesiones compiten por los mensajes de la cola.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 id="cola">Proceso con cola punto a punto</h2>
+  <p>Cuando un paciente con obra social confirma un turno, la misma transacción que lo confirma registra una solicitud de autorización y envía un mensaje a <span class="mono">cola.autorizaciones</span>. Del otro lado, <span class="mono">AutorizacionConsumer</span> lo procesa: verifica que no lo haya procesado antes (Idempotent Receiver, con la misma tabla <span class="mono">evento_procesado</span> de la entrega anterior), pide la autorización al legado por SOAP y, en una única transacción, marca la solicitud como resuelta, actualiza el turno y publica TURNO_AUTORIZADO o AUTORIZACION_RECHAZADA en el tópico. Consumir, actualizar y publicar ocurren juntos o no ocurren.</p>
+
+  <p>Si el legado no responde, el consumidor no confirma el mensaje (<span class="mono">setRollbackOnly</span>) y el broker lo reentrega con espera creciente; mientras el circuito está abierto los intentos fallan al instante sin colgar hilos. Cuando el legado vuelve, el siguiente intento lo resuelve. La cola tiene dos consumidores en competencia (Competing Consumers): ante un pico de confirmaciones el broker reparte los mensajes y cada uno lo procesa una sola sesión, lo que el monitor muestra en la columna "Consumidor". Como un MDB no tiene un usuario que lo invoque, corre con la identidad técnica SISTEMA (<span class="mono">@RunAs</span>), el único rol autorizado para pedir autorizaciones al legado. La Figura 4 muestra la secuencia con el legado caído.</p>
+
+  <div class="figura">
+    <div class="num">Figura 4</div>
+    <div class="tit">Secuencia de la cola de autorizaciones con el legado caído</div>
+    <img class="alto" src="../diagramas/14-secuencia-cola-autorizaciones.png" alt="Secuencia de la cola">
+  </div>
+
+  <p>La garantía de entrega quedó probada, además, por accidente. En la primera versión el consumidor era rechazado por la seguridad de WildFly, que deniega por defecto los métodos sin permisos explícitos en un bean que declara roles. El broker reintentó cuatro veces, con 10, 20 y 40 segundos de espera; corregimos el permiso (<span class="mono">@PermitAll</span> en el MDB, que el contenedor invoca sin usuario) y la solicitud se resolvió en el quinto intento, sin perderse y sin intervención manual.</p>
+
+  <h2 id="topico">Proceso con tópico y consumidor selectivo</h2>
+  <p>El proceso de la entrega anterior sigue funcionando y creció sin tocar al productor, que es la ventaja de un Publish-Subscribe Channel: se sumaron los dos eventos de autorización y un tercer suscriptor, Facturación. Facturación sólo necesita dos eventos, así que su suscripción usa el selector <span class="mono">tipoEvento IN ('TURNO_AUTORIZADO','TURNO_CANCELADO')</span> sobre una propiedad que el productor pone en la cabecera (Selective Consumer): el broker filtra el resto y esos mensajes ni siquiera llegan a su cola de suscripción. Con TURNO_AUTORIZADO genera el reclamo a la obra social por la parte que le corresponde; con TURNO_CANCELADO anula el reclamo y reintegra el pago del paciente por REST (Figura 5). El monitor de eventos muestra una columna por suscriptor y "no aplica" donde el selector filtró el evento (Figura A1).</p>
+
+  <div class="figura">
+    <div class="num">Figura 5</div>
+    <div class="tit">Secuencia de la cancelación con reintegro asincrónico</div>
+    <img src="../diagramas/15-secuencia-cancelacion-reintegro.png" alt="Secuencia de cancelación">
+  </div>
+
+  <p>El reintegro se hace en Facturación, después del commit de la cancelación, y no dentro de la cancelación misma. Si se devolviera el dinero dentro de la transacción y la cancelación fallara después, el paciente tendría el turno y el dinero. Hacerlo al consumir el evento garantiza que sólo se reintegra una cancelación que se concretó; si la pasarela está caída, el mensaje se reintenta y el reintegro es idempotente, así que no se devuelve dos veces.</p>
+
+</section>
+
+<!-- ======================= PARTE IV ======================= -->
+<section>
+  <h1 id="p4">Parte IV: Transacciones declarativas</h1>
+
+  <h2 id="flujo">El flujo crítico de confirmación</h2>
+  <p>La consigna pide transacciones declarativas en un flujo crítico de varios pasos, como uno que involucre reservar, cobrar y confirmar. En MediConecta ese flujo es la confirmación del turno, implementada en <span class="mono">ProcesoConfirmacionTurno.confirmar</span>, un EJB sin estado con atributo REQUIRED: el contenedor abre una transacción JTA al entrar y la confirma al salir, sin una sola línea de código de demarcación (container-managed transactions). Los pasos son siete: validar la reserva con una cadena de validadores, consultar la cobertura por SOAP, calcular el copago con la estrategia de la obra social, cobrar por REST, confirmar el turno, encolar la solicitud de autorización y publicar el evento (Figura 6). El hold previo lo mantiene el bean con estado de turnos, que delega en este proceso; por eso la conversación usa NOT_SUPPORTED y la frontera transaccional queda en un solo lugar.</p>
+
+  <div class="figura">
+    <div class="num">Figura 6</div>
+    <div class="tit">Secuencia del flujo crítico de confirmación</div>
+    <img class="alto" src="../diagramas/12-secuencia-confirmacion-transaccional.png" alt="Secuencia de la confirmación">
+  </div>
+
+  <p>No todos los métodos que participan necesitan la misma semántica, y elegirla fue parte del diseño. La Tabla 7 resume los atributos usados y por qué.</p>
+
+  <div class="tabla">
+    <div class="num">Tabla 7</div>
+    <div class="tit">Atributos de transacción usados y su justificación</div>
+    <table>
+      <thead><tr><th style="width:18%">Atributo</th><th style="width:34%">Dónde</th><th>Por qué</th></tr></thead>
+      <tbody>
+        <tr><td>REQUIRED</td><td><span class="mono">ProcesoConfirmacionTurno.confirmar</span>, los MDB, la cancelación</td><td>Una operación de negocio es una transacción: todo o nada.</td></tr>
+        <tr><td>MANDATORY</td><td><span class="mono">ServicioDePagosBean.cobrar</span></td><td>Cobrar sólo tiene sentido dentro de una confirmación, porque de esa transacción depende la compensación; llamarlo sin transacción es un error y el contenedor lo rechaza.</td></tr>
+        <tr><td>SUPPORTS</td><td><span class="mono">validarCobertura</span></td><td>Consulta remota sin efectos: se une a la transacción si la hay y no abre una propia.</td></tr>
+        <tr><td>NOT_SUPPORTED</td><td>Cotización y conversación del bean con estado</td><td>No se retiene una conexión a la base mientras se espera al legado; la transacción la abre el proceso.</td></tr>
+        <tr><td>REQUIRES_NEW</td><td><span class="mono">RegistroIntegraciones</span>, registro de accesos</td><td>La bitácora debe quedar aunque la operación de negocio haga rollback.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 id="falla">Comportamiento ante una falla a mitad del flujo</h2>
+  <p>Si cualquier paso falla, el contenedor revierte la transacción. Lo interesante es qué significa "revertir" para cada recurso, porque no todos participan de la transacción (Tabla 8). La base de datos y el broker sí: el envío JMS usa la fábrica de conexiones XA de WildFly y se enlista en la misma transacción (Transactional Client; Hohpe y Woolf, 2003), así que ante un rollback el turno vuelve a quedar en espera y ni la solicitud de autorización ni el evento llegan a salir. La pasarela, en cambio, es un servicio REST que no participa de la transacción: si la falla ocurre después de cobrar, el dinero ya se movió.</p>
+
+  <div class="tabla">
+    <div class="num">Tabla 8</div>
+    <div class="tit">Efecto de un rollback del flujo crítico sobre cada recurso</div>
+    <table>
+      <thead><tr><th style="width:34%">Recurso</th><th>Qué pasa ante un rollback</th></tr></thead>
+      <tbody>
+        <tr><td>Base de datos (turno, pago, solicitud, evento publicado)</td><td>Se revierte sola (JTA).</td></tr>
+        <tr><td>Mensajes a la cola y al tópico</td><td>No se entregan nunca (envío XA dentro de la transacción).</td></tr>
+        <tr><td>Cobro en la pasarela (REST)</td><td>Se devuelve con un reembolso compensatorio.</td></tr>
+        <tr><td>Consulta de cobertura (SOAP)</td><td>Es una consulta sin efectos: no hay nada que compensar.</td></tr>
+        <tr><td>Bitácora de integraciones y accesos</td><td>Queda registrada (REQUIRES_NEW).</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>Para el cobro aplicamos una transacción compensatoria, la idea de las sagas (Garcia-Molina y Salem, 1987): al aprobarse el cobro, el servicio de pagos registra en la transacción en curso una <span class="mono">Synchronization</span> (<span class="mono">CompensacionDePago</span>) a través del <span class="mono">TransactionSynchronizationRegistry</span>. El contenedor la invoca al terminar la transacción y, si el resultado no fue un commit, pide el reembolso a la pasarela. La Figura 7 muestra la secuencia.</p>
+
+  <div class="figura">
+    <div class="num">Figura 7</div>
+    <div class="tit">Secuencia de una falla antes del commit: rollback y compensación</div>
+    <img class="alto" src="../diagramas/13-secuencia-falla-compensacion.png" alt="Secuencia de la falla">
+  </div>
+
+  <p>Dos detalles sostienen este comportamiento. Las reglas de negocio se lanzan como excepciones de aplicación con <span class="mono">rollback=true</span>, que revierten la transacción sin destruir la instancia del bean con estado, así que el paciente conserva su hold y puede reintentar; y si ocurre un error de sistema dentro del proceso, la conversación lo traduce a una excepción de aplicación por la misma razón. Como red de seguridad, un temporizador del contenedor libera cada minuto los holds vencidos, por si un reinicio del servidor dejara un turno retenido.</p>
+
+  <p>Para demostrarlo en vivo, el panel de integraciones permite armar una falla que se dispara al final del flujo, después de todos los pasos y antes del commit. Al confirmar un turno con copago, el paciente ve que la operación se revirtió, el turno sigue en espera, la consola de la pasarela muestra el pago REEMBOLSADO y la bitácora registra el cobro y su compensación, que sobreviven al rollback (Figura A2).</p>
+
+</section>
+
+<!-- ======================= PARTE V ======================= -->
+<section>
+  <h1 id="p5">Parte V: Patrones, seguridad e interfaz</h1>
+
+  <h2 id="patrones">Patrones de diseño incorporados</h2>
+  <p>El documento de diseño de patrones y seguridad del grupo planificaba, para esta entrega, un conjunto de patrones con el problema concreto que resuelve cada uno. La Tabla 9 resume los que se implementaron y la Figura A3 los muestra en un diagrama de clases. Los patrones de las entregas anteriores (DAO, Session Facade, Factory, Builder, Template Method, Transfer Object, Transactional Client, Durable Subscriber, Idempotent Receiver y Dead Letter Channel) siguen vigentes.</p>
+
+  <div class="tabla">
+    <div class="num">Tabla 9</div>
+    <div class="tit">Patrones incorporados en esta entrega</div>
+    <table>
+      <thead><tr><th style="width:21%">Patrón</th><th style="width:40%">Problema que resuelve</th><th>Clases</th></tr></thead>
+      <tbody>
+        <tr><td>Adapter / Gateway</td><td>Aislar al dominio de los contratos SOAP y REST de terceros.</td><td><span class="mono">CoberturaSoapAdapter</span>, <span class="mono">PasarelaPagosRestAdapter</span>, <span class="mono">VideoconsultaRestAdapter</span></td></tr>
+        <tr><td>Circuit Breaker, Retry, Fallback con caché</td><td>Que la caída de un externo no tumbe la plataforma.</td><td><span class="mono">CircuitBreaker</span>, <span class="mono">Reintento</span></td></tr>
+        <tr><td>Strategy</td><td>Cada obra social calcula el copago distinto.</td><td><span class="mono">CalculoCopago</span> y cinco estrategias</td></tr>
+        <tr><td>Chain of Responsibility</td><td>Reglas de reserva que cambian y se combinan.</td><td><span class="mono">ValidadorReserva</span> y seis eslabones</td></tr>
+        <tr><td>State</td><td>Transiciones válidas del turno sin un switch repetido.</td><td><span class="mono">EstadoTurno</span>, <span class="mono">TurnoDisponible</span>, <span class="mono">TurnoEnHold</span>, etc.</td></tr>
+        <tr><td>Intercepting Filter</td><td>Registrar cada acceso a la historia clínica sin repetir código.</td><td><span class="mono">@Auditado</span>, <span class="mono">AuditoriaInterceptor</span></td></tr>
+        <tr><td>Singleton (EJB)</td><td>Catálogo de prestaciones leído en cada cotización.</td><td><span class="mono">CatalogoPrestaciones</span></td></tr>
+        <tr><td>Point-to-Point, Competing Consumers, Selective Consumer, Message Expiration</td><td>Procesar cada autorización una sola vez, absorber picos y filtrar eventos.</td><td><span class="mono">AutorizacionConsumer</span>, <span class="mono">FacturacionSubscriber</span></td></tr>
+        <tr><td>Transacción compensatoria</td><td>Deshacer un efecto no transaccional (el cobro REST).</td><td><span class="mono">CompensacionDePago</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+
+  <p>Hubo tres diferencias con lo planificado, todas por razones concretas. El Circuit Breaker es propio y no de MicroProfile, por lo explicado en la Parte II. La fachada transaccional se llama <span class="mono">ProcesoConfirmacionTurno</span> y no <span class="mono">TurnoFacade</span>, porque el bean con estado de turnos ya era la fachada de la reserva desde la primera entrega y no quisimos duplicar ese rol. Y la autorización y la revalidación de cobertura, que el diseño separaba en dos colas, se unificaron en una: autorizar implica que el legado vuelva a validar la cobertura, así que una segunda cola no aportaba comportamiento. El decorador de enmascarado de datos quedó para la Entrega Final, como estaba previsto.</p>
+
+  <h2 id="seguridad">Seguridad</h2>
+  <p>La limitación más importante que habíamos documentado en la entrega anterior era que la titularidad de la historia clínica se controlaba sólo en la vista. Ahora la garantiza el servicio: un paciente sólo accede a su historia y un profesional sólo a la de pacientes con un turno confirmado con él, y cada intento, permitido o denegado, lo registra el interceptor de auditoría en una transacción propia. El paciente puede ver en su historia qué profesional la consultó y cuándo, en línea con la confidencialidad que exige la Ley 26.529 (2009).</p>
+
+  <p>El resto de las medidas acompaña las integraciones: HTTP Basic sobre el identity store para la API, con <span class="mono">@RolesAllowed</span> en cada recurso y 404 para recursos ajenos, que evita revelar identificadores (IDOR); WS-Security con UsernameToken hacia el legado; la identidad técnica SISTEMA para los MDB, que es el único rol que puede pedir autorizaciones, emitir reclamos o reintegrar pagos; Bean Validation sobre los datos de la tarjeta en la vista y otra vez en el servicio antes de llamar a la pasarela; y el número de tarjeta, que viaja a la pasarela y nunca se guarda (sólo la marca y los últimos cuatro dígitos). Los eventos y mensajes siguen sin datos clínicos, como exige la Ley 25.326 (2000) para datos sensibles.</p>
+
+  <h2 id="temas">Temas visuales en tiempo real</h2>
+  <p>El anexo propone, como punto extra, implementar los temas claro, oscuro y el estándar de la aplicación, alternables en tiempo real. Rehicimos la hoja de estilos para que todos los colores salgan de variables CSS (tokens de diseño); cada tema sólo redefine esas variables según el atributo <span class="mono">data-tema</span> del documento. El selector, presente en la barra superior y en el inicio de sesión, cambia ese atributo con JavaScript y el navegador recalcula la página al instante, sin recargarla ni perder lo que el usuario estaba haciendo. La elección se guarda en una cookie, que el servidor lee para dibujar las páginas siguientes ya con el tema elegido, y en el almacenamiento local, que sincroniza otras pestañas abiertas. El servidor valida el valor contra una lista cerrada, así que una cookie manipulada no puede inyectar contenido en la página. La Figura A4 muestra la misma pantalla en los tres temas.</p>
+
+</section>
+
+<!-- ======================= PRUEBAS ======================= -->
+<section>
+  <h1 id="pruebas">Pruebas y resultados</h1>
+  <p>Probamos en tres niveles, siempre contra WildFly 41 con el perfil completo y la base real en Supabase. Las pruebas unitarias cubren la lógica de los patrones sin contenedor, incluido el Circuit Breaker con un reloj controlado; las de navegador recorren la aplicación desplegada como lo haría un usuario y verifican también los efectos asincrónicos. La Tabla 10 resume los resultados de la última corrida, del 31 de octubre de 2026.</p>
+
+  <div class="tabla">
+    <div class="num">Tabla 10</div>
+    <div class="tit">Pruebas automatizadas y resultados</div>
+    <table>
+      <thead><tr><th style="width:34%">Prueba</th><th>Qué verifica</th><th style="width:13%">Resultado</th></tr></thead>
+      <tbody>
+        <tr><td>Unitarias (JUnit 5, <span class="mono">mvn package</span>)</td><td>State, Strategy, Chain of Responsibility, Circuit Breaker, Retry, Builder, selector de Facturación y catálogo.</td><td>26 de 26</td></tr>
+        <tr><td><span class="mono">pruebas/prueba_entrega4.py</span></td><td>Escenarios A a K de esta entrega: WSDL, API REST, pago rechazado y aprobado, cola, selector, falla con compensación, legado caído, cancelación con reintegro, telemedicina, auditoría y temas.</td><td>36 de 36</td></tr>
+        <tr><td><span class="mono">pruebas/prueba_e2e.py</span></td><td>Recorrido de la entrega anterior adaptado al pago del copago.</td><td>13 de 13</td></tr>
+        <tr><td><span class="mono">pruebas/prueba_monitor.py</span></td><td>Monitor con un suscriptor detenido desde la consola de WildFly y titularidad.</td><td>7 de 7</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>Los escenarios de falla dieron el resultado esperado. Con la falla armada, el turno no quedó confirmado, la cantidad de turnos del paciente no cambió, la pasarela registró el pago como reembolsado con el motivo de la reversión y la bitácora conservó el cobro y la compensación. Con el legado caído, la cotización usó la caché, el circuito se abrió, el turno se confirmó igual y la solicitud de autorización quedó en cola hasta que el legado volvió, momento en que se autorizó sola. Las pruebas también encontraron errores reales que corregimos antes de entregar, como el permiso del consumidor de la cola ya mencionado y un evento de la entrega anterior que el monitor marcaba como pendiente para Facturación, una suscripción que en ese momento no existía; ahora cada evento guarda qué suscripciones debían recibirlo al publicarse.</p>
+
+  <h1 id="lim">Limitaciones y trabajo futuro</h1>
+  <p>Preferimos documentar lo que todavía falta antes que dejar que aparezca en la defensa. La aplicación corre sobre HTTP y no HTTPS; el UsernameToken viaja con la contraseña en texto (perfil PasswordText), aceptable sólo sobre TLS, y en producción correspondería el perfil con resumen. Las credenciales de los sistemas externos son de prueba y se pueden cambiar por propiedades del sistema, pero deberían vivir en el almacén de credenciales de Elytron. Si el reembolso compensatorio falla porque la pasarela también cayó, el caso queda registrado para conciliación manual; el siguiente paso sería encolarlo para reintentarlo. Los tres sistemas externos son simuladores. El administrador de clínica, el decorador de enmascarado, los tokens JWT para la API y el cifrado de columnas sensibles quedan para la Entrega Final.</p>
+
+  <h1 id="conclusiones">Conclusiones</h1>
+  <p>Esta entrega cambió la naturaleza del sistema: hasta ahora todo pasaba dentro de MediConecta, y desde ahora una confirmación depende de tres empresas que no controlamos. Eso nos obligó a pensar cada integración desde la falla y no desde el caso feliz: qué pasa si el legado no responde, si la pasarela cobra y después algo se rompe, si un mensaje llega dos veces. Las respuestas terminaron siendo decisiones de diseño concretas y defendibles: fallback para la cobertura pero no para el cobro, la autorización por cola en lugar de esperarla, el reintegro después del commit y una compensación donde la transacción no llega.</p>
+
+  <p>La otra conclusión es que las transacciones declarativas resuelven mucho pero no todo. El contenedor coordina la base y el broker sin que escribamos una línea de demarcación, y justamente por eso hay que saber con precisión dónde termina esa garantía: en el borde del primer servicio REST. Para la Entrega Final quedan la consolidación de la documentación, la seguridad pendiente y la reflexión del equipo sobre qué decisiones cambiaríamos.</p>
+</section>
+
+<!-- ======================= REFERENCIAS ======================= -->
+<section class="referencias salto">
+  <h1 id="referencias">Referencias</h1>
+  <p>Alur, D., Crupi, J. y Malks, D. (2003). <em>Core J2EE patterns: Best practices and design strategies</em> (2.ª ed.). Prentice Hall.</p>
+  <p>Apache Software Foundation. (s.f.). <em>ActiveMQ Artemis documentation</em>. https://activemq.apache.org/components/artemis/documentation/</p>
+  <p>Cátedra de Desarrollo de Aplicaciones II. (2026a). <em>Trabajo práctico integrador: Consigna general y cronograma de entregas</em> [Material de cátedra]. Universidad Argentina de la Empresa.</p>
+  <p>Cátedra de Desarrollo de Aplicaciones II. (2026b). <em>Anexo: Aclaraciones y requisitos complementarios al TP Integrador</em> [Material de cátedra]. Universidad Argentina de la Empresa.</p>
+  <p>Eclipse Foundation. (2022). <em>Jakarta EE Platform 10</em>. https://jakarta.ee/specifications/platform/10/</p>
+  <p>Fowler, M. (2002). <em>Patterns of enterprise application architecture</em>. Addison-Wesley.</p>
+  <p>Gamma, E., Helm, R., Johnson, R. y Vlissides, J. (1994). <em>Design patterns: Elements of reusable object-oriented software</em>. Addison-Wesley.</p>
+  <p>Garcia-Molina, H. y Salem, K. (1987). Sagas. <em>ACM SIGMOD Record, 16</em>(3), 249–259.</p>
+  <p>Hohpe, G. y Woolf, B. (2003). <em>Enterprise integration patterns: Designing, building, and deploying messaging solutions</em>. Addison-Wesley.</p>
+  <p>Ley 25.326 de Protección de los Datos Personales. (2000). Boletín Oficial de la República Argentina.</p>
+  <p>Ley 26.529 de Derechos del Paciente en su Relación con los Profesionales e Instituciones de la Salud. (2009). Boletín Oficial de la República Argentina.</p>
+  <p>Nygard, M. T. (2018). <em>Release it! Design and deploy production-ready software</em> (2.ª ed.). Pragmatic Bookshelf.</p>
+  <p>OASIS. (2006). <em>Web Services Security: UsernameToken profile 1.1</em>. https://docs.oasis-open.org/wss/v1.1/</p>
+</section>
+
+
+<!-- ======================= APÉNDICE A ======================= -->
+<section class="salto">
+  <h1 id="anexoA">Apéndice A</h1>
+  <h2 style="text-align:center;">Evidencias de la aplicación funcionando</h2>
+  <p>Capturas tomadas sobre la aplicación desplegada en WildFly 41 con la base real, durante la última corrida de las pruebas (31 de octubre de 2026). Complementan las Partes III a V.</p>
+
+  <div class="figura">
+    <div class="num">Figura A1</div>
+    <div class="tit">Monitor de eventos: tópico con tres suscriptores y cola de autorizaciones</div>
+    <img src="img/e4-monitor.jpg" alt="Monitor de eventos" style="max-height:19cm;">
+    <div class="nota"><em class="etq">Nota.</em> Facturación figura "no aplica" en las confirmaciones porque su selector las filtra en el broker. La latencia de 5813 ms en Auditoría corresponde a una prueba con ese suscriptor detenido desde la consola de WildFly.</div>
+  </div>
+
+  <div class="figura">
+    <div class="num">Figura A2</div>
+    <div class="tit">Panel de integraciones después de la falla y con el legado caído</div>
+    <img src="img/e4-integraciones.jpg" alt="Panel de integraciones" style="max-height:17cm;">
+    <div class="nota"><em class="etq">Nota.</em> Arriba, el circuito de la obra social ABIERTO tras tres fallas. En la bitácora: el cobro aprobado y su reembolso COMPENSACION, y las consultas resueltas desde la caché mientras el legado estaba caído.</div>
+  </div>
+
+  <div class="figura">
+    <div class="num">Figura A3</div>
+    <div class="tit">Diagrama de clases de los patrones incorporados</div>
+    <img class="alto" src="../diagramas/17-clases-patrones-entrega4.png" alt="Clases de los patrones">
+  </div>
+
+  <div class="figura">
+    <div class="num">Figura A4</div>
+    <div class="tit">La misma pantalla en los temas estándar, claro y oscuro</div>
+    <img src="img/e4-temas.jpg" alt="Temas visuales" style="max-height:18cm;">
+  </div>
+</section>
+
+<!-- ======================= APÉNDICE B ======================= -->
+<section class="salto">
+  <h1 id="apendice">Apéndice B</h1>
+  <h2 style="text-align:center;">Declaración de uso de inteligencia artificial generativa</h2>
+  <p>De acuerdo con la consigna del trabajo práctico (Cátedra de Desarrollo de Aplicaciones II, 2026a), declaramos que en esta entrega usamos Claude, un asistente de inteligencia artificial generativa desarrollado por Anthropic, como herramienta de productividad: para generar el código base de las integraciones SOAP y REST, de los simuladores de los sistemas externos, de la cola de autorizaciones y de los temas visuales; para configurar el broker en WildFly; para escribir las pruebas unitarias y de navegador; para generar los diagramas a partir del código; y para redactar un primer borrador de este documento.</p>
+  <p>El grupo revisó el contenido contra el código y contra el comportamiento real de la aplicación, y todos los resultados informados surgen de pruebas ejecutadas sobre el sistema desplegado. Cada integrante está en condiciones de explicar y defender cualquier parte del trabajo.</p>
+</section>
+</body>
+</html>
