@@ -1,8 +1,9 @@
 """Prueba de punta a punta de MediConecta (14 verificaciones) sobre la app desplegada.
 
 Recorre, con un navegador real, el login (válido e inválido), la publicación de disponibilidad,
-la reserva con hold, la confirmación y la cancelación, y verifica que las notificaciones
-lleguen de forma asincrónica a la bandeja del profesional.
+la reserva con hold, la confirmación (con el pago del copago desde la Entrega Obligatoria N.º 2) y la
+cancelación, y verifica que las notificaciones lleguen de forma asincrónica a la bandeja del profesional.
+Los escenarios propios de la Entrega Obligatoria N.º 2 están en pruebas/prueba_entrega4.py.
 
 Requisitos: WildFly levantado con la app desplegada, Google Chrome instalado y
     pip install playwright
@@ -14,6 +15,11 @@ lo confirma y lo cancela: el turno queda DISPONIBLE y las notificaciones quedan 
 """
 import time, re
 from playwright.sync_api import sync_playwright
+import sys
+try:
+    sys.stdout.reconfigure(encoding="utf-8")  # consola de Windows
+except AttributeError:
+    pass
 B="http://localhost:8080/mediconecta/"
 def login(br, email):
     pg=br.new_context().new_page(); pg.goto(B+"login.xhtml")
@@ -47,7 +53,10 @@ with sync_playwright() as p:
     pac.click("button:has-text('Ver turnos disponibles')"); pac.wait_for_load_state()
     pac.locator("tr", has_text=FECHA_TABLA).locator("button:has-text('Reservar')").click(); pac.wait_for_load_state()
     check("hold visible", "Turno reservado temporalmente" in pac.content())
-    t=time.time(); pac.click("button:has-text('Confirmar turno')"); pac.wait_for_load_state(); dt=time.time()-t
+    if pac.locator("#formConfirmacion\\:numeroTarjeta").count():  # copago de la obra social (pasarela REST)
+        pac.fill("#formConfirmacion\\:titular","Juan Perez"); pac.fill("#formConfirmacion\\:numeroTarjeta","4111 1111 1111 1111")
+        pac.fill("#formConfirmacion\\:vencimiento","12/29"); pac.fill("#formConfirmacion\\:codigoSeguridad","123")
+    t=time.time(); pac.click("#formConfirmacion\\:btnConfirmar"); pac.wait_for_load_state(); dt=time.time()-t
     check("confirmación OK (%.2f s)"%dt, "Turno confirmado" in pac.content())
     check("mis turnos se actualiza en la MISMA respuesta al confirmar (%d -> %d)"%(antes,mis(pac)), mis(pac)==antes+1)
     row=pac.locator("#formAgenda\\:tablaMisTurnos tr", has_text=FECHA_TABLA)
