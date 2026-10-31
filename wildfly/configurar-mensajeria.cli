@@ -1,12 +1,15 @@
-## Entrega Parcial N.º 2: mensajería asincrónica sobre el broker ActiveMQ Artemis embebido en WildFly.
-## Artemis sólo viene en el perfil standalone-full.xml, así que a partir de esta entrega el servidor
-## se levanta con ese perfil (wildfly/iniciar-servidor.sh ya lo hace).
+## Mensajería asincrónica sobre el broker ActiveMQ Artemis embebido en WildFly.
+## Artemis sólo viene en el perfil standalone-full.xml, así que el servidor se levanta con ese perfil
+## (wildfly/iniciar-servidor.sh y .bat ya lo hacen).
+##
+## Este script deja listo un standalone-full.xml RECIÉN INSTALADO (Entregas 3 y 4 juntas).
+## Si ya habías corrido la versión de la Entrega Parcial N.º 2, corré sólo
+## wildfly/configurar-integracion-entrega4.cli (agrega la cola de autorizaciones).
 ##
 ## Se ejecuta con el servidor APAGADO (edita standalone-full.xml en modo embebido):
 ##   <WILDFLY_HOME>/bin/jboss-cli.sh --file=wildfly/configurar-mensajeria.cli
 ## Después, el datasource de Supabase (también con el servidor apagado):
-##   <WILDFLY_HOME>/bin/jboss-cli.sh --commands="embed-server --server-config=standalone-full.xml,run-batch --file=wildfly/configurar-datasource.local.cli"
-##   (o levantar el server con -c standalone-full.xml y correr configurar-datasource.local.cli con --connect, como en la Entrega 1)
+##   <WILDFLY_HOME>/bin/jboss-cli.sh --commands="embed-server --server-config=standalone-full.xml,run-batch --file=wildfly/configurar-datasource.local.cli,stop-embedded-server"
 
 embed-server --server-config=standalone-full.xml
 
@@ -14,10 +17,21 @@ embed-server --server-config=standalone-full.xml
 /subsystem=datasources/jdbc-driver=postgresql:add(driver-name=postgresql,driver-module-name=org.postgresql,driver-class-name=org.postgresql.Driver)
 /subsystem=undertow/application-security-domain=other:write-attribute(name=integrated-jaspi,value=false)
 
-## topico.turnos: Publish-Subscribe Channel con los eventos TURNO_CONFIRMADO / TURNO_CANCELADO
+## topico.turnos: Publish-Subscribe Channel con los eventos del turno
+## (TURNO_CONFIRMADO, TURNO_CANCELADO, TURNO_AUTORIZADO, AUTORIZACION_RECHAZADA)
 /subsystem=messaging-activemq/server=default/jms-topic=turnos:add(entries=["java:/jms/topic/turnos"])
 
-## Dead Letter Channel: tras 3 entregas fallidas (con 5 s entre reintentos) el mensaje va a la DLQ
+## Dead Letter Channel del tópico: tras 3 entregas fallidas (con 5 s entre reintentos) el mensaje va a la DLQ
 /subsystem=messaging-activemq/server=default/address-setting=jms.topic.turnos:add(max-delivery-attempts=3,redelivery-delay=5000,dead-letter-address=jms.queue.DLQ,expiry-address=jms.queue.ExpiryQueue)
+
+## Entrega Obligatoria N.º 2 -------------------------------------------------------------------
+## cola.autorizaciones: Point-to-Point Channel. Cada solicitud de autorización a la obra social la
+## procesa exactamente un consumidor (AutorizacionConsumer, con sesiones en competencia).
+/subsystem=messaging-activemq/server=default/jms-queue=autorizaciones:add(entries=["java:/jms/queue/autorizaciones"],durable=true)
+
+## Si el sistema legado de la obra social está caído, el consumidor hace rollback y el broker
+## reintenta con espera creciente (10 s, 20 s, 40 s, 60 s...). Tras 8 intentos va a la DLQ.
+## Los mensajes vencidos (TTL de 24 h que pone el productor) van a la ExpiryQueue.
+/subsystem=messaging-activemq/server=default/address-setting=jms.queue.autorizaciones:add(max-delivery-attempts=8,redelivery-delay=10000,redelivery-multiplier=2.0,max-redelivery-delay=60000,dead-letter-address=jms.queue.DLQ,expiry-address=jms.queue.ExpiryQueue)
 
 stop-embedded-server

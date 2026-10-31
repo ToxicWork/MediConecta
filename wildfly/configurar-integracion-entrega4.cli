@@ -1,0 +1,16 @@
+## Entrega Obligatoria N.º 2: agrega la cola punto a punto a un standalone-full.xml que ya tiene
+## la configuración de la Entrega Parcial N.º 2 (tópico turnos, driver, datasource).
+##
+## Con el servidor APAGADO:
+##   <WILDFLY_HOME>/bin/jboss-cli.sh --file=wildfly/configurar-integracion-entrega4.cli
+## (En una instalación nueva alcanza con wildfly/configurar-mensajeria.cli, que ya incluye esto.)
+
+embed-server --server-config=standalone-full.xml
+
+## cola.autorizaciones: Point-to-Point Channel (AutorizacionConsumer con sesiones en competencia)
+/subsystem=messaging-activemq/server=default/jms-queue=autorizaciones:add(entries=["java:/jms/queue/autorizaciones"],durable=true)
+
+## Reintentos con espera creciente mientras el legado de la obra social está caído; luego DLQ.
+/subsystem=messaging-activemq/server=default/address-setting=jms.queue.autorizaciones:add(max-delivery-attempts=8,redelivery-delay=10000,redelivery-multiplier=2.0,max-redelivery-delay=60000,dead-letter-address=jms.queue.DLQ,expiry-address=jms.queue.ExpiryQueue)
+
+stop-embedded-server
