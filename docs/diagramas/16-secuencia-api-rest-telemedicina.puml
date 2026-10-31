@@ -1,0 +1,39 @@
+@startuml 16-secuencia-api-rest-telemedicina
+!include _estilo.iuml
+title REST en los dos sentidos: API pública de MediConecta (servidor) y videoconsulta (cliente)
+autonumber
+
+actor "Partner externo" as EXT
+participant "MecanismoAutenticacion\n(HTTP Basic en /api/*)" as SEC
+participant "TurnosResource\n<<Stateless>> @RolesAllowed" as TR
+participant "ServicioDeAgendaBean" as SA
+participant "MapeadorDeExcepciones" as MAP
+actor Profesional
+participant "ServicioDeTelemedicinaBean\n@RolesAllowed(PROFESIONAL)" as STM
+participant "VideoconsultaRestAdapter\n(JAX-RS Client)" as VA
+participant "Proveedor de video\nREST" as VID
+
+== MediConecta como servidor REST (API de consumo externo) ==
+EXT -> SEC : GET /api/v1/turnos\nAuthorization: Basic …
+SEC -> SEC : IdentityStore (PBKDF2), sin sesión
+alt credenciales válidas
+  SEC -> TR : principal + rol
+  TR -> SA : turnosDelUsuarioActual()
+  SA --> TR : turnos del caller (titularidad)
+  TR --> EXT : 200 [TurnoApi…] (DTO, sin datos clínicos)
+else sin credenciales
+  TR -> MAP : EJBAccessException
+  MAP --> EXT : 401 + WWW-Authenticate (JSON uniforme)
+end
+EXT -> TR : GET /api/v1/turnos/{id ajeno}
+TR --> EXT : 404 (no revela que existe: anti-IDOR)
+
+== MediConecta como cliente REST (partner moderno) ==
+Profesional -> STM : iniciarVideoconsulta(turnoId)
+STM -> STM : titularidad + turno CONFIRMADO de TELEMEDICINA
+STM -> VA : crearSala(referencia, profesional, paciente)
+VA -> VID : POST /salas (X-Api-Key) [CircuitBreaker]
+VID --> VA : 201 {id, urlProfesional, urlPaciente}
+STM -> STM : turno.asignarSala(...)
+STM --> Profesional : "Entrar a la sala"; el paciente ve "Unirme"
+@enduml

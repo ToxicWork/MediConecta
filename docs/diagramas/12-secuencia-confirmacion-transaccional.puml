@@ -1,0 +1,47 @@
+@startuml 12-secuencia-confirmacion-transaccional
+!include _estilo.iuml
+title Flujo crítico transaccional: confirmar turno (SOAP + REST + cola + tópico en una transacción JTA)
+autonumber
+
+actor Paciente
+participant "AgendaBean" as AB
+participant "ServicioDeTurnosBean\n<<Stateful>> NOT_SUPPORTED" as ST
+participant "ProcesoConfirmacionTurno\n<<Stateless>> REQUIRED" as PCT
+participant "CadenaDeValidacion" as CV
+participant "ServicioDeObrasSociales\n(SOAP)" as SOS
+participant "ServicioDePagosBean\nMANDATORY" as SP
+participant "Pasarela de pagos\nREST" as PG
+participant "Turno\n(State)" as T
+queue "cola.autorizaciones" as COLA
+queue "topico.turnos" as TOP
+database "PostgreSQL" as DB
+
+Paciente -> AB : Pagar y confirmar turno (tarjeta)
+AB -> ST : confirmar(datosPago)
+ST -> PCT : confirmar(turnoId, pacienteId, datosPago)
+activate PCT
+note over PCT, DB #E8F0FE : el contenedor abre la transacción JTA (CMT)
+PCT -> CV : paraConfirmar().validar(solicitud)
+note right of CV : TurnoExistente → HoldDelPaciente →\nHoldVigente → HorarioFuturo → SinSuperposicion
+PCT -> SOS : validarCobertura()  [SOAP, ver diagrama 11]
+PCT -> PCT : Strategy: copago $9.600
+PCT -> SP : cobrar(turno, 9600, datosPago)
+SP -> SP : Bean Validation de DatosPago
+SP -> PG : POST /pagos (Bearer, Idempotency-Key)
+PG --> SP : 201 APROBADO pay_…
+SP -> DB : INSERT pago (pendiente de commit)
+SP -> SP : registerInterposedSynchronization(\nCompensacionDePago)
+PCT -> T : confirmar(DatosConfirmacion)\nHOLD → CONFIRMADO
+PCT -> DB : INSERT solicitud_autorizacion
+PCT -> COLA : send(MensajeAutorizacion, TTL 24 h)
+PCT -> TOP : publish(TURNO_CONFIRMADO)
+note right of TOP : los mensajes quedan retenidos\nhasta el commit (Transactional Client, XA)
+deactivate PCT
+== commit en dos fases: base de datos + broker juntos ==
+PCT -> DB : UPDATE turno, INSERT pago, solicitud, evento_publicado
+COLA -> COLA : el mensaje queda disponible para AutorizacionConsumer
+TOP -> TOP : el evento se entrega a Notificaciones y Auditoría
+SP -> SP : afterCompletion(COMMITTED): nada que compensar
+ST --> AB : turno confirmado
+AB --> Paciente : "Turno confirmado. Se cobraron $ 9600.00…"
+@enduml

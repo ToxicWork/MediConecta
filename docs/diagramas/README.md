@@ -1,35 +1,34 @@
 # Diagramas de MediConecta
 
-Fuente en PlantUML (`.puml`) y exportado a PNG. Todos reflejan el código **tal como está implementado**;
-lo planificado para el 09/11 aparece con línea punteada y está aclarado en cada diagrama.
+Fuente en PlantUML (`.puml`) y exportado a PNG. Todos reflejan el código **tal como está implementado**.
 
-| # | Diagrama | Tipo | Para qué entrega |
+| # | Diagrama | Tipo | Entrega |
 |---|---|---|---|
-| 01 | `01-integracion-soa` | Arquitectura de integración (SOA) | **Parcial 2 (obligatorio)** |
-| 02 | `02-componentes` | UML de componentes | Documento técnico |
-| 03 | `03-despliegue` | UML de despliegue | Documento técnico |
-| 04 | `04-secuencia-confirmar-turno` | UML de secuencia: proceso asincrónico | Parcial 2 / Obligatoria 2 |
-| 05 | `05-secuencia-fallas` | UML de secuencia: rollback, duplicado, durable, DLQ | Obligatoria 2 (comportamiento ante fallas) |
-| 06 | `06-estados-turno` | UML de estados | Documento técnico |
-| 07 | `07-casos-de-uso` | UML de casos de uso | Documentación funcional (anexo) |
-| 08 | `08-clases-modelo` | UML de clases: dominio | Documento técnico |
-| 09 | `09-entidad-relacion` | Entidad-relación (tablas reales de Supabase) | Documento técnico |
-| 10 | `10-clases-patrones` | **UML de clases con todos los patrones interrelacionados** | Patrones / documento técnico |
+| 01 | `01-integracion-soa` | Arquitectura de integración (SOA): componentes, sistemas externos y canales | **Actualizado: Obligatoria 2** (todo implementado) |
+| 02 | `02-componentes` | UML de componentes e interfaces (incluye gateways y adaptadores) | **Actualizado: Obligatoria 2** |
+| 03 | `03-despliegue` | UML de despliegue | Parcial 2 |
+| 04 | `04-secuencia-confirmar-turno` | Secuencia: proceso asincrónico del tópico | Parcial 2 |
+| 05 | `05-secuencia-fallas` | Secuencia: rollback, duplicado, durable, DLQ | Parcial 2 |
+| 06 | `06-estados-turno` | UML de estados del turno (patrón State, CANCELADO como estado final) | **Actualizado: Obligatoria 2** |
+| 07 | `07-casos-de-uso` | UML de casos de uso (cobertura, pago, autorización, facturación, teleconsulta, API) | **Actualizado: Obligatoria 2** |
+| 08 | `08-clases-modelo` | UML de clases del dominio | Parcial 2 |
+| 09 | `09-entidad-relacion` | Entidad-relación (tablas reales de Supabase, con las nuevas) | **Actualizado: Obligatoria 2** |
+| 10 | `10-clases-patrones` | UML de clases con los patrones de las Entregas 1 y Parcial 2 | Parcial 2 |
+| 11 | `11-secuencia-cobertura-soap` | **Secuencia SOAP**: cotización contra el legado (WS-Security, retry, Circuit Breaker, fallback) | Obligatoria 2 |
+| 12 | `12-secuencia-confirmacion-transaccional` | **Secuencia del flujo crítico**: SOAP + REST + cola + tópico en una transacción JTA | Obligatoria 2 |
+| 13 | `13-secuencia-falla-compensacion` | **Secuencia de una falla a mitad del flujo**: rollback y reembolso compensatorio | Obligatoria 2 |
+| 14 | `14-secuencia-cola-autorizaciones` | **Secuencia de la cola punto a punto** con el legado caído (reintentos, Competing Consumers, Selective Consumer) | Obligatoria 2 |
+| 15 | `15-secuencia-cancelacion-reintegro` | **Secuencia del tópico + REST**: cancelación con reintegro asincrónico | Obligatoria 2 |
+| 16 | `16-secuencia-api-rest-telemedicina` | **Secuencias REST**: API propia (servidor) y videoconsulta (cliente) | Obligatoria 2 |
+| 17 | `17-clases-patrones-entrega4` | UML de clases de los patrones incorporados (Adapter, Circuit Breaker, Strategy, Chain, State, Intercepting Filter, Singleton, compensación) | Obligatoria 2 |
 
-El diagrama 10 muestra todas las clases del sistema en un solo dibujo, con la notación UML completa
-(leyenda incluida en el diagrama):
-
-- **Asociación** `──>` con multiplicidad (`1`, `0..1`, `*`, `1..*`): la clase guarda una referencia en un
-  atributo (`@Inject`, `@ManyToOne`); el texto de la flecha es el nombre del atributo.
-- **Dependencia** `- - ->` con `«create»`, `«use»`, `«send»`, `«persist»`: la usa o la crea dentro de un
-  método, sin guardarla.
-- **Generalización** `──▷` (herencia) y **realización** `- - ▷` (implementa una interfaz).
-- El **rol de cada clase en su patrón** va como estereotipo (`«Facade»`, `«Builder»`, `«DAO»`...) y cada
-  patrón tiene un color, explicado en la leyenda.
+El diagrama 10 muestra todas las clases de las entregas anteriores en un solo dibujo, con la notación
+UML completa (leyenda incluida en el diagrama). El 17 complementa al 10 con los patrones de la
+Entrega Obligatoria N.º 2.
 
 ## Regenerar los PNG
 
-Requiere Java y Graphviz (`brew install graphviz`):
+Requiere Java y Graphviz (`brew install graphviz` en macOS; en Windows, el instalador de graphviz.org):
 
 ```bash
 curl -LO https://repo1.maven.org/maven2/net/sourceforge/plantuml/plantuml/1.2024.8/plantuml-1.2024.8.jar

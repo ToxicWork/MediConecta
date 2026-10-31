@@ -1,19 +1,31 @@
 @startuml 06-estados-turno
 !include _estilo.iuml
-title Ciclo de vida de un Turno (EstadoTurno)
+title Ciclo de vida de un Turno (patrón State: EstadoTurno → TurnoDisponible, TurnoEnHold, TurnoConfirmado, TurnoCancelado)
 hide empty description
 
 [*] --> DISPONIBLE : publicarDisponibilidad()\n[PROFESIONAL]
-DISPONIBLE --> HOLD : reservarHold()\n[PACIENTE]
-HOLD --> CONFIRMADO : confirmar()\n[PACIENTE] / publica TURNO_CONFIRMADO
-HOLD --> DISPONIBLE : expira @StatefulTimeout (5 min)\n@PreDestroy libera el turno
-CONFIRMADO --> DISPONIBLE : cancelar()\n[PACIENTE titular] / publica TURNO_CANCELADO
+DISPONIBLE --> HOLD : reservar()\n[PACIENTE] cadena de validación\nholdVenceEn = ahora + 5 min
+HOLD --> CONFIRMADO : confirmar()\n[PACIENTE] cobertura SOAP + cobro REST\n/ encola autorización, publica TURNO_CONFIRMADO
+HOLD --> DISPONIBLE : liberar()\n(paciente, @StatefulTimeout + @PreDestroy\no LiberadorDeHolds @Schedule)
+CONFIRMADO --> CANCELADO : cancelar()\n[PACIENTE titular] / publica TURNO_CANCELADO\ny republica el horario como turno nuevo
+CANCELADO --> [*]
 
-state CANCELADO #EEEEEE
+state CONFIRMADO {
+  state "Autorización" as AUT
+  AUT : NO_REQUIERE · PENDIENTE → AUTORIZADA | RECHAZADA
+  AUT : (la resuelve AutorizacionConsumer\ndesde cola.autorizaciones)
+}
+
 note right of CANCELADO
-  Valor definido en el enum
-  pero sin uso hoy: cancelar()
-  devuelve el turno a DISPONIBLE
-  para que otro paciente lo tome.
+  Estado final: conserva paciente, pago,
+  autorización y auditoría como historial.
+  Cualquier transición desde acá lanza
+  TransicionInvalidaException.
+end note
+note left of DISPONIBLE
+  Una transición no admitida por el estado
+  (p. ej. cancelar un turno disponible) es
+  imposible por diseño: el método por defecto
+  de EstadoDeTurno lanza la excepción.
 end note
 @enduml

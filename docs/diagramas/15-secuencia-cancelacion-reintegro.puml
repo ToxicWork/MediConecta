@@ -1,0 +1,36 @@
+@startuml 15-secuencia-cancelacion-reintegro
+!include _estilo.iuml
+title Cancelación: el reintegro (REST) se hace recién después del commit, por el tópico
+autonumber
+
+actor Paciente
+participant "ServicioDeTurnosBean" as ST
+participant "Turno (State)" as T
+queue "topico.turnos" as TOP
+participant "FacturacionSubscriber\n<<MDB>> @RunAs(SISTEMA)" as FS
+participant "ServicioDeFacturacionBean" as SF
+participant "ServicioDePagosBean" as SP
+participant "Pasarela de pagos\nREST" as PG
+database "PostgreSQL" as DB
+
+Paciente -> ST : cancelar(turnoId)
+ST -> T : cancelar()  CONFIRMADO → CANCELADO
+ST -> DB : guarda el cancelado + INSERT turno nuevo DISPONIBLE (mismo horario)
+ST -> TOP : publish TURNO_CANCELADO (Transactional Client)
+== commit ==
+ST --> Paciente : "Turno cancelado. El reintegro se procesa en unos segundos"
+TOP -> FS : TURNO_CANCELADO (pasa el selector)
+FS -> DB : evento_procesado (Idempotent Receiver)
+FS -> SF : procesarEvento()
+SF -> DB : reclamo_obra_social → ANULADO
+SF -> SP : reembolsarPagoDeTurno()
+SP -> PG : POST /pagos/{id}/reembolso
+alt pasarela disponible
+  PG --> SP : 200 REEMBOLSADO
+  SP -> DB : pago → REEMBOLSADO
+else pasarela caída
+  PG --> SP : 503 / timeout
+  SP --> FS : PasarelaNoDisponibleException
+  FS -> FS : setRollbackOnly(): 3 reintentos y DLQ\n(el reembolso es idempotente: no se paga dos veces)
+end
+@enduml

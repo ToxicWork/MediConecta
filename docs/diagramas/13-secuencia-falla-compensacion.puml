@@ -1,0 +1,42 @@
+@startuml 13-secuencia-falla-compensacion
+!include _estilo.iuml
+title Falla a mitad del flujo crítico: rollback declarativo + transacción compensatoria del cobro
+autonumber
+
+actor Paciente
+participant "ServicioDeTurnosBean\n<<Stateful>>" as ST
+participant "ProcesoConfirmacionTurno\nREQUIRED" as PCT
+participant "ServicioDePagosBean" as SP
+participant "Pasarela de pagos\nREST" as PG
+participant "CompensacionDePago\n(Synchronization)" as COMP
+participant "RegistroIntegraciones\nREQUIRES_NEW" as RI
+queue "cola + tópico" as JMS
+database "PostgreSQL" as DB
+
+Paciente -> ST : confirmar(datosPago)
+ST -> PCT : confirmar(...)
+activate PCT
+PCT -> SP : cobrar()
+SP -> PG : POST /pagos
+PG --> SP : 201 APROBADO pay_X
+SP -> RI : registrar(OK)  [transacción propia: queda]
+SP -> COMP : se registra en la transacción
+PCT -> DB : turno CONFIRMADO, pago, solicitud (sin commit)
+PCT -> JMS : send / publish (retenidos)
+PCT -> PCT : falla antes del commit\n(FallaSimuladaException @ApplicationException(rollback=true)\no cualquier excepción de sistema)
+deactivate PCT
+== el contenedor revierte la transacción JTA ==
+DB -> DB : ROLLBACK: el turno vuelve a HOLD, no hay pago ni solicitud
+JMS -> JMS : los mensajes se descartan: nadie recibe TURNO_CONFIRMADO
+PCT -> COMP : afterCompletion(STATUS_ROLLEDBACK)
+COMP -> PG : POST /pagos/pay_X/reembolso
+PG --> COMP : 200 REEMBOLSADO (idempotente)
+COMP -> RI : registrar(COMPENSACION)  [queda]
+PCT --> ST : excepción de aplicación (sin destruir el @Stateful)
+ST --> Paciente : "se revirtió todo y el cobro se reembolsó;\ntu turno sigue en espera"
+note over Paciente, DB
+  Base y broker: atomicidad por JTA/XA (no hace falta código).
+  Pasarela REST: no transaccional → compensación explícita.
+  SOAP de cobertura: consulta sin efectos → nada que compensar.
+end note
+@enduml

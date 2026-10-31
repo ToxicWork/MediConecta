@@ -1,0 +1,43 @@
+@startuml 14-secuencia-cola-autorizaciones
+!include _estilo.iuml
+title Cola punto a punto: autorización asincrónica con el legado caído (reintentos, Circuit Breaker, Selective Consumer)
+autonumber
+
+participant "ProcesoConfirmacionTurno" as PCT
+queue "cola.autorizaciones\n(Artemis)" as COLA
+participant "AutorizacionConsumer\n<<MDB>> sesión 1" as AC1
+participant "AutorizacionConsumer\n<<MDB>> sesión 2" as AC2
+participant "ServicioDeObrasSociales\n@RolesAllowed(SISTEMA)" as SOS
+participant "Obra social (legado)\nSOAP" as OS
+queue "topico.turnos" as TOP
+participant "FacturacionSubscriber\nselector AUTORIZADO|CANCELADO" as FS
+participant "NotificacionesSubscriber" as NS
+database "PostgreSQL" as DB
+
+PCT -> COLA : MensajeAutorizacion (commit de la confirmación)
+COLA -> AC1 : onMessage (intento 1) — @RunAs("SISTEMA")
+AC1 -> DB : evento_procesado ← (autorizaciones, idSolicitud)
+AC1 -> SOS : autorizar(pedido)
+SOS -> OS : solicitarAutorizacion
+OS --> SOS : SOAP Fault / timeout (legado caído)
+SOS --> AC1 : ObraSocialNoDisponibleException
+AC1 -> AC1 : setRollbackOnly()
+note right of COLA : el mensaje vuelve a la cola;\nredelivery 10 s, 20 s, 40 s, 60 s…\n(8 intentos y DLQ)
+... el circuito se abre: los intentos siguientes fallan al instante, sin colgar hilos ...
+COLA -> AC2 : onMessage (intento N) — la otra sesión en competencia
+AC2 -> SOS : autorizar(pedido)
+SOS -> OS : solicitarAutorizacion (prueba en SEMIABIERTO)
+OS --> SOS : AUTORIZADA AUT-100123 (legado de vuelta)
+AC2 -> DB : solicitud AUTORIZADA (intento N, consumidor)\nturno.registrarAutorizacion()
+AC2 -> TOP : publish TURNO_AUTORIZADO
+note right of AC2 : consumo + actualización + publicación\nen la MISMA transacción
+== commit ==
+par
+  TOP -> FS : TURNO_AUTORIZADO (pasa el selector)
+  FS -> DB : INSERT reclamo_obra_social $22.400
+else
+  TOP -> NS : TURNO_AUTORIZADO
+  NS -> DB : email al paciente + aviso al profesional
+end
+note over TOP, FS : TURNO_CONFIRMADO nunca llega a Facturación:\nlo filtra el broker (Selective Consumer)
+@enduml

@@ -1,82 +1,103 @@
 @startuml 02-componentes
 !include _estilo.iuml
-title MediConecta — Componentes e interfaces (implementado)
+title MediConecta — Componentes e interfaces (Entrega Obligatoria N.º 2)
+left to right direction
 
-package "Presentación (web)" {
-  [LoginBean] as LB
+package "Presentación" {
   [AgendaBean] as AB
   [HistoriaBean] as HB
-  [NotificacionesBean] as NB
-  [MonitorBean] as MB
+  [PagosBean] as PB
+  [TelemedicinaBean] as TB
+  [MonitorBean / IntegracionesBean] as MB
+  [TemaBean + tema.js] as TEMA
+  [API REST /api/v1\nProfesionalesResource\nTurnosResource] as API
 }
 
 package "Negocio (EJB)" {
-  interface "ServicioDeUsuarios" as I_SU
-  interface "ServicioDeTurnos" as I_ST
-  interface "ServicioDeHistoriaClinica" as I_SHC
-  interface "ServicioDeNotificaciones" as I_SN
-  interface "ServicioDeMonitoreo" as I_SM
-  [ServicioDeUsuariosBean\n<<Stateless>>] as SU
+  interface ServicioDeTurnos as I_ST
+  interface ServicioDeAgenda as I_SA
+  interface ServicioDeHistoriaClinica as I_SHC
+  interface ServicioDeObrasSociales as I_SOS
+  interface ServicioDePagos as I_SP
+  interface ServicioDeTelemedicina as I_STM
+  interface ServicioDeFacturacion as I_SF
+  interface ServicioDeMonitoreo as I_SM
   [ServicioDeTurnosBean\n<<Stateful>>] as ST
+  [ProcesoConfirmacionTurno\n<<Stateless>>] as PCT
+  [ServicioDeAgendaBean\n<<Stateless>>] as SA
   [ServicioDeHistoriaClinicaBean\n<<Stateless>>] as SHC
-  [ServicioDeNotificacionesBean\n<<Stateless>>] as SN
+  [ServicioDeObrasSocialesBean\n<<Stateless>>] as SOS
+  [ServicioDePagosBean\n<<Stateless>>] as SP
+  [ServicioDeTelemedicinaBean\n<<Stateless>>] as STM
+  [ServicioDeFacturacionBean\n<<Stateless>>] as SF
   [ServicioDeMonitoreoBean\n<<Stateless>>] as SM
-  [UsuarioFactory] as UF
+  [CatalogoPrestaciones\n<<Singleton>>] as CAT
+  [CadenaDeValidacion\n(Chain of Responsibility)] as CV
+  [SelectorCalculoCopago\n(Strategy)] as CC
+  [LiberadorDeHolds\n<<Singleton>> @Schedule] as LH
+}
+
+package "Integración" {
+  interface CoberturaGateway as G_OS
+  interface PagosGateway as G_PG
+  interface VideoconsultaGateway as G_VID
+  [CoberturaSoapAdapter\n(wsimport + CircuitBreaker)] as A_OS
+  [PasarelaPagosRestAdapter\n(JAX-RS Client)] as A_PG
+  [VideoconsultaRestAdapter\n(JAX-RS Client)] as A_VID
+  [RegistroIntegraciones\n<<Stateless>> REQUIRES_NEW] as RI
 }
 
 package "Mensajería (JMS)" {
-  [PublicadorEventosTurno\n<<Stateless>>] as PUB
-  [NotificacionesSubscriber\n<<MessageDriven>>] as NS
-  [AuditoriaSubscriber\n<<MessageDriven>>] as AS
-  [ProcesadorNotificacion\n(Email, AvisoProfesional)] as PN
+  [PublicadorEventosTurno] as PUB
+  [ProductorSolicitudesAutorizacion] as PROD
+  [AutorizacionConsumer <<MDB>>] as AC
+  [NotificacionesSubscriber <<MDB>>] as NS
+  [AuditoriaSubscriber <<MDB>>] as AS
+  [FacturacionSubscriber <<MDB>>] as FS
 }
 
-package "Datos (DAO + JPA)" {
-  [UsuarioDAO] as UD
-  [TurnoDAO] as TD
-  [HistoriaClinicaDAO] as HD
-  [NotificacionDAO] as ND
-  [EventoProcesadoDAO] as ED
-  [RegistroAuditoriaDAO] as RD
-  [EventoPublicadoDAO] as PD
+package "Transversal" {
+  [AuditoriaInterceptor\n@Auditado] as INT
+  [MecanismoAutenticacion\n(form + HTTP Basic)] as SEC
 }
 
-queue "topico.turnos" as TOP
-
-SU -up- I_SU
 ST -up- I_ST
+SA -up- I_SA
 SHC -up- I_SHC
-SN -up- I_SN
+SOS -up- I_SOS
+SP -up- I_SP
+STM -up- I_STM
+SF -up- I_SF
 SM -up- I_SM
+A_OS -up- G_OS
+A_PG -up- G_PG
+A_VID -up- G_VID
 
-LB ..> I_SU
-AB ..> I_SU
 AB ..> I_ST
 HB ..> I_SHC
-HB ..> I_ST
-NB ..> I_SN
+PB ..> I_SP
+PB ..> I_SF
+TB ..> I_STM
 MB ..> I_SM
+API ..> I_SA
 
-SU --> UF
-SU --> UD
-ST --> TD
-ST --> UD
-ST --> PUB
-SHC --> HD
-SHC --> UD
-SHC --> TD
-SN --> ND
-SM --> PD
-SM --> ED
-SM --> UD
-
-PUB --> TOP
-PUB --> PD
-TOP --> NS
-TOP --> AS
-NS --> ED
-NS --> PN
-PN --> ND
-AS --> ED
-AS --> RD
+ST --> PCT
+PCT --> CV
+PCT --> CAT
+PCT --> CC
+PCT --> I_SOS
+PCT --> I_SP
+PCT --> PROD
+PCT --> PUB
+SOS --> G_OS
+SP --> G_PG
+STM --> G_VID
+A_OS --> RI
+A_PG --> RI
+A_VID --> RI
+AC --> I_SOS
+AC --> PUB
+FS --> I_SF
+SF --> I_SP
+SHC ..> INT : interceptado
 @enduml

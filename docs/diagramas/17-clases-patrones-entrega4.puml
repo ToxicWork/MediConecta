@@ -1,0 +1,117 @@
+@startuml 17-clases-patrones-entrega4
+!include _estilo.iuml
+title Patrones incorporados en la Entrega Obligatoria N.º 2
+skinparam classAttributeIconSize 0
+hide empty members
+left to right direction
+
+package "Adapter / Gateway + Circuit Breaker" #FFF8EC {
+  interface CoberturaGateway <<Target>> {
+    +validarCobertura(...): ResultadoCobertura
+    +autorizar(PedidoAutorizacion): ResultadoAutorizacion
+  }
+  class CoberturaSoapAdapter <<Adapter>>
+  class "CoberturaPortType\n(wsimport)" as PORT <<Adaptee>>
+  interface PagosGateway <<Target>>
+  class PasarelaPagosRestAdapter <<Adapter>>
+  interface VideoconsultaGateway <<Target>>
+  class VideoconsultaRestAdapter <<Adapter>>
+  class CircuitBreaker {
+    -estado: CERRADO|ABIERTO|SEMIABIERTO
+    +ejecutar(Supplier): T
+  }
+  class Reintento <<Retry>>
+  CoberturaGateway <|.. CoberturaSoapAdapter
+  CoberturaSoapAdapter --> PORT : traduce
+  PagosGateway <|.. PasarelaPagosRestAdapter
+  VideoconsultaGateway <|.. VideoconsultaRestAdapter
+  CoberturaSoapAdapter --> CircuitBreaker
+  PasarelaPagosRestAdapter --> CircuitBreaker
+  VideoconsultaRestAdapter --> CircuitBreaker
+  CoberturaSoapAdapter ..> Reintento
+}
+
+package "Strategy" #E5F7EC {
+  interface CalculoCopago <<Strategy>> {
+    +aplica(ResultadoCobertura): boolean
+    +calcular(precio, cobertura): ImporteTurno
+  }
+  class SelectorCalculoCopago <<Context>>
+  class CopagoPorcentual
+  class CopagoMontoFijo
+  class CopagoExento
+  class TarifaParticular
+  class CoberturaPendiente
+  CalculoCopago <|.. CopagoPorcentual
+  CalculoCopago <|.. CopagoMontoFijo
+  CalculoCopago <|.. CopagoExento
+  CalculoCopago <|.. TarifaParticular
+  CalculoCopago <|.. CoberturaPendiente
+  SelectorCalculoCopago --> "*" CalculoCopago : @Any Instance
+}
+
+package "Chain of Responsibility" #EEF3FF {
+  abstract class ValidadorReserva <<Handler>> {
+    -siguiente: ValidadorReserva
+    +enlazar(v): ValidadorReserva
+    +validar(s) {final}
+    #verificar(s)
+  }
+  class TurnoExistente
+  class TurnoLibre
+  class HoldDelPaciente
+  class HoldVigente
+  class HorarioFuturo
+  class SinSuperposicion
+  class CadenaDeValidacion <<Client>>
+  ValidadorReserva <|-- TurnoExistente
+  ValidadorReserva <|-- TurnoLibre
+  ValidadorReserva <|-- HoldDelPaciente
+  ValidadorReserva <|-- HoldVigente
+  ValidadorReserva <|-- HorarioFuturo
+  ValidadorReserva <|-- SinSuperposicion
+  ValidadorReserva --> "0..1" ValidadorReserva : siguiente
+  CadenaDeValidacion --> ValidadorReserva : arma
+}
+
+package "State" #FDF2F8 {
+  class Turno <<Context>> {
+    -estado: EstadoTurno
+    +reservar() +confirmar() +cancelar() +liberar()
+  }
+  enum EstadoTurno {
+    DISPONIBLE
+    HOLD
+    CONFIRMADO
+    CANCELADO
+  }
+  interface EstadoDeTurno <<State>>
+  class TurnoDisponible
+  class TurnoEnHold
+  class TurnoConfirmado
+  class TurnoCancelado
+  Turno --> EstadoTurno
+  EstadoTurno --> EstadoDeTurno : comportamiento()
+  EstadoDeTurno <|.. TurnoDisponible
+  EstadoDeTurno <|.. TurnoEnHold
+  EstadoDeTurno <|.. TurnoConfirmado
+  EstadoDeTurno <|.. TurnoCancelado
+}
+
+package "Intercepting Filter · Singleton · Compensación" #F4F6FB {
+  annotation Auditado <<InterceptorBinding>>
+  class AuditoriaInterceptor <<Filter>> {
+    +auditar(InvocationContext) @AroundInvoke
+  }
+  class ServicioDeHistoriaClinicaBean <<Target>>
+  class CatalogoPrestaciones <<Singleton>> {
+    @Startup @Lock(READ)
+  }
+  class CompensacionDePago <<Synchronization>> {
+    +afterCompletion(estado)
+  }
+  AuditoriaInterceptor ..> Auditado
+  ServicioDeHistoriaClinicaBean ..> Auditado : @Auditado
+  CompensacionDePago --> PagosGateway : reembolso
+}
+@enduml

@@ -1,0 +1,48 @@
+@startuml 11-secuencia-cobertura-soap
+!include _estilo.iuml
+title Integración SOAP: cotización del turno contra el sistema legado de la obra social
+autonumber
+
+actor Paciente
+participant "agenda.xhtml\nAgendaBean" as AB
+participant "ServicioDeTurnosBean\n<<Stateful>>" as ST
+participant "ProcesoConfirmacionTurno\n<<Stateless>> NOT_SUPPORTED" as PCT
+participant "CatalogoPrestaciones\n<<Singleton>>" as CAT
+participant "ServicioDeObrasSocialesBean\nSUPPORTS" as SOS
+participant "CoberturaSoapAdapter\nRetry → CircuitBreaker" as AD
+participant "UsernameTokenClientHandler\n(JAX-WS)" as H
+participant "Obra social (legado)\nCoberturaService · SOAP" as OS
+participant "SelectorCalculoCopago\n(Strategy)" as CC
+participant "RegistroIntegraciones\nREQUIRES_NEW" as RI
+
+Paciente -> AB : Reservar turno
+AB -> ST : reservarHold() / cotizarTurnoEnHold()
+ST -> PCT : cotizar(turnoId)
+PCT -> CAT : para(especialidad, modalidad)
+CAT --> PCT : Prestacion 420101 · $32.000
+PCT -> SOS : validarCobertura(paciente, prestación)
+alt paciente sin obra social
+  SOS --> PCT : PARTICULAR (no llama al legado)
+else con obra social
+  SOS -> AD : validarCobertura(...)
+  AD -> AD : circuito.ejecutar(...) [CERRADO]
+  AD -> H : puerto JAX-WS (wsimport) + timeouts 2 s / 3 s
+  H -> OS : <soap:Envelope> + wsse:Security/UsernameToken\nvalidarCobertura(OSDE 210, 420101)
+  alt legado responde
+    OS --> AD : ResultadoCobertura CUBIERTO · PORCENTAJE 30 · requiereAutorizacion
+    AD -> AD : traduce tipos SOAP → dominio\nguarda en caché (24 h)
+    AD -> RI : registrar(OK)
+  else timeout / SOAP Fault / caído
+    OS --> AD : sin respuesta
+    AD -> AD : 1 reintento a los 500 ms\n(3 fallas seguidas abren el circuito 30 s)
+    AD -> RI : registrar(CACHE o PENDIENTE)
+    note right of AD : Fallback: última validación\nvigente o cobertura PENDIENTE
+  end
+  AD --> SOS : ResultadoCobertura
+  SOS --> PCT : ResultadoCobertura
+end
+PCT -> CC : para(cobertura).calcular(precio)
+CC --> PCT : ImporteTurno: paciente $9.600 · obra social $22.400
+PCT --> AB : CotizacionTurnoDTO
+AB --> Paciente : cobertura, liquidación y formulario de pago
+@enduml

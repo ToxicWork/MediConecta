@@ -1,62 +1,83 @@
 @startuml 01-integracion-soa
 !include _estilo.iuml
-title MediConecta — Arquitectura de integración (SOA)
-
+title MediConecta — Arquitectura de integración (SOA) · Entrega Obligatoria N.º 2
 
 actor "Paciente" as PAC
 actor "Profesional" as PRO
+actor "Partner / app externa" as EXTAPP
 
-rectangle "MediConecta (WildFly 41 · Jakarta EE 10)" #F7F9FE {
-  component "Presentación\nJSF + PrimeFaces" as WEB
+rectangle "MediConecta (WildFly 41 · Jakarta EE 10 · perfil standalone-full)" #F7F9FE {
+  component "Presentación\nJSF + PrimeFaces\n(temas estándar / claro / oscuro)" as WEB
+  component "API REST pública\n/api/v1 (JAX-RS)\nHTTP Basic" as API
   component "ServicioDeUsuarios\n<<Stateless>>" as SU
   component "ServicioDeTurnos\n<<Stateful>>" as ST
-  component "ServicioDeHistoriaClinica\n<<Stateless>>" as SHC
+  component "ProcesoConfirmacionTurno\n<<Stateless>> CMT REQUIRED" as PCT
+  component "ServicioDeAgenda\n<<Stateless>>" as SA
+  component "ServicioDeHistoriaClinica\n<<Stateless>> @Auditado" as SHC
+  component "ServicioDeObrasSociales\n<<Stateless>>\nCoberturaSoapAdapter" as SOS
+  component "ServicioDePagos\n<<Stateless>>\nPasarelaPagosRestAdapter" as SP
+  component "ServicioDeTelemedicina\n<<Stateless>>\nVideoconsultaRestAdapter" as STM
   component "ServicioDeNotificaciones\n<<MDB + Stateless>>" as SN
   component "Auditoría\n<<MDB>>" as AUD
-  component "ServicioDeFacturacion\n<<MDB>>" as SF #FFFFFF;line.dashed
-  component "ServicioDeObrasSociales\n(CoberturaSoapAdapter)" as SOS #FFFFFF;line.dashed
-  component "ServicioDePagos" as SP #FFFFFF;line.dashed
-  component "ServicioDeTelemedicina" as STM #FFFFFF;line.dashed
+  component "ServicioDeFacturacion\n<<MDB + Stateless>>" as SF
+  component "AutorizacionConsumer\n<<MDB>> x2 sesiones" as AC
 
   queue "topico.turnos\n(pub/sub, durable)" as TOP #E5F7EC
-  queue "cola.autorizaciones\n(punto a punto)" as COLA #FFFFFF;line.dashed
-  queue "DLQ" as DLQ #FDEAEA
+  queue "cola.autorizaciones\n(punto a punto, TTL 24 h)" as COLA #E5F7EC
+  queue "DLQ / ExpiryQueue" as DLQ #FDEAEA
 }
 
 database "Supabase\nPostgreSQL" as DB
-node "Obra social / prepaga\n(sistema LEGADO)" as OS #FFF4E4
-node "Pasarela de pago\n(partner moderno)" as PG #FFF4E4
-node "Proveedor de video\n(partner moderno)" as VID #FFF4E4
 
-PAC --> WEB : HTTPS
-PRO --> WEB : HTTPS
-WEB --> SU : local (EJB)
+rectangle "Sistemas externos (externos.war, simulados)" #FFF8EC {
+  node "Obra social / prepaga\n(sistema LEGADO)\nCoberturaService?wsdl" as OS #FFF4E4
+  node "Pasarela de pago\n(partner moderno)" as PG #FFF4E4
+  node "Proveedor de video\n(partner moderno)" as VID #FFF4E4
+}
+
+PAC --> WEB : HTTP
+PRO --> WEB : HTTP
+EXTAPP --> API : REST / JSON
 WEB --> ST : local (EJB)
-WEB --> SHC : local (EJB)
-WEB --> SN : local (EJB)
+WEB --> SU
+WEB --> SHC
+WEB --> STM
+WEB --> SP
+API --> SA : local (EJB)
 
-ST --> TOP : JMS publish\nTURNO_CONFIRMADO / CANCELADO\n(dentro de la transacción JTA)
-TOP --> SN : JMS (durable)
-TOP --> AUD : JMS (durable)
-TOP ..> SF : JMS (selector tipoEvento)
-TOP --> DLQ : 3 intentos fallidos
+ST --> PCT : confirmar()
+PCT --> SOS : validarCobertura
+PCT --> SP : cobrar (MANDATORY)
+SOS --> OS : SOAP 1.1 / WSDL\nWS-Security UsernameToken\n(síncrono)
+SP --> PG : REST / JSON\nBearer + Idempotency-Key\n(síncrono)
+STM --> VID : REST / JSON\nX-Api-Key (síncrono)
 
-ST ..> COLA : JMS
-COLA ..> SOS : JMS
-SOS ..> OS : SOAP / WSDL\n(síncrono)
-ST ..> SP : local
-SP ..> PG : REST / JSON\n(síncrono)
-STM ..> VID : REST / JSON\n(síncrono)
+PCT --> COLA : JMS send\n(misma transacción JTA)
+PCT --> TOP : JMS publish TURNO_CONFIRMADO
+ST --> TOP : TURNO_CANCELADO
+COLA --> AC : JMS (competing consumers)
+AC --> SOS : autorizar (@RunAs SISTEMA)
+AC --> TOP : TURNO_AUTORIZADO /\nAUTORIZACION_RECHAZADA
+TOP --> SN : durable
+TOP --> AUD : durable
+TOP --> SF : durable + selector\ntipoEvento IN (AUTORIZADO, CANCELADO)
+SF --> SP : reintegro por cancelación
+COLA --> DLQ : 8 intentos
+TOP --> DLQ : 3 intentos
 
-SU --> DB : JPA / JDBC
-ST --> DB
-SHC --> DB
+PCT --> DB : JPA (JTA)
 SN --> DB
 AUD --> DB
+SF --> DB
+AC --> DB
 
 legend right
-  |= Línea |= Estado |
-  | llena | implementado y funcionando (Entrega Parcial N.º 2) |
-  | punteada | planificado para la Entrega Obligatoria N.º 2 (09/11) |
+  |= Integración |= Tipo |= Por qué |
+  | Obra social | sincrónica · SOAP | legado que sólo expone SOAP; el paciente necesita la cobertura para pagar |
+  | Pasarela de pagos | sincrónica · REST | partner moderno; sin cobro no se confirma un turno con importe |
+  | Videoconsulta | sincrónica · REST | la sala se necesita en el momento de entrar |
+  | Autorizaciones | asincrónica · cola | cada solicitud una sola vez; el legado puede tardar o estar caído |
+  | Eventos del turno | asincrónica · tópico | varios interesados que no se conocen entre sí |
+  | API /api/v1 | sincrónica · REST | API de consumo externo para partners |
 endlegend
 @enduml
