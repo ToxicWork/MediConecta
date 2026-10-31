@@ -1,6 +1,7 @@
 package ar.edu.mediconecta.web;
 
 import ar.edu.mediconecta.negocio.ServicioDeMonitoreo;
+import ar.edu.mediconecta.negocio.dto.FilaAutorizacionDTO;
 import ar.edu.mediconecta.negocio.dto.FilaMonitorDTO;
 import ar.edu.mediconecta.negocio.dto.ResumenMonitorDTO;
 import jakarta.enterprise.context.RequestScoped;
@@ -21,6 +22,7 @@ public class MonitorBean {
 
     private List<FilaMonitorDTO> filas;
     private ResumenMonitorDTO resumen;
+    private List<FilaAutorizacionDTO> autorizaciones;
 
     public String verificarAcceso() {
         return loginBean.getUsuarioActual() == null ? "login.xhtml?faces-redirect=true" : null;
@@ -38,5 +40,16 @@ public class MonitorBean {
             resumen = ResumenMonitorDTO.de(getFilas());
         }
         return resumen;
+    }
+
+    public List<FilaAutorizacionDTO> getAutorizaciones() {
+        if (autorizaciones == null) {
+            autorizaciones = servicioDeMonitoreo.autorizacionesRecientesDelUsuarioActual();
+        }
+        return autorizaciones;
+    }
+
+    public long getAutorizacionesEnCola() {
+        return getAutorizaciones().stream().filter(a -> "PENDIENTE".equals(a.getEstado())).count();
     }
 }

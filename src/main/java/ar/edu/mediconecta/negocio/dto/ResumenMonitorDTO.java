@@ -24,7 +24,8 @@ public class ResumenMonitorDTO implements Serializable {
     }
 
     public static ResumenMonitorDTO de(List<FilaMonitorDTO> filas) {
-        List<EstadoSuscriptorDTO> estados = filas.stream().flatMap(f -> f.getSuscriptores().stream()).toList();
+        List<EstadoSuscriptorDTO> estados = filas.stream().flatMap(f -> f.getSuscriptores().stream())
+                .filter(EstadoSuscriptorDTO::isAplica).toList();
         long procesados = estados.stream().filter(EstadoSuscriptorDTO::isProcesado).count();
         LongSummaryStatistics latencias = estados.stream()
                 .map(EstadoSuscriptorDTO::getLatenciaMs)

@@ -1,5 +1,6 @@
 package ar.edu.mediconecta.web;
 
+import ar.edu.mediconecta.modelo.ErrorDeNegocioException;
 import ar.edu.mediconecta.modelo.HistoriaClinica;
 import ar.edu.mediconecta.modelo.Paciente;
 import ar.edu.mediconecta.modelo.TipoEntrada;
@@ -7,7 +8,10 @@ import ar.edu.mediconecta.modelo.Turno;
 import ar.edu.mediconecta.modelo.Usuario;
 import ar.edu.mediconecta.negocio.ServicioDeHistoriaClinica;
 import ar.edu.mediconecta.negocio.ServicioDeTurnos;
+import ar.edu.mediconecta.negocio.dto.AccesoHistoriaDTO;
 import jakarta.annotation.PostConstruct;
+import jakarta.faces.application.FacesMessage;
+import jakarta.faces.context.FacesContext;
 import jakarta.faces.view.ViewScoped;
 import jakarta.inject.Inject;
 import jakarta.inject.Named;
@@ -35,6 +39,7 @@ public class HistoriaBean implements Serializable {
 
     private Long pacienteId;
     private HistoriaClinica historia;
+    private List<AccesoHistoriaDTO> accesos;
 
     private TipoEntrada tipoNuevaEntrada = TipoEntrada.DIAGNOSTICO;
     private String descripcionNuevaEntrada;
@@ -54,20 +59,42 @@ public class HistoriaBean implements Serializable {
     }
 
     public void cargarHistoriaDePaciente(Long id) {
-        pacienteId = id;
-        historia = servicioDeHistoriaClinica.obtenerDePaciente(id);
+        if (id == null) {
+            return;
+        }
+        try {
+            pacienteId = id;
+            historia = servicioDeHistoriaClinica.obtenerDePaciente(id);
+        } catch (ErrorDeNegocioException e) {
+            historia = null;
+            FacesContext.getCurrentInstance().addMessage(null,
+                    new FacesMessage(FacesMessage.SEVERITY_ERROR, e.getMessage(), null));
+        }
     }
 
     public void agregarEntrada() {
-        Usuario actual = loginBean.getUsuarioActual();
-        servicioDeHistoriaClinica.agregarEntrada(pacienteId, actual.getId(), turnoAsociadoId, tipoNuevaEntrada, descripcionNuevaEntrada);
-        historia = servicioDeHistoriaClinica.obtenerDePaciente(pacienteId);
-        descripcionNuevaEntrada = null;
+        try {
+            servicioDeHistoriaClinica.agregarEntrada(pacienteId, turnoAsociadoId, tipoNuevaEntrada, descripcionNuevaEntrada);
+            historia = servicioDeHistoriaClinica.obtenerDePaciente(pacienteId);
+            descripcionNuevaEntrada = null;
+        } catch (ErrorDeNegocioException e) {
+            FacesContext.getCurrentInstance().addMessage(null,
+                    new FacesMessage(FacesMessage.SEVERITY_ERROR, e.getMessage(), null));
+        }
+    }
+
+    /** Sólo para el paciente: quién consultó o modificó su historia (registrado por el interceptor de auditoría). */
+    public List<AccesoHistoriaDTO> getAccesos() {
+        if (accesos == null) {
+            accesos = loginBean.isPaciente() ? servicioDeHistoriaClinica.accesosAMiHistoria() : List.of();
+        }
+        return accesos;
     }
 
     public List<Turno> getTurnosDelProfesional() {
         Usuario actual = loginBean.getUsuarioActual();
-        return actual == null ? List.of() : servicioDeTurnos.buscarConfirmadosDeProfesional(actual.getId());
+        return actual == null || !loginBean.isProfesional() ? List.of()
+                : servicioDeTurnos.buscarConfirmadosDeProfesional(actual.getId());
     }
 
     public String getNombrePacienteSeleccionado() {

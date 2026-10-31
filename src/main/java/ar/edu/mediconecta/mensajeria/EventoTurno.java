@@ -2,16 +2,17 @@ package ar.edu.mediconecta.mensajeria;
 
 import ar.edu.mediconecta.modelo.Turno;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
 
 /**
- * Mensaje que viaja por {@code topico.turnos}. Lleva sólo datos de contacto y del turno:
+ * Mensaje que viaja por {@code topico.turnos}. Lleva sólo datos de contacto, del turno y de su liquidación:
  * nunca diagnósticos ni datos clínicos (minimización de datos en el broker).
  *
- * <p>Se arma con {@link Builder} (patrón Builder): {@code build()} valida lo obligatorio y
- * genera siempre el {@code idEvento}, del que depende la idempotencia de los suscriptores.
+ * <p>Se arma con {@link Builder} (patrón Builder): {@code build()} valida lo obligatorio y genera siempre el
+ * {@code idEvento}, del que depende la idempotencia de los suscriptores.
  */
 public record EventoTurno(
         String idEvento,
@@ -19,15 +20,26 @@ public record EventoTurno(
         LocalDateTime ocurridoEn,
         Long turnoId,
         LocalDateTime fechaHoraTurno,
+        String modalidad,
         Long profesionalId,
         String profesionalNombre,
         String especialidad,
         Long pacienteId,
         String pacienteNombre,
-        String pacienteEmail) {
+        String pacienteEmail,
+        String obraSocial,
+        String cobertura,
+        BigDecimal importePaciente,
+        BigDecimal importeObraSocial,
+        String codigoAutorizacion,
+        String motivoAutorizacion) {
 
     public static Builder builder() {
         return new Builder();
+    }
+
+    public boolean tieneImporteAPagar() {
+        return importePaciente != null && importePaciente.signum() > 0;
     }
 
     public static final class Builder {
@@ -58,12 +70,19 @@ public record EventoTurno(
                     LocalDateTime.now(),
                     turno.getId(),
                     turno.getFechaHora(),
+                    turno.getModalidad().name(),
                     turno.getProfesional().getId(),
                     turno.getProfesional().getNombreCompleto(),
                     turno.getProfesional().getEspecialidad(),
                     turno.getPaciente().getId(),
                     turno.getPaciente().getNombreCompleto(),
-                    turno.getPaciente().getEmail());
+                    turno.getPaciente().getEmail(),
+                    turno.getObraSocial(),
+                    turno.getCobertura() == null ? null : turno.getCobertura().name(),
+                    turno.getImportePaciente(),
+                    turno.getImporteObraSocial(),
+                    turno.getCodigoAutorizacion(),
+                    turno.getMotivoAutorizacion());
         }
     }
 }

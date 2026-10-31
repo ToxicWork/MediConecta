@@ -15,7 +15,106 @@
     <ui:define name="content">
 
         <h:panelGroup layout="block" rendered="#{loginBean.paciente}">
-            <p class="page-subtitle">Buscá disponibilidad y reservá tu turno con un profesional.</p>
+            <p class="page-subtitle">Buscá disponibilidad, reservá tu turno y confirmalo: consultamos tu cobertura a la obra social y, si corresponde, cobramos el copago.</p>
+
+            <!-- Turno en espera: cotización (SOAP a la obra social) y pago (REST a la pasarela). Formulario propio
+                 para que la validación de la tarjeta no interfiera con la búsqueda. -->
+            <h:form id="formConfirmacion" rendered="#{agendaBean.turnoEnHold != null}">
+                <div class="card accent-warning">
+                    <div class="card-header">
+                        <div>
+                            <h3>Turno reservado temporalmente</h3>
+                            <div class="subtle">
+                                Confirmalo antes de que venza el hold de 5 minutos
+                                <h:outputText value=" (vence a las #{agendaBean.turnoEnHold.holdVenceEn.toLocalTime().withNano(0)})"
+                                              rendered="#{agendaBean.turnoEnHold.holdVenceEn != null}"/>
+                            </div>
+                        </div>
+                        <span class="tag tag-warning">En espera</span>
+                    </div>
+
+                    <p style="font-size:15px;font-weight:600;margin-bottom:6px;">
+                        <h:outputText value="#{agendaBean.turnoEnHold.fechaHora}">
+                            <f:convertDateTime pattern="EEEE dd/MM/yyyy · HH:mm 'hs'" type="localDateTime"/>
+                        </h:outputText>
+                        · #{agendaBean.turnoEnHold.profesional.nombreCompleto}
+                        <span class="tag #{agendaBean.turnoEnHold.telemedicina ? 'tag-info' : 'tag-neutral'}">#{agendaBean.turnoEnHold.modalidad.etiqueta}</span>
+                    </p>
+
+                    <h:panelGroup layout="block" styleClass="cotizacion" rendered="#{agendaBean.cotizacion != null}">
+                        <div class="panel">
+                            <h4>Cobertura</h4>
+                            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px;">
+                                <span class="tag #{agendaBean.cotizacion.cobertura.estado == 'CUBIERTA' ? 'tag-success' : (agendaBean.cotizacion.cobertura.estado == 'PENDIENTE' ? 'tag-warning' : 'tag-neutral')}">
+                                    #{agendaBean.cotizacion.cobertura.estado.etiqueta}
+                                </span>
+                                <h:outputText value="#{loginBean.usuarioActual.obraSocial}#{empty agendaBean.cotizacion.cobertura.plan ? '' : ' · plan '.concat(agendaBean.cotizacion.cobertura.plan)}"
+                                              rendered="#{not empty loginBean.usuarioActual.obraSocial}" styleClass="texto-tenue"/>
+                            </div>
+                            <div style="font-size:13.3px;">#{agendaBean.cotizacion.cobertura.mensaje}</div>
+                            <div class="origen">
+                                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+                                <span>#{agendaBean.cotizacion.cobertura.origen.descripcion}<h:outputText value=" · trx #{agendaBean.cotizacion.cobertura.nroTransaccion}" rendered="#{not empty agendaBean.cotizacion.cobertura.nroTransaccion}"/></span>
+                            </div>
+                        </div>
+                        <div class="panel">
+                            <h4>Liquidación</h4>
+                            <div class="linea">
+                                <span>#{agendaBean.cotizacion.prestacion.descripcion} <span class="texto-tenue">(#{agendaBean.cotizacion.prestacion.codigo})</span></span>
+                                <h:outputText styleClass="importe" value="#{agendaBean.cotizacion.importe.precioLista}"><f:convertNumber type="currency" currencySymbol="$ " locale="es_AR"/></h:outputText>
+                            </div>
+                            <div class="linea">
+                                <span>Cubre la obra social</span>
+                                <h:outputText styleClass="importe" value="#{agendaBean.cotizacion.importe.importeObraSocial}"><f:convertNumber type="currency" currencySymbol="$ " locale="es_AR"/></h:outputText>
+                            </div>
+                            <div class="linea total">
+                                <span>A tu cargo</span>
+                                <h:outputText styleClass="importe" value="#{agendaBean.cotizacion.importe.importePaciente}"><f:convertNumber type="currency" currencySymbol="$ " locale="es_AR"/></h:outputText>
+                            </div>
+                            <div class="texto-tenue" style="margin-top:6px;">#{agendaBean.cotizacion.importe.regla}</div>
+                        </div>
+                    </h:panelGroup>
+
+                    <h:panelGroup layout="block" rendered="#{agendaBean.cotizacion.requierePago}">
+                        <h3 style="margin:4px 0 8px;">Pago con tarjeta</h3>
+                        <p class="tarjetas-prueba">
+                            Pasarela de prueba: <code>4111 1111 1111 1111</code> se aprueba ·
+                            <code>4000 0000 0000 0002</code> se rechaza por fondos insuficientes.
+                            No guardamos el número de tu tarjeta.
+                        </p>
+                        <div class="field">
+                            <label for="formConfirmacion:titular">Titular de la tarjeta</label>
+                            <p:inputText id="titular" value="#{agendaBean.datosPago.titular}" label="Titular" autocomplete="cc-name"/>
+                        </div>
+                        <div class="field-row-3">
+                            <div class="field">
+                                <label for="formConfirmacion:numeroTarjeta">Número de tarjeta</label>
+                                <p:inputText id="numeroTarjeta" value="#{agendaBean.datosPago.numeroTarjeta}" label="Número de tarjeta"
+                                             placeholder="4111 1111 1111 1111" autocomplete="cc-number"/>
+                            </div>
+                            <div class="field">
+                                <label for="formConfirmacion:vencimiento">Vencimiento</label>
+                                <p:inputText id="vencimiento" value="#{agendaBean.datosPago.vencimiento}" label="Vencimiento"
+                                             placeholder="MM/AA" autocomplete="cc-exp"/>
+                            </div>
+                            <div class="field">
+                                <label for="formConfirmacion:codigoSeguridad">Código</label>
+                                <p:password id="codigoSeguridad" value="#{agendaBean.datosPago.codigoSeguridad}" label="Código de seguridad"
+                                            feedback="false" placeholder="CVV" autocomplete="cc-csc"/>
+                            </div>
+                        </div>
+                    </h:panelGroup>
+
+                    <div class="acciones">
+                        <p:commandButton id="btnConfirmar" value="#{agendaBean.cotizacion.requierePago ? 'Pagar y confirmar turno' : 'Confirmar turno'}"
+                                         action="#{agendaBean.confirmar}" ajax="false" styleClass="btn btn-primary"/>
+                        <p:commandButton value="Volver a consultar cobertura" action="#{agendaBean.cotizar}" ajax="false"
+                                         immediate="true" styleClass="btn btn-secondary"/>
+                        <p:commandButton value="Liberar turno" action="#{agendaBean.liberarHold}" ajax="false"
+                                         immediate="true" styleClass="btn btn-danger"/>
+                    </div>
+                </div>
+            </h:form>
 
             <h:form id="formAgenda">
 
@@ -37,10 +136,23 @@
                             <p:column headerText="Profesional">
                                 #{turno.profesional.nombreCompleto} · #{turno.profesional.especialidad}
                             </p:column>
-                            <p:column headerText="Estado">
-                                <span class="tag tag-success">Confirmado</span>
+                            <p:column headerText="Modalidad">
+                                <span class="tag #{turno.telemedicina ? 'tag-info' : 'tag-neutral'}">#{turno.modalidad.etiqueta}</span>
                             </p:column>
-                            <p:column headerText="" style="text-align:right;width:150px;">
+                            <p:column headerText="Cobertura">
+                                <h:outputText rendered="#{turno.cobertura == null}" value="—" styleClass="texto-tenue"/>
+                                <h:panelGroup rendered="#{turno.cobertura != null}">
+                                    <span class="tag #{turno.cobertura == 'CUBIERTA' ? 'tag-success' : (turno.cobertura == 'PENDIENTE' ? 'tag-warning' : 'tag-neutral')}">#{turno.cobertura.etiqueta}</span>
+                                    <h:outputText rendered="#{turno.estadoAutorizacion == 'PENDIENTE'}" value="Autorización en trámite" styleClass="tag tag-warning" style="margin-left:4px;"/>
+                                    <h:outputText rendered="#{turno.estadoAutorizacion == 'AUTORIZADA'}" value="Autorizada" styleClass="tag tag-success" style="margin-left:4px;" title="#{turno.codigoAutorizacion}"/>
+                                    <h:outputText rendered="#{turno.estadoAutorizacion == 'RECHAZADA'}" value="No autorizada" styleClass="tag tag-danger" style="margin-left:4px;" title="#{turno.motivoAutorizacion}"/>
+                                </h:panelGroup>
+                            </p:column>
+                            <p:column headerText="A tu cargo">
+                                <h:outputText styleClass="importe" value="#{turno.importePaciente}" rendered="#{turno.importePaciente != null}"><f:convertNumber type="currency" currencySymbol="$ " locale="es_AR"/></h:outputText>
+                                <h:outputText value="—" rendered="#{turno.importePaciente == null}" styleClass="texto-tenue"/>
+                            </p:column>
+                            <p:column headerText="" style="text-align:right;width:130px;">
                                 <p:commandButton value="Cancelar" action="#{agendaBean.cancelar(turno.id)}" ajax="false" styleClass="btn btn-danger btn-sm"/>
                             </p:column>
                         </p:dataTable>
@@ -69,27 +181,11 @@
                     <p:commandButton value="Ver turnos disponibles" action="#{agendaBean.buscarDisponibilidad}" ajax="false" styleClass="btn btn-primary"/>
                 </div>
 
-                <h:panelGroup layout="block" styleClass="card accent-warning" rendered="#{agendaBean.turnoEnHold != null}">
-                    <div class="card-header">
-                        <div>
-                            <h3>Turno reservado temporalmente</h3>
-                            <div class="subtle">Confirmalo antes de que expire el hold de 5 minutos</div>
-                        </div>
-                        <span class="tag tag-warning">En espera</span>
-                    </div>
-                    <p style="font-size:15px;font-weight:600;margin-bottom:14px;">
-                        <h:outputText value="#{agendaBean.turnoEnHold.fechaHora}">
-                            <f:convertDateTime pattern="EEEE dd/MM/yyyy · HH:mm 'hs'" type="localDateTime"/>
-                        </h:outputText>
-                    </p>
-                    <p:commandButton value="Confirmar turno" action="#{agendaBean.confirmar}" ajax="false" styleClass="btn btn-primary"/>
-                </h:panelGroup>
-
                 <div class="card">
                     <div class="card-header">
                         <div>
                             <h3>Turnos disponibles</h3>
-                            <div class="subtle">#{agendaBean.disponibilidad.size()} horario(s) encontrados</div>
+                            <div class="subtle">#{agendaBean.disponibilidad.size()} horario(s) encontrados · precio de lista, antes de la cobertura</div>
                         </div>
                     </div>
 
@@ -100,8 +196,11 @@
                                     <f:convertDateTime pattern="EEEE dd/MM/yyyy · HH:mm 'hs'" type="localDateTime"/>
                                 </h:outputText>
                             </p:column>
-                            <p:column headerText="Estado">
-                                <span class="tag tag-success">Disponible</span>
+                            <p:column headerText="Modalidad">
+                                <span class="tag #{turno.telemedicina ? 'tag-info' : 'tag-neutral'}">#{turno.modalidad.etiqueta}</span>
+                            </p:column>
+                            <p:column headerText="Precio">
+                                <h:outputText styleClass="importe" value="#{agendaBean.precio(turno)}"><f:convertNumber type="currency" currencySymbol="$ " locale="es_AR"/></h:outputText>
                             </p:column>
                             <p:column headerText="" style="text-align:right;width:150px;">
                                 <p:commandButton value="Reservar" action="#{agendaBean.reservarHold(turno.id)}" ajax="false" styleClass="btn btn-secondary btn-sm"/>
@@ -118,24 +217,66 @@
         </h:panelGroup>
 
         <h:panelGroup layout="block" rendered="#{loginBean.profesional}">
-            <p class="page-subtitle">Publicá los horarios en los que vas a estar disponible para atender pacientes.</p>
+            <p class="page-subtitle">Publicá los horarios en los que vas a atender y seguí los turnos que te confirmaron.</p>
 
-            <div class="card" style="max-width:420px;">
-                <div class="card-header">
-                    <div>
-                        <h3>Publicar disponibilidad</h3>
-                        <div class="subtle">Formato: dd/mm/aaaa hh:mm</div>
+            <div class="grid grid-2">
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h3>Turnos confirmados</h3>
+                            <div class="subtle">#{agendaBean.turnosConfirmadosProfesional.size()} turno(s) · cobertura y autorización de la obra social</div>
+                        </div>
                     </div>
+                    <h:panelGroup layout="block" styleClass="table-wrap" rendered="#{not empty agendaBean.turnosConfirmadosProfesional}">
+                        <p:dataTable id="tablaConfirmadosProfesional" value="#{agendaBean.turnosConfirmadosProfesional}" var="turno">
+                            <p:column headerText="Fecha y hora">
+                                <h:outputText value="#{turno.fechaHora}">
+                                    <f:convertDateTime pattern="dd/MM/yyyy HH:mm" type="localDateTime"/>
+                                </h:outputText>
+                            </p:column>
+                            <p:column headerText="Paciente">#{turno.paciente.nombreCompleto}</p:column>
+                            <p:column headerText="Modalidad">
+                                <span class="tag #{turno.telemedicina ? 'tag-info' : 'tag-neutral'}">#{turno.modalidad.etiqueta}</span>
+                            </p:column>
+                            <p:column headerText="Cobertura">
+                                <h:outputText rendered="#{turno.cobertura == null}" value="—" styleClass="texto-tenue"/>
+                                <h:outputText rendered="#{turno.cobertura != null}" value="#{turno.cobertura.etiqueta}"
+                                              styleClass="tag #{turno.cobertura == 'CUBIERTA' ? 'tag-success' : (turno.cobertura == 'PENDIENTE' ? 'tag-warning' : 'tag-neutral')}"/>
+                            </p:column>
+                            <p:column headerText="Autorización">
+                                <h:outputText value="#{turno.estadoAutorizacion.etiqueta}"
+                                              styleClass="tag #{turno.estadoAutorizacion == 'AUTORIZADA' ? 'tag-success' : (turno.estadoAutorizacion == 'PENDIENTE' ? 'tag-warning' : (turno.estadoAutorizacion == 'RECHAZADA' ? 'tag-danger' : 'tag-neutral'))}"/>
+                            </p:column>
+                        </p:dataTable>
+                    </h:panelGroup>
+                    <h:panelGroup layout="block" styleClass="empty-state" rendered="#{empty agendaBean.turnosConfirmadosProfesional}">
+                        Todavía no te confirmaron turnos.
+                    </h:panelGroup>
                 </div>
-                <h:form id="formPublicar">
-                    <div class="field">
-                        <label for="formPublicar:fecha">Fecha y hora</label>
-                        <p:inputText id="fecha" value="#{agendaBean.nuevaFechaHora}" placeholder="dd/mm/aaaa hh:mm">
-                            <f:convertDateTime pattern="dd/MM/yyyy HH:mm" type="localDateTime"/>
-                        </p:inputText>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h3>Publicar disponibilidad</h3>
+                            <div class="subtle">Formato: dd/mm/aaaa hh:mm</div>
+                        </div>
                     </div>
-                    <p:commandButton value="Publicar" action="#{agendaBean.publicarDisponibilidad}" ajax="false" styleClass="btn btn-primary btn-block"/>
-                </h:form>
+                    <h:form id="formPublicar">
+                        <div class="field">
+                            <label for="formPublicar:fecha">Fecha y hora</label>
+                            <p:inputText id="fecha" value="#{agendaBean.nuevaFechaHora}" placeholder="dd/mm/aaaa hh:mm">
+                                <f:convertDateTime pattern="dd/MM/yyyy HH:mm" type="localDateTime"/>
+                            </p:inputText>
+                        </div>
+                        <div class="field">
+                            <label for="formPublicar:modalidad">Modalidad</label>
+                            <h:selectOneMenu id="modalidad" value="#{agendaBean.nuevaModalidad}">
+                                <f:selectItems value="#{agendaBean.modalidades}" var="m" itemLabel="#{m.etiqueta}" itemValue="#{m}"/>
+                            </h:selectOneMenu>
+                        </div>
+                        <p:commandButton value="Publicar" action="#{agendaBean.publicarDisponibilidad}" ajax="false" styleClass="btn btn-primary btn-block"/>
+                    </h:form>
+                </div>
             </div>
         </h:panelGroup>
 

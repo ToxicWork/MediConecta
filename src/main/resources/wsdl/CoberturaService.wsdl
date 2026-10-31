@@ -1,0 +1,164 @@
+<?xml version='1.0' encoding='UTF-8'?><wsdl:definitions xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:tns="http://legado.obrasocial.ar/cobertura/v1" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:ns1="http://schemas.xmlsoap.org/soap/http" name="CoberturaService" targetNamespace="http://legado.obrasocial.ar/cobertura/v1">
+  <wsdl:types>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:tns="http://legado.obrasocial.ar/cobertura/v1" elementFormDefault="qualified" targetNamespace="http://legado.obrasocial.ar/cobertura/v1" version="1.0">
+
+  <xs:element name="solicitarAutorizacion" type="tns:solicitarAutorizacion"/>
+
+  <xs:element name="solicitarAutorizacionResponse" type="tns:solicitarAutorizacionResponse"/>
+
+  <xs:element name="validarCobertura" type="tns:validarCobertura"/>
+
+  <xs:element name="validarCoberturaResponse" type="tns:validarCoberturaResponse"/>
+
+  <xs:complexType name="solicitarAutorizacion">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="solicitud" type="tns:SolicitudAutorizacion"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="SolicitudAutorizacion">
+    <xs:sequence>
+      <xs:element name="idSolicitud" type="xs:string"/>
+      <xs:element name="obraSocial" type="xs:string"/>
+      <xs:element minOccurs="0" name="plan" type="xs:string"/>
+      <xs:element minOccurs="0" name="nroAfiliado" type="xs:string"/>
+      <xs:element name="codigoPrestacion" type="xs:string"/>
+      <xs:element minOccurs="0" name="fechaPrestacion" type="xs:string"/>
+      <xs:element minOccurs="0" name="matriculaPrestador" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="solicitarAutorizacionResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="autorizacion" type="tns:ResultadoAutorizacion"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="ResultadoAutorizacion">
+    <xs:sequence>
+      <xs:element name="nroTransaccion" type="xs:string"/>
+      <xs:element name="idSolicitud" type="xs:string"/>
+      <xs:element name="estado" type="tns:EstadoAutorizacion"/>
+      <xs:element minOccurs="0" name="codigoAutorizacion" type="xs:string"/>
+      <xs:element minOccurs="0" name="motivo" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="validarCobertura">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="consulta" type="tns:ConsultaCobertura"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="ConsultaCobertura">
+    <xs:sequence>
+      <xs:element name="obraSocial" type="xs:string"/>
+      <xs:element minOccurs="0" name="plan" type="xs:string"/>
+      <xs:element minOccurs="0" name="nroAfiliado" type="xs:string"/>
+      <xs:element name="codigoPrestacion" type="xs:string"/>
+      <xs:element minOccurs="0" name="fechaPrestacion" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="validarCoberturaResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="resultado" type="tns:ResultadoCobertura"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="ResultadoCobertura">
+    <xs:sequence>
+      <xs:element name="nroTransaccion" type="xs:string"/>
+      <xs:element name="estado" type="tns:EstadoCobertura"/>
+      <xs:element minOccurs="0" name="plan" type="xs:string"/>
+      <xs:element name="tipoCopago" type="tns:TipoCopago"/>
+      <xs:element minOccurs="0" name="valorCopago" type="xs:decimal"/>
+      <xs:element name="requiereAutorizacion" type="xs:boolean"/>
+      <xs:element minOccurs="0" name="mensaje" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:simpleType name="EstadoAutorizacion">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="AUTORIZADA"/>
+      <xs:enumeration value="RECHAZADA"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="EstadoCobertura">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="CUBIERTO"/>
+      <xs:enumeration value="NO_CUBIERTO"/>
+      <xs:enumeration value="AFILIADO_SUSPENDIDO"/>
+      <xs:enumeration value="AFILIADO_INEXISTENTE"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="TipoCopago">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="PORCENTAJE"/>
+      <xs:enumeration value="MONTO_FIJO"/>
+      <xs:enumeration value="EXENTO"/>
+      <xs:enumeration value="NINGUNO"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+</xs:schema>
+  </wsdl:types>
+  <wsdl:message name="validarCoberturaResponse">
+    <wsdl:part element="tns:validarCoberturaResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="solicitarAutorizacionResponse">
+    <wsdl:part element="tns:solicitarAutorizacionResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="solicitarAutorizacion">
+    <wsdl:part element="tns:solicitarAutorizacion" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="validarCobertura">
+    <wsdl:part element="tns:validarCobertura" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:portType name="CoberturaPortType">
+    <wsdl:operation name="solicitarAutorizacion">
+      <wsdl:input message="tns:solicitarAutorizacion" name="solicitarAutorizacion">
+    </wsdl:input>
+      <wsdl:output message="tns:solicitarAutorizacionResponse" name="solicitarAutorizacionResponse">
+    </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="validarCobertura">
+      <wsdl:input message="tns:validarCobertura" name="validarCobertura">
+    </wsdl:input>
+      <wsdl:output message="tns:validarCoberturaResponse" name="validarCoberturaResponse">
+    </wsdl:output>
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="CoberturaServiceSoapBinding" type="tns:CoberturaPortType">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <wsdl:operation name="solicitarAutorizacion">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="solicitarAutorizacion">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="solicitarAutorizacionResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="validarCobertura">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="validarCobertura">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="validarCoberturaResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="CoberturaService">
+    <wsdl:port binding="tns:CoberturaServiceSoapBinding" name="CoberturaPort">
+      <soap:address location="http://localhost:8080/externos/CoberturaService"/>
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

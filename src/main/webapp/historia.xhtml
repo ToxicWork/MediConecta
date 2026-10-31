@@ -16,7 +16,7 @@
 
         <p class="page-subtitle">
             <h:outputText value="Consultá el historial médico completo del paciente." rendered="#{loginBean.profesional}"/>
-            <h:outputText value="Tu historial de diagnósticos y recetas." rendered="#{loginBean.paciente}"/>
+            <h:outputText value="Tu historial de diagnósticos y recetas, y quién lo consultó." rendered="#{loginBean.paciente}"/>
         </p>
 
         <h:form id="formSeleccion" rendered="#{loginBean.profesional}">
@@ -24,7 +24,7 @@
                 <div class="card-header">
                     <div>
                         <h3>Seleccionar paciente</h3>
-                        <div class="subtle">Solo se listan pacientes con turno confirmado</div>
+                        <div class="subtle">Solo se listan pacientes con turno confirmado (el servicio también lo verifica)</div>
                     </div>
                 </div>
                 <div class="field-row">
@@ -115,6 +115,30 @@
                     <p:inputTextarea id="descripcion" value="#{historiaBean.descripcionNuevaEntrada}" rows="4"/>
                 </div>
                 <p:commandButton value="Guardar" action="#{historiaBean.agregarEntrada}" ajax="false" styleClass="btn btn-primary"/>
+            </h:panelGroup>
+
+            <h:panelGroup layout="block" styleClass="card" rendered="#{loginBean.paciente}">
+                <div class="card-header">
+                    <div>
+                        <h3>Quién accedió a tu historia</h3>
+                        <div class="subtle">Cada consulta o carga de un profesional queda registrada (interceptor de auditoría, Ley 26.529)</div>
+                    </div>
+                </div>
+                <h:panelGroup layout="block" styleClass="table-wrap" rendered="#{not empty historiaBean.accesos}">
+                    <p:dataTable id="tablaAccesos" value="#{historiaBean.accesos}" var="acceso">
+                        <p:column headerText="Fecha">
+                            <h:outputText value="#{acceso.fecha}"><f:convertDateTime pattern="dd/MM/yyyy HH:mm:ss" type="localDateTime"/></h:outputText>
+                        </p:column>
+                        <p:column headerText="Profesional">#{acceso.quien}</p:column>
+                        <p:column headerText="Acción">#{acceso.operacion}</p:column>
+                        <p:column headerText="Resultado">
+                            <span class="tag #{acceso.permitido ? 'tag-success' : 'tag-danger'}">#{acceso.permitido ? 'Permitido' : 'Denegado'}</span>
+                        </p:column>
+                    </p:dataTable>
+                </h:panelGroup>
+                <h:panelGroup layout="block" styleClass="empty-state" rendered="#{empty historiaBean.accesos}">
+                    Ningún profesional accedió todavía a tu historia clínica.
+                </h:panelGroup>
             </h:panelGroup>
         </h:form>
 

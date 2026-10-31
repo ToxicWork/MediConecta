@@ -40,6 +40,7 @@ public class LoginBean implements Serializable {
     private String regEmail;
     private String regPassword;
     private String regObraSocial;
+    private String regNroAfiliado;
     private String regMatricula;
     private String regEspecialidad;
     private Rol rolRegistro = Rol.PACIENTE;
@@ -60,7 +61,8 @@ public class LoginBean implements Serializable {
 
     public String registrar() {
         try {
-            DatosRegistro datos = new DatosRegistro(regNombreCompleto, regEmail, regObraSocial, regMatricula, regEspecialidad);
+            DatosRegistro datos = new DatosRegistro(regNombreCompleto, regEmail, regObraSocial, regNroAfiliado,
+                    regMatricula, regEspecialidad);
             servicioDeUsuarios.registrar(rolRegistro, datos, regPassword);
             FacesContext.getCurrentInstance().addMessage(null,
                     new FacesMessage(FacesMessage.SEVERITY_INFO, "Registro exitoso, ya podés iniciar sesión", null));
@@ -163,6 +165,14 @@ public class LoginBean implements Serializable {
 
     public void setRegObraSocial(String regObraSocial) {
         this.regObraSocial = regObraSocial;
+    }
+
+    public String getRegNroAfiliado() {
+        return regNroAfiliado;
+    }
+
+    public void setRegNroAfiliado(String regNroAfiliado) {
+        this.regNroAfiliado = regNroAfiliado;
     }
 
     public String getRegMatricula() {

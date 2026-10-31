@@ -12,17 +12,24 @@ public class ProcesadorAvisoProfesional extends ProcesadorNotificacion {
     @Override
     protected Notificacion crearNotificacion(EventoTurno evento) {
         String fecha = FORMATO_FECHA.format(evento.fechaHoraTurno());
-        String destino = "Bandeja de " + evento.profesionalNombre();
+        String modalidad = "TELEMEDICINA".equals(evento.modalidad()) ? " (telemedicina)" : "";
         return switch (evento.tipo()) {
-            case TURNO_CONFIRMADO -> new Notificacion(evento.profesionalId(), destino, CanalNotificacion.IN_APP,
-                    "Nuevo turno confirmado",
-                    evento.pacienteNombre() + " confirmó un turno para el " + fecha + ".",
-                    evento.idEvento());
-            case TURNO_CANCELADO -> new Notificacion(evento.profesionalId(), destino, CanalNotificacion.IN_APP,
-                    "Turno cancelado",
-                    evento.pacienteNombre() + " canceló su turno del " + fecha + ". El horario volvió a quedar disponible.",
-                    evento.idEvento());
+            case TURNO_CONFIRMADO -> aviso(evento, "Nuevo turno confirmado",
+                    evento.pacienteNombre() + " confirmó un turno para el " + fecha + modalidad + ".");
+            case TURNO_CANCELADO -> aviso(evento, "Turno cancelado",
+                    evento.pacienteNombre() + " canceló su turno del " + fecha + ". El horario volvió a quedar disponible.");
+            case TURNO_AUTORIZADO -> aviso(evento, "Prestación autorizada",
+                    evento.obraSocial() + " autorizó el turno de " + evento.pacienteNombre() + " del " + fecha
+                            + " (código " + evento.codigoAutorizacion() + "). Ya se generó el reclamo de facturación.");
+            case AUTORIZACION_RECHAZADA -> aviso(evento, "Autorización rechazada",
+                    evento.obraSocial() + " no autorizó el turno de " + evento.pacienteNombre() + " del " + fecha + ": "
+                            + evento.motivoAutorizacion());
         };
+    }
+
+    private static Notificacion aviso(EventoTurno evento, String asunto, String cuerpo) {
+        return new Notificacion(evento.profesionalId(), "Bandeja de " + evento.profesionalNombre(),
+                CanalNotificacion.IN_APP, asunto, cuerpo, evento.idEvento());
     }
 
     @Override

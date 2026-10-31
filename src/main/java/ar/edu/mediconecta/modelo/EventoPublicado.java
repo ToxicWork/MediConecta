@@ -6,11 +6,16 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Registro de cada evento publicado en {@code topico.turnos}. Se guarda en la misma transacción
  * que el envío JMS: si hay rollback, desaparecen los dos. Permite que el monitor de eventos
  * muestre qué suscriptores todavía no procesaron un evento (por ejemplo, si uno está caído).
+ *
+ * <p>Guarda también qué suscripciones debían recibirlo al momento de publicarse (las que existían y cuyo
+ * selector lo acepta), así el monitor no marca como pendiente un evento anterior a una suscripción nueva.
  */
 @Entity
 @Table(name = "evento_publicado")
@@ -38,11 +43,15 @@ public class EventoPublicado {
     @Column(name = "publicado_en", nullable = false)
     private LocalDateTime publicadoEn;
 
+    /** Suscripciones destinatarias, separadas por comas. Nulo en los eventos de la Entrega Parcial N.º 2. */
+    @Column(name = "suscriptores_esperados", length = 120)
+    private String suscriptoresEsperados;
+
     protected EventoPublicado() {
     }
 
     public EventoPublicado(String idEvento, String tipoEvento, Long turnoId, LocalDateTime fechaHoraTurno,
-                           Long pacienteId, Long profesionalId) {
+                           Long pacienteId, Long profesionalId, List<String> suscriptoresEsperados) {
         this.idEvento = idEvento;
         this.tipoEvento = tipoEvento;
         this.turnoId = turnoId;
@@ -50,6 +59,14 @@ public class EventoPublicado {
         this.pacienteId = pacienteId;
         this.profesionalId = profesionalId;
         this.publicadoEn = LocalDateTime.now();
+        this.suscriptoresEsperados = String.join(",", suscriptoresEsperados);
+    }
+
+    /** Los eventos anteriores a la Entrega Obligatoria N.º 2 sólo tenían notificaciones y auditoría. */
+    public boolean esperaA(String suscripcion) {
+        List<String> esperados = suscriptoresEsperados == null ? List.of("notificaciones", "auditoria")
+                : Arrays.asList(suscriptoresEsperados.split(","));
+        return esperados.contains(suscripcion);
     }
 
     public String getIdEvento() {

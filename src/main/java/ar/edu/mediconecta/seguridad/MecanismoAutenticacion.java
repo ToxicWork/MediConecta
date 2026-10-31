@@ -8,23 +8,29 @@ import jakarta.security.enterprise.AuthenticationException;
 import jakarta.security.enterprise.AuthenticationStatus;
 import jakarta.security.enterprise.authentication.mechanism.http.HttpAuthenticationMechanism;
 import jakarta.security.enterprise.authentication.mechanism.http.HttpMessageContext;
+import jakarta.security.enterprise.credential.UsernamePasswordCredential;
 import jakarta.security.enterprise.identitystore.CredentialValidationResult;
 import jakarta.security.enterprise.identitystore.IdentityStoreHandler;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Optional;
 import java.util.Set;
 
 /**
- * Mecanismo de autenticación "custom form": el login.xhtml propio llama a
- * SecurityContext.authenticate() con las credenciales, y acá se validan contra el
- * IdentityStore declarativo (ConfiguracionSeguridad) y se notifica al contenedor.
+ * Mecanismo de autenticación propio con dos caminos sobre el mismo IdentityStore declarativo
+ * ({@link ConfiguracionSeguridad}, PBKDF2 contra la tabla usuario):
  *
- * En cada request con sesión ya autenticada se vuelve a notificar el login (con el
- * rol vigente en base) para que el SecurityContext de Undertow quede correctamente
- * asociado a ESE request — imprescindible para que {@code @RolesAllowed} y las
- * vistas JSF vean el principal/los roles.
+ * <ul>
+ *   <li>Aplicación web (JSF): "custom form". login.xhtml llama a {@code SecurityContext.authenticate()} y se
+ *       abre una sesión. En cada request ya autenticado se vuelve a notificar el login con el rol vigente para
+ *       que {@code @RolesAllowed} y las vistas vean el principal.</li>
+ *   <li>API REST ({@code /api/*}): HTTP Basic, sin sesión. Cada request trae sus credenciales; si son
+ *       inválidas se responde 401 con {@code WWW-Authenticate}. Sin credenciales, la llamada sigue como
+ *       anónima y los EJB deciden con {@code @RolesAllowed}/{@code @PermitAll}.</li>
+ * </ul>
  */
 @ApplicationScoped
 public class MecanismoAutenticacion implements HttpAuthenticationMechanism {
@@ -38,6 +44,10 @@ public class MecanismoAutenticacion implements HttpAuthenticationMechanism {
     @Override
     public AuthenticationStatus validateRequest(HttpServletRequest request, HttpServletResponse response,
             HttpMessageContext httpMessageContext) throws AuthenticationException {
+
+        if (esApi(request)) {
+            return autenticarApi(request, response, httpMessageContext);
+        }
 
         if (httpMessageContext.isAuthenticationRequest()) {
             CredentialValidationResult result = identityStoreHandler.validate(
@@ -71,6 +81,34 @@ public class MecanismoAutenticacion implements HttpAuthenticationMechanism {
         }
 
         return httpMessageContext.doNothing();
+    }
+
+    private AuthenticationStatus autenticarApi(HttpServletRequest request, HttpServletResponse response,
+                                               HttpMessageContext httpMessageContext) {
+        String cabecera = request.getHeader("Authorization");
+        if (cabecera == null || !cabecera.regionMatches(true, 0, "Basic ", 0, 6)) {
+            return httpMessageContext.doNothing();
+        }
+        String[] partes;
+        try {
+            partes = new String(Base64.getDecoder().decode(cabecera.substring(6).trim()), StandardCharsets.UTF_8)
+                    .split(":", 2);
+        } catch (IllegalArgumentException mal) {
+            partes = new String[0];
+        }
+        if (partes.length == 2) {
+            CredentialValidationResult result = identityStoreHandler.validate(
+                    new UsernamePasswordCredential(partes[0], partes[1]));
+            if (result.getStatus() == CredentialValidationResult.Status.VALID) {
+                return httpMessageContext.notifyContainerAboutLogin(result);
+            }
+        }
+        response.setHeader("WWW-Authenticate", "Basic realm=\"MediConecta API\"");
+        return httpMessageContext.responseUnauthorized();
+    }
+
+    private static boolean esApi(HttpServletRequest request) {
+        return request.getRequestURI().startsWith(request.getContextPath() + "/api/");
     }
 
     private static boolean esRecursoEstatico(HttpServletRequest request) {

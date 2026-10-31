@@ -2,7 +2,9 @@
 <html xmlns="http://www.w3.org/1999/xhtml"
       xmlns:h="jakarta.faces.html"
       xmlns:f="jakarta.faces.core"
-      xmlns:p="http://primefaces.org/ui">
+      xmlns:ui="jakarta.faces.facelets"
+      xmlns:p="http://primefaces.org/ui"
+      lang="es-AR">
 <h:head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
@@ -16,10 +18,10 @@
 
         <div class="auth-brand">
             <span class="brand-mark">
-                <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21c-4.5-2.8-8-6.2-8-10.2A5.3 5.3 0 0 1 12 6a5.3 5.3 0 0 1 8 4.8c0 4-3.5 7.4-8 10.2Z"/><path d="M9 11h6M12 8v6"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21c-4.5-2.8-8-6.2-8-10.2A5.3 5.3 0 0 1 12 6a5.3 5.3 0 0 1 8 4.8c0 4-3.5 7.4-8 10.2Z"/><path d="M9 11h6M12 8v6"/></svg>
             </span>
             <h1>MediConecta</h1>
-            <p>La plataforma que conecta pacientes y profesionales de la salud: turnos, historia clínica y seguimiento, todo en un solo lugar.</p>
+            <p>La plataforma que conecta pacientes y profesionales de la salud: turnos presenciales y por telemedicina, cobertura de tu obra social, pagos e historia clínica, todo en un solo lugar.</p>
         </div>
 
         <div class="auth-panel">
@@ -70,9 +72,15 @@
                     </div>
 
                     <h:panelGroup id="camposSegunRol" layout="block">
-                        <h:panelGroup layout="block" styleClass="field" rendered="#{loginBean.rolRegistro eq 'PACIENTE'}">
-                            <label for="formRegistro:regObraSocial">Obra social</label>
-                            <p:inputText id="regObraSocial" value="#{loginBean.regObraSocial}"/>
+                        <h:panelGroup layout="block" styleClass="field-row" rendered="#{loginBean.rolRegistro eq 'PACIENTE'}">
+                            <div class="field">
+                                <label for="formRegistro:regObraSocial">Obra social</label>
+                                <p:inputText id="regObraSocial" value="#{loginBean.regObraSocial}" placeholder="Ej.: OSDE 210"/>
+                            </div>
+                            <div class="field">
+                                <label for="formRegistro:regNroAfiliado">N.º de afiliado</label>
+                                <p:inputText id="regNroAfiliado" value="#{loginBean.regNroAfiliado}"/>
+                            </div>
                         </h:panelGroup>
 
                         <h:panelGroup layout="block" styleClass="field-row" rendered="#{loginBean.rolRegistro eq 'PROFESIONAL'}">

@@ -1,0 +1,113 @@
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:p="http://primefaces.org/ui"
+                template="/WEB-INF/templates/layout.xhtml">
+
+    <ui:param name="pageTitle" value="Pagos"/>
+    <ui:param name="activePage" value="pagos"/>
+
+    <f:metadata>
+        <f:viewAction action="#{pagosBean.verificarAcceso}"/>
+    </f:metadata>
+
+    <ui:define name="content">
+        <p class="page-subtitle">
+            <h:outputText rendered="#{loginBean.paciente}" value="Los cobros los procesa la pasarela de pagos externa (API REST). Si cancelás un turno pago, el reintegro se gestiona automáticamente."/>
+            <h:outputText rendered="#{loginBean.profesional}" value="Cobros de tus turnos (pasarela REST) y reclamos a obras sociales que genera Facturación cuando la obra social autoriza una prestación."/>
+        </p>
+
+        <h:form id="formPagos">
+            <p:poll interval="5" update="panelPagos"/>
+            <h:panelGroup id="panelPagos" layout="block">
+                <div class="stats">
+                    <div class="card stat">
+                        <div class="stat-num">#{pagosBean.pagos.size()}</div>
+                        <div class="stat-label">pagos registrados</div>
+                    </div>
+                    <div class="card stat">
+                        <div class="stat-num stat-ok"><h:outputText value="#{pagosBean.totalAprobado}"><f:convertNumber type="currency" currencySymbol="$ " locale="es_AR" maxFractionDigits="0"/></h:outputText></div>
+                        <div class="stat-label">cobrado vigente</div>
+                    </div>
+                    <div class="card stat">
+                        <div class="stat-num"><h:outputText value="#{pagosBean.totalReembolsado}"><f:convertNumber type="currency" currencySymbol="$ " locale="es_AR" maxFractionDigits="0"/></h:outputText></div>
+                        <div class="stat-label">reintegrado</div>
+                    </div>
+                    <div class="card stat">
+                        <h:panelGroup rendered="#{loginBean.profesional}">
+                            <div class="stat-num"><h:outputText value="#{pagosBean.totalReclamado}"><f:convertNumber type="currency" currencySymbol="$ " locale="es_AR" maxFractionDigits="0"/></h:outputText></div>
+                            <div class="stat-label">a reclamar a obras sociales</div>
+                        </h:panelGroup>
+                        <h:panelGroup rendered="#{loginBean.paciente}">
+                            <div class="stat-num">#{loginBean.usuarioActual.obraSocial != null ? 'Sí' : 'No'}</div>
+                            <div class="stat-label">obra social declarada</div>
+                        </h:panelGroup>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h3>#{loginBean.profesional ? 'Cobros a pacientes' : 'Mis pagos'}</h3>
+                            <div class="subtle">Copagos y turnos particulares · nunca guardamos el número de tarjeta</div>
+                        </div>
+                    </div>
+                    <h:panelGroup layout="block" styleClass="table-wrap" rendered="#{not empty pagosBean.pagos}">
+                        <p:dataTable id="tablaPagos" value="#{pagosBean.pagos}" var="pago">
+                            <p:column headerText="Fecha">
+                                <h:outputText value="#{pago.creadoEn}"><f:convertDateTime pattern="dd/MM/yyyy HH:mm" type="localDateTime"/></h:outputText>
+                            </p:column>
+                            <p:column headerText="Turno">
+                                <h:outputText value="#{pago.turno.fechaHora}"><f:convertDateTime pattern="dd/MM/yyyy HH:mm" type="localDateTime"/></h:outputText>
+                                <div class="texto-tenue">#{loginBean.profesional ? pago.turno.paciente.nombreCompleto : pago.turno.profesional.nombreCompleto}</div>
+                            </p:column>
+                            <p:column headerText="Importe">
+                                <h:outputText styleClass="importe" value="#{pago.importe}"><f:convertNumber type="currency" currencySymbol="$ " locale="es_AR"/></h:outputText>
+                            </p:column>
+                            <p:column headerText="Tarjeta">#{pago.marca} ···· #{pago.ultimos4}</p:column>
+                            <p:column headerText="Estado">
+                                <span class="tag #{pago.estado == 'APROBADO' ? 'tag-success' : 'tag-neutral'}">#{pago.estado.etiqueta}</span>
+                            </p:column>
+                            <p:column headerText="Id en la pasarela">
+                                <span class="mono-id">#{pago.idPasarela}</span>
+                            </p:column>
+                        </p:dataTable>
+                    </h:panelGroup>
+                    <h:panelGroup layout="block" styleClass="empty-state" rendered="#{empty pagosBean.pagos}">
+                        Todavía no hay pagos. Se generan al confirmar un turno particular o con copago.
+                    </h:panelGroup>
+                </div>
+
+                <h:panelGroup layout="block" styleClass="card" rendered="#{loginBean.profesional}">
+                    <div class="card-header">
+                        <div>
+                            <h3>Reclamos a obras sociales</h3>
+                            <div class="subtle">Los genera Facturación (suscriptor del tópico con selector) al recibir TURNO_AUTORIZADO; se anulan si el turno se cancela</div>
+                        </div>
+                    </div>
+                    <h:panelGroup layout="block" styleClass="table-wrap" rendered="#{not empty pagosBean.reclamos}">
+                        <p:dataTable id="tablaReclamos" value="#{pagosBean.reclamos}" var="reclamo">
+                            <p:column headerText="Generado">
+                                <h:outputText value="#{reclamo.creadoEn}"><f:convertDateTime pattern="dd/MM/yyyy HH:mm" type="localDateTime"/></h:outputText>
+                            </p:column>
+                            <p:column headerText="Paciente">#{reclamo.turno.paciente.nombreCompleto}</p:column>
+                            <p:column headerText="Obra social">#{reclamo.obraSocial}</p:column>
+                            <p:column headerText="Prestación"><span class="mono-id">#{reclamo.codigoPrestacion}</span></p:column>
+                            <p:column headerText="Autorización"><span class="mono-id">#{reclamo.codigoAutorizacion}</span></p:column>
+                            <p:column headerText="Importe">
+                                <h:outputText styleClass="importe" value="#{reclamo.importe}"><f:convertNumber type="currency" currencySymbol="$ " locale="es_AR"/></h:outputText>
+                            </p:column>
+                            <p:column headerText="Estado">
+                                <span class="tag #{reclamo.estado == 'ANULADO' ? 'tag-neutral' : 'tag-info'}">#{reclamo.estado.etiqueta}</span>
+                            </p:column>
+                        </p:dataTable>
+                    </h:panelGroup>
+                    <h:panelGroup layout="block" styleClass="empty-state" rendered="#{empty pagosBean.reclamos}">
+                        Todavía no hay reclamos: aparecen cuando una obra social autoriza un turno.
+                    </h:panelGroup>
+                </h:panelGroup>
+            </h:panelGroup>
+        </h:form>
+    </ui:define>
+</ui:composition>

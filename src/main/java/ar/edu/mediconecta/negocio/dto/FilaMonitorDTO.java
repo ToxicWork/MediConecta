@@ -39,6 +39,25 @@ public class FilaMonitorDTO implements Serializable {
         return tipoEvento;
     }
 
+    public String getEtiqueta() {
+        return switch (tipoEvento) {
+            case "TURNO_CONFIRMADO" -> "Confirmado";
+            case "TURNO_CANCELADO" -> "Cancelado";
+            case "TURNO_AUTORIZADO" -> "Autorizado";
+            case "AUTORIZACION_RECHAZADA" -> "Autorización rechazada";
+            default -> tipoEvento;
+        };
+    }
+
+    /** Clase CSS del tag según el tipo de evento. */
+    public String getEstilo() {
+        return switch (tipoEvento) {
+            case "TURNO_CONFIRMADO", "TURNO_AUTORIZADO" -> "tag-success";
+            case "TURNO_CANCELADO", "AUTORIZACION_RECHAZADA" -> "tag-danger";
+            default -> "tag-info";
+        };
+    }
+
     public boolean isConfirmacion() {
         return "TURNO_CONFIRMADO".equals(tipoEvento);
     }
@@ -60,6 +79,6 @@ public class FilaMonitorDTO implements Serializable {
     }
 
     public boolean isCompleto() {
-        return suscriptores.stream().allMatch(EstadoSuscriptorDTO::isProcesado);
+        return suscriptores.stream().noneMatch(EstadoSuscriptorDTO::isPendiente);
     }
 }

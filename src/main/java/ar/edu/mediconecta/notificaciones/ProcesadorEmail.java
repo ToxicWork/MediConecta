@@ -8,8 +8,8 @@ import jakarta.enterprise.context.Dependent;
 import java.util.logging.Logger;
 
 /**
- * Email al paciente. El envío SMTP está simulado (se loguea): lo que se demuestra en esta
- * entrega es la mensajería asincrónica, no el proveedor de correo.
+ * Email al paciente. El envío SMTP está simulado (se loguea): lo que se demuestra es la mensajería
+ * asincrónica, no el proveedor de correo.
  */
 @Dependent
 public class ProcesadorEmail extends ProcesadorNotificacion {
@@ -22,18 +22,32 @@ public class ProcesadorEmail extends ProcesadorNotificacion {
         String profesional = evento.especialidad() == null || evento.especialidad().isBlank()
                 ? evento.profesionalNombre()
                 : evento.profesionalNombre() + " (" + evento.especialidad() + ")";
+        String modalidad = "TELEMEDICINA".equals(evento.modalidad()) ? "teleconsulta" : "turno presencial";
         return switch (evento.tipo()) {
-            case TURNO_CONFIRMADO -> new Notificacion(evento.pacienteId(), evento.pacienteEmail(), CanalNotificacion.EMAIL,
-                    "Tu turno quedó confirmado",
-                    "Hola " + evento.pacienteNombre() + ", confirmamos tu turno con " + profesional
-                            + " el " + fecha + ".",
-                    evento.idEvento());
-            case TURNO_CANCELADO -> new Notificacion(evento.pacienteId(), evento.pacienteEmail(), CanalNotificacion.EMAIL,
-                    "Cancelaste tu turno",
+            case TURNO_CONFIRMADO -> email(evento, "Tu turno quedó confirmado",
+                    "Hola " + evento.pacienteNombre() + ", confirmamos tu " + modalidad + " con " + profesional
+                            + " el " + fecha + "."
+                            + (evento.tieneImporteAPagar() ? " Abonaste $ " + evento.importePaciente().toPlainString() + "." : "")
+                            + ("PENDIENTE".equals(evento.cobertura())
+                            ? " Tu obra social no respondió a tiempo: te avisamos cuando confirme la cobertura." : ""));
+            case TURNO_CANCELADO -> email(evento, "Cancelaste tu turno",
                     "Hola " + evento.pacienteNombre() + ", registramos la cancelación de tu turno con " + profesional
-                            + " del " + fecha + ".",
-                    evento.idEvento());
+                            + " del " + fecha + "."
+                            + (evento.tieneImporteAPagar() ? " El reintegro de $ " + evento.importePaciente().toPlainString()
+                            + " se acredita en tu tarjeta." : ""));
+            case TURNO_AUTORIZADO -> email(evento, "Tu obra social autorizó el turno",
+                    "Hola " + evento.pacienteNombre() + ", " + evento.obraSocial() + " autorizó la prestación de tu turno con "
+                            + profesional + " del " + fecha + " (código " + evento.codigoAutorizacion() + ").");
+            case AUTORIZACION_RECHAZADA -> email(evento, "Tu obra social no autorizó el turno",
+                    "Hola " + evento.pacienteNombre() + ", " + evento.obraSocial() + " no autorizó la prestación de tu turno del "
+                            + fecha + ": " + evento.motivoAutorizacion() + " El turno sigue confirmado; la diferencia se "
+                            + "abona en el consultorio.");
         };
+    }
+
+    private static Notificacion email(EventoTurno evento, String asunto, String cuerpo) {
+        return new Notificacion(evento.pacienteId(), evento.pacienteEmail(), CanalNotificacion.EMAIL, asunto, cuerpo,
+                evento.idEvento());
     }
 
     @Override

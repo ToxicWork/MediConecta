@@ -1,0 +1,57 @@
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:p="http://primefaces.org/ui"
+                template="/WEB-INF/templates/layout.xhtml">
+
+    <ui:param name="pageTitle" value="Telemedicina"/>
+    <ui:param name="activePage" value="telemedicina"/>
+
+    <f:metadata>
+        <f:viewAction action="#{telemedicinaBean.verificarAcceso}"/>
+    </f:metadata>
+
+    <ui:define name="content">
+        <p class="page-subtitle">
+            Las salas de videoconsulta las provee un servicio externo: MediConecta las crea por REST cuando el
+            profesional inicia la consulta y guarda sólo los enlaces.
+        </p>
+
+        <h:form id="formTelemedicina">
+            <p:poll interval="5" update="panelTelemedicina" rendered="#{loginBean.paciente}"/>
+            <h:panelGroup id="panelTelemedicina" layout="block" styleClass="card">
+                <div class="card-header">
+                    <div>
+                        <h3>Teleconsultas confirmadas</h3>
+                        <div class="subtle">#{telemedicinaBean.turnos.size()} turno(s) de telemedicina</div>
+                    </div>
+                </div>
+                <h:panelGroup layout="block" styleClass="table-wrap" rendered="#{not empty telemedicinaBean.turnos}">
+                    <p:dataTable id="tablaTeleconsultas" value="#{telemedicinaBean.turnos}" var="turno">
+                        <p:column headerText="Fecha y hora">
+                            <h:outputText value="#{turno.fechaHora}"><f:convertDateTime pattern="EEEE dd/MM/yyyy · HH:mm 'hs'" type="localDateTime"/></h:outputText>
+                        </p:column>
+                        <p:column headerText="#{loginBean.profesional ? 'Paciente' : 'Profesional'}">
+                            #{loginBean.profesional ? turno.paciente.nombreCompleto : turno.profesional.nombreCompleto.concat(' · ').concat(turno.profesional.especialidad)}
+                        </p:column>
+                        <p:column headerText="Sala">
+                            <span class="tag #{turno.salaId != null ? 'tag-success' : 'tag-neutral'}">#{turno.salaId != null ? 'Abierta' : 'Sin abrir'}</span>
+                            <h:outputText rendered="#{turno.salaId != null}" value=" #{turno.salaId}" styleClass="mono-id"/>
+                        </p:column>
+                        <p:column headerText="" style="text-align:right;width:220px;">
+                            <p:commandButton value="Iniciar videoconsulta" action="#{telemedicinaBean.iniciar(turno.id)}" ajax="false"
+                                             styleClass="btn btn-primary btn-sm" rendered="#{loginBean.profesional and turno.salaId == null}"/>
+                            <h:outputLink value="#{telemedicinaBean.enlace(turno)}" target="_blank" styleClass="btn btn-primary btn-sm"
+                                          rendered="#{turno.salaId != null}">#{loginBean.profesional ? 'Entrar a la sala' : 'Unirme a la consulta'}</h:outputLink>
+                            <h:outputText rendered="#{loginBean.paciente and turno.salaId == null}" value="Esperando que el profesional abra la sala" styleClass="texto-tenue"/>
+                        </p:column>
+                    </p:dataTable>
+                </h:panelGroup>
+                <h:panelGroup layout="block" styleClass="empty-state" rendered="#{empty telemedicinaBean.turnos}">
+                    No hay teleconsultas confirmadas. #{loginBean.profesional ? 'Publicá disponibilidad con modalidad Telemedicina en la Agenda.' : 'Reservá un horario con modalidad Telemedicina en la Agenda.'}
+                </h:panelGroup>
+            </h:panelGroup>
+        </h:form>
+    </ui:define>
+</ui:composition>

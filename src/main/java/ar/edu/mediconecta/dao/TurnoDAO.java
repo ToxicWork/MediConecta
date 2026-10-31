@@ -1,6 +1,7 @@
 package ar.edu.mediconecta.dao;
 
 import ar.edu.mediconecta.modelo.EstadoTurno;
+import ar.edu.mediconecta.modelo.Modalidad;
 import ar.edu.mediconecta.modelo.Turno;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.persistence.EntityManager;
@@ -53,6 +54,59 @@ public class TurnoDAO {
                                 + "AND t.estado = :estado ORDER BY t.fechaHora DESC", Turno.class)
                 .setParameter("profesionalId", profesionalId)
                 .setParameter("estado", EstadoTurno.CONFIRMADO)
+                .getResultList();
+    }
+
+    /** Turnos de telemedicina confirmados en los que participa el usuario (como paciente o profesional). */
+    public List<Turno> buscarVirtualesConfirmadosDeUsuario(Long usuarioId) {
+        return em.createQuery(
+                        "SELECT t FROM Turno t WHERE (t.paciente.id = :usuarioId OR t.profesional.id = :usuarioId) "
+                                + "AND t.estado = :estado AND t.modalidad = :modalidad ORDER BY t.fechaHora", Turno.class)
+                .setParameter("usuarioId", usuarioId)
+                .setParameter("estado", EstadoTurno.CONFIRMADO)
+                .setParameter("modalidad", Modalidad.TELEMEDICINA)
+                .getResultList();
+    }
+
+    /** Turnos (de cualquier estado salvo disponibles) del usuario, para la API REST. */
+    public List<Turno> buscarDeUsuario(Long usuarioId) {
+        return em.createQuery(
+                        "SELECT t FROM Turno t WHERE (t.paciente.id = :usuarioId OR t.profesional.id = :usuarioId) "
+                                + "AND t.estado <> :disponible ORDER BY t.fechaHora DESC", Turno.class)
+                .setParameter("usuarioId", usuarioId)
+                .setParameter("disponible", EstadoTurno.DISPONIBLE)
+                .getResultList();
+    }
+
+    /** Regla "sin superposición": otro turno confirmado del mismo paciente en el mismo horario. */
+    public boolean pacienteTieneConfirmadoEn(Long pacienteId, LocalDateTime fechaHora, Long excluirTurnoId) {
+        return em.createQuery(
+                        "SELECT COUNT(t) FROM Turno t WHERE t.paciente.id = :pacienteId AND t.estado = :estado "
+                                + "AND t.fechaHora = :fechaHora AND t.id <> :excluir", Long.class)
+                .setParameter("pacienteId", pacienteId)
+                .setParameter("estado", EstadoTurno.CONFIRMADO)
+                .setParameter("fechaHora", fechaHora)
+                .setParameter("excluir", excluirTurnoId == null ? -1L : excluirTurnoId)
+                .getSingleResult() > 0;
+    }
+
+    /** Titularidad en historia clínica: el profesional sólo accede a pacientes con turno confirmado con él. */
+    public boolean existeConfirmadoEntre(Long profesionalId, Long pacienteId) {
+        return em.createQuery(
+                        "SELECT COUNT(t) FROM Turno t WHERE t.profesional.id = :profesionalId "
+                                + "AND t.paciente.id = :pacienteId AND t.estado = :estado", Long.class)
+                .setParameter("profesionalId", profesionalId)
+                .setParameter("pacienteId", pacienteId)
+                .setParameter("estado", EstadoTurno.CONFIRMADO)
+                .getSingleResult() > 0;
+    }
+
+    public List<Turno> buscarHoldsVencidos(LocalDateTime ahora) {
+        return em.createQuery(
+                        "SELECT t FROM Turno t WHERE t.estado = :estado AND t.holdVenceEn IS NOT NULL "
+                                + "AND t.holdVenceEn < :ahora", Turno.class)
+                .setParameter("estado", EstadoTurno.HOLD)
+                .setParameter("ahora", ahora)
                 .getResultList();
     }
 }

@@ -1,27 +1,18 @@
 package ar.edu.mediconecta.mensajeria;
 
-import jakarta.jms.JMSException;
 import jakarta.jms.Message;
-import jakarta.json.bind.Jsonb;
-import jakarta.json.bind.JsonbBuilder;
 
-/** Formato del cuerpo de los mensajes de {@code topico.turnos}: JSON vía JSON-B. */
+/** Cuerpo de los mensajes de {@code topico.turnos}. */
 final class EventoTurnoJson {
-
-    private static final Jsonb JSONB = JsonbBuilder.create();
 
     private EventoTurnoJson() {
     }
 
     static String aJson(EventoTurno evento) {
-        return JSONB.toJson(evento);
+        return MensajeJson.aJson(evento);
     }
 
     static EventoTurno desdeMensaje(Message mensaje) {
-        try {
-            return JSONB.fromJson(mensaje.getBody(String.class), EventoTurno.class);
-        } catch (JMSException e) {
-            throw new IllegalStateException("No se pudo leer el cuerpo del mensaje", e);
-        }
+        return MensajeJson.leer(mensaje, EventoTurno.class);
     }
 }

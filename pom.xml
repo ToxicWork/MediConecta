@@ -67,6 +67,40 @@
                 <version>3.4.0</version>
             </plugin>
 
+            <!--
+              Cliente SOAP del sistema legado de la obra social, generado con wsimport a partir del
+              contrato (src/main/resources/wsdl/CoberturaService.wsdl). Las clases generadas quedan en
+              target/generated-sources y nunca se usan fuera del adaptador CoberturaSoapAdapter.
+            -->
+            <plugin>
+                <groupId>com.sun.xml.ws</groupId>
+                <artifactId>jaxws-maven-plugin</artifactId>
+                <version>4.0.3</version>
+                <executions>
+                    <execution>
+                        <id>wsimport-obra-social</id>
+                        <goals>
+                            <goal>wsimport</goal>
+                        </goals>
+                        <configuration>
+                            <wsdlDirectory>${project.basedir}/src/main/resources/wsdl</wsdlDirectory>
+                            <wsdlFiles>
+                                <wsdlFile>CoberturaService.wsdl</wsdlFile>
+                            </wsdlFiles>
+                            <wsdlLocation>/wsdl/CoberturaService.wsdl</wsdlLocation>
+                            <packageName>ar.edu.mediconecta.integracion.obrasocial.soap</packageName>
+                            <xnocompile>true</xnocompile>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.2.5</version>
+            </plugin>
+
         </plugins>
     </build>
 

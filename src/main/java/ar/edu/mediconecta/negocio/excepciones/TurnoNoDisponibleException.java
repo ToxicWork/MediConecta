@@ -1,17 +1,14 @@
 package ar.edu.mediconecta.negocio.excepciones;
 
-import jakarta.ejb.ApplicationException;
+import ar.edu.mediconecta.modelo.ErrorDeNegocioException;
 
 /**
- * Marcada como {@code @ApplicationException} para que el contenedor EJB la trate
- * como una regla de negocio y no como una falla del sistema: sin esta anotación,
- * al escaparse de un bean {@code @Stateful} (como {@code ServicioDeTurnosBean}),
- * el contenedor la envuelve en {@code EJBException} (por lo que ningún
- * {@code catch(TurnoNoDisponibleException e)} la atrapa) y destruye la instancia
- * del bean, rompiendo el resto de la conversación de turnos en esa sesión.
+ * Regla de negocio de la agenda (turno tomado, hold vencido, etc.). Es una {@code @ApplicationException}
+ * heredada de {@link ErrorDeNegocioException}: sin esa marca, al escaparse de un bean {@code @Stateful}
+ * (como {@code ServicioDeTurnosBean}) el contenedor la envolvería en {@code EJBException} y destruiría la
+ * instancia, rompiendo el resto de la conversación de turnos en esa sesión.
  */
-@ApplicationException(rollback = true)
-public class TurnoNoDisponibleException extends RuntimeException {
+public class TurnoNoDisponibleException extends ErrorDeNegocioException {
 
     public TurnoNoDisponibleException(String mensaje) {
         super(mensaje);
