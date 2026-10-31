@@ -26,48 +26,90 @@ real, sobre el broker ActiveMQ Artemis embebido en WildFly (perfil `standalone-f
 - Al confirmar o cancelar un turno, `ServicioDeTurnos` publica un `EventoTurno` (JSON) en
   `topico.turnos`. El envío JMS se enlista en la misma transacción JTA que actualiza el turno
   (Transactional Client): si hay rollback, el evento no sale.
-- `ServicioDeNotificaciones`: `NotificacionesSubscriber` (MDB, suscripción durable) genera el email
-  al paciente y el aviso en la app al profesional, visibles en `/notificaciones.xhtml`.
-- `AuditoriaSubscriber` (MDB, suscripción durable) registra cada evento en `registro_auditoria`.
-- **Monitor de eventos** (`/monitor.xhtml`): muestra en vivo, para los turnos del usuario, qué suscriptor
-  procesó cada evento y con qué latencia, o cuál lo tiene pendiente (por ejemplo, si se frena un MDB desde
-  `jboss-cli`). Se alimenta de `evento_publicado`, que se escribe en la misma transacción que el envío JMS.
+- `ServicioDeNotificaciones` y `AuditoriaSubscriber`: MDB con suscripción durable.
+- **Monitor de eventos** (`/monitor.xhtml`): qué suscriptor procesó cada evento y con qué latencia.
 - Patrones nuevos: Publish-Subscribe Channel, Durable Subscriber, Event-Driven Consumer, Idempotent
-  Receiver (`evento_procesado`), Dead Letter Channel (3 reintentos y DLQ), Builder
-  (`EventoTurno.Builder`), Template Method + Factory Method (`ProcesadorNotificacion`) y Transfer Object
-  (DTO del monitor).
+  Receiver, Dead Letter Channel, Builder, Template Method + Factory Method y Transfer Object.
 
-Las integraciones síncronas (obra social vía SOAP, pagos y telemedicina vía REST), el proceso con
-cola punto a punto y la transacción de varios pasos quedan para la Entrega Obligatoria N.º 2.
+**Entrega Obligatoria N.º 2 — 2.º Parcial** (Unidades IV-V-VI, 09/11; el anexo la llama
+"Entrega 4"): integración sincrónica SOAP y REST, mensajería completa y transacciones.
+
+- **SOAP con el sistema legado de la obra social** (`CoberturaService`, con WSDL): validación de
+  cobertura y autorización de prestaciones. Cliente generado con wsimport desde el contrato
+  (`src/main/resources/wsdl`), WS-Security UsernameToken, Adapter/Gateway y resiliencia propia:
+  timeout, reintento, Circuit Breaker y fallback con caché.
+- **REST**: MediConecta consume la pasarela de pagos (Bearer + `Idempotency-Key`) y el proveedor de
+  videoconsulta, y expone su propia API `/api/v1` (HTTP Basic, `@RolesAllowed`, DTO,
+  `ExceptionMapper`).
+- **Mensajería completa**: cola punto a punto `cola.autorizaciones` (Competing Consumers, TTL 24 h,
+  reintentos con espera creciente y DLQ) y un tercer suscriptor del tópico, Facturación, con
+  selector (Selective Consumer): reclamos a obras sociales y reintegros por cancelación.
+- **Transacciones declarativas**: `ProcesoConfirmacionTurno.confirmar` (REQUIRED) valida, consulta
+  la cobertura por SOAP, cobra por REST, confirma, encola la autorización y publica el evento en una
+  sola transacción JTA; si falla a mitad de camino, la base y los mensajes se revierten y el cobro
+  se devuelve con una transacción compensatoria. También se usan MANDATORY, SUPPORTS,
+  NOT_SUPPORTED y REQUIRES_NEW, cada uno justificado.
+- Componentes nuevos: `ServicioDeObrasSociales`, `ServicioDePagos`, `ServicioDeTelemedicina`,
+  `ServicioDeFacturacion` y `ServicioDeAgenda` (los ocho componentes del dominio quedan implementados).
+- Patrones nuevos: Adapter/Gateway, Circuit Breaker + Retry + Fallback, Strategy (copago), Chain of
+  Responsibility (validación de reserva), State (turno), Intercepting Filter (`@Auditado`),
+  Singleton (`CatalogoPrestaciones`), Point-to-Point, Competing Consumers, Selective Consumer,
+  Message Expiration y transacción compensatoria.
+- Seguridad: titularidad de la historia clínica en el servicio (con registro de accesos visible para
+  el paciente), `@RunAs("SISTEMA")` en los MDB, Bean Validation de los datos de pago y el número de
+  tarjeta nunca se guarda.
+- **Temas visuales** estándar, claro y oscuro (opcional del anexo), alternables en tiempo real.
+- Pantallas nuevas: Pagos, Telemedicina e Integraciones (estado de los Circuit Breakers, bitácora
+  SOAP/REST y demo de falla transaccional).
+- **Sistemas externos simulados** (`sistemas-externos/`, se despliega como `externos.war`): la obra
+  social (SOAP), la pasarela y la videoconsulta (REST), con una consola para tirarlos abajo en vivo.
 
 ## Documentación
 
-- [`SETUP.md`](SETUP.md): cómo levantar WildFly, la base en Supabase y desplegar el proyecto
-  localmente.
-- [`Trabajo practico/MediConecta_Documento_Tecnico_Entrega1.pdf`](<Trabajo practico/MediConecta_Documento_Tecnico_Entrega1.pdf>):
-  documento técnico de la Entrega Obligatoria N.º 1 (arquitectura, componentes, patrones,
-  seguridad y decisiones de diseño).
-- [`Trabajo practico/MediConecta_Diagrama_Capas 1.png`](<Trabajo practico/MediConecta_Diagrama_Capas 1.png>):
-  arquitectura en capas planificada para el sistema completo.
+- [`SETUP.md`](SETUP.md): cómo levantar WildFly, la base en Supabase y desplegar los dos WAR.
+- [`docs/documento-tecnico/MediConecta_Documento_Tecnico_Entrega4.pdf`](docs/documento-tecnico/MediConecta_Documento_Tecnico_Entrega4.pdf):
+  documento técnico de la Entrega Obligatoria N.º 2 (integraciones con sus diagramas de secuencia,
+  mensajería, transacciones, patrones, seguridad, temas y pruebas).
+- [`docs/guia-demo-entrega4.md`](docs/guia-demo-entrega4.md): guion de la demo en vivo y preguntas
+  probables de la defensa oral.
+- [`docs/api/README.md`](docs/api/README.md): contratos SOAP y REST con ejemplos para probarlos.
+- [`docs/manual/MediConecta_Manual_de_Usuario.pdf`](docs/manual/MediConecta_Manual_de_Usuario.pdf):
+  manual de usuario (versión 0.3, con pagos, teleconsultas y temas).
+- [`docs/diagramas/`](docs/diagramas/): diagramas de la solución (PlantUML + PNG), incluidos los de
+  secuencia de cada integración.
+- [`docs/documento-tecnico/MediConecta_Documento_Tecnico_Entrega2.pdf`](docs/documento-tecnico/MediConecta_Documento_Tecnico_Entrega2.pdf),
+  [`docs/documento-maestro/`](docs/documento-maestro/) y [`docs/presentacion/`](docs/presentacion/):
+  documentación de la Entrega Parcial N.º 2.
+- [`Trabajo practico/MediConecta_Documento_Tecnico_Entrega1.pdf`](<Trabajo practico/MediConecta_Documento_Tecnico_Entrega1.pdf>)
+  y [`Diseno_Patrones_y_Seguridad_MediConecta_Grupo4.pdf`](Diseno_Patrones_y_Seguridad_MediConecta_Grupo4.pdf):
+  documento de la Entrega Obligatoria N.º 1 y diseño de patrones y seguridad.
 
-- [`docs/diagramas/`](docs/diagramas/): los diez diagramas de la solución (PlantUML + PNG).
-- [`docs/documento-maestro/`](docs/documento-maestro/): documento maestro de los diagramas (PDF, formato APA).
-- [`docs/presentacion/`](docs/presentacion/): presentación de la Entrega Parcial N.º 2 (PPTX y PDF) y guía
-  para la presentación.
-- [`pruebas/prueba_e2e.py`](pruebas/prueba_e2e.py): prueba de punta a punta con navegador real
-  (14 verificaciones). Requiere `pip install playwright` y Google Chrome.
+## Pruebas
+
+- Unitarias (JUnit 5): `mvn package` corre 26 pruebas de los patrones (State, Strategy, Chain of
+  Responsibility, Circuit Breaker, Retry, Builder, catálogo, selector).
+- De punta a punta con navegador real (requieren `pip install playwright` y Google Chrome, con la app
+  desplegada):
+  - [`pruebas/prueba_entrega4.py`](pruebas/prueba_entrega4.py): 36 verificaciones de esta entrega
+    (SOAP, API REST, pago rechazado y aprobado, cola, selector, falla con compensación, legado caído,
+    cancelación con reintegro, telemedicina, auditoría y temas).
+  - [`pruebas/prueba_e2e.py`](pruebas/prueba_e2e.py): 13 verificaciones del recorrido básico.
+  - [`pruebas/prueba_monitor.py`](pruebas/prueba_monitor.py): 7 verificaciones del monitor con un
+    suscriptor detenido desde `jboss-cli`.
 
 ## Declaración de uso de inteligencia artificial generativa
 
 Conforme a lo exigido en la Sección 9 del TP Integrador, se declara el uso de IA generativa
-(Claude, Anthropic) como asistente de productividad durante esta entrega:
+(Claude, Anthropic) como asistente de productividad:
 
 - Generación de boilerplate: entidades JPA, DAOs, EJB de negocio y vistas JSF/PrimeFaces.
-- Configuración e instalación local de JDK, Maven y WildFly, y su conexión a la base de datos en
-  Supabase.
-- Diagnóstico y corrección de errores de integración entre Jakarta Security y WildFly 41 al
-  combinarlos con un login a medida (detallado en el documento técnico, Sección 6).
-- Redacción del documento técnico de esta entrega.
+- Configuración e instalación local de JDK, Maven y WildFly, su conexión a la base de datos en
+  Supabase y la configuración del broker.
+- Diagnóstico y corrección de errores de integración entre Jakarta Security y WildFly 41.
+- Entrega Obligatoria N.º 2: código base de las integraciones SOAP y REST, de los simuladores de los
+  sistemas externos, de la cola de autorizaciones, del flujo transaccional y de los temas visuales;
+  pruebas unitarias y de navegador; diagramas; borradores del documento técnico, del manual y de la
+  guía de la demo.
 
 Cada integrante del equipo puede explicar y defender individualmente cualquier parte del código o
 del diseño en la instancia oral, incluidas las decisiones tomadas con asistencia de IA.

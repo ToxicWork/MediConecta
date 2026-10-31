@@ -1,16 +1,39 @@
-# Puesta en marcha local — Entrega Parcial N.º 2
+# Puesta en marcha local — Entrega Obligatoria N.º 2
 
-Componentes de esta entrega: `ServicioDeUsuarios`, `ServicioDeTurnos`, `ServicioDeHistoriaClinica`.
+Se despliegan **dos WAR** en el mismo WildFly: `mediconecta.war` (la plataforma) y `externos.war`
+(los simuladores de la obra social SOAP, la pasarela de pagos y la videoconsulta REST, con su consola
+en <http://localhost:8080/externos/>).
+
 Stack: Jakarta EE 10 (JSF/PrimeFaces + EJB + JPA/Hibernate) sobre **WildFly**, con **Supabase (PostgreSQL)**
 como base de datos remota. Probado end-to-end (registro, login/logout, reserva con hold, confirmación,
 historia clínica con `@RolesAllowed`) contra WildFly 41.0.1.Final + Supabase.
 
-> **Novedad de la Entrega Parcial N.º 2:** el servidor se levanta con el perfil
+> **Novedad de la Entrega Obligatoria N.º 2:** hay que crear la cola `autorizaciones` en el broker
+> (sección 2.2) y desplegar también `externos.war` (sección 3). Las tablas nuevas (`pago`,
+> `solicitud_autorizacion`, `reclamo_obra_social`, `registro_acceso`, `llamada_integracion`) y las
+> columnas nuevas de `turno` las crea Hibernate solo al desplegar (`hbm2ddl.auto=update`).
+
+> **Desde la Entrega Parcial N.º 2:** el servidor se levanta con el perfil
 > `standalone-full.xml`, que es el que trae el broker **ActiveMQ Artemis** embebido. Ese perfil ya
 > quedó configurado en la Mac de desarrollo (datasource, driver, `integrated-jaspi=false`, tópico
 > `turnos` y DLQ). En otra máquina, ver la sección 2.1.
 
-## 0. Arranque rápido (macOS, entorno ya configurado)
+## 0. Arranque rápido
+
+### Windows (PC de desarrollo, entorno ya configurado)
+
+WildFly 41.0.1.Final en `C:\dev\wildfly-41.0.1.Final` (variable de usuario `WILDFLY_HOME`), JDK 17 y
+Maven 3.9 en el `PATH`. El perfil `standalone-full.xml` ya tiene driver, datasource, tópico y cola.
+
+```bat
+mvn clean package                                   :: target\mediconecta.war (corre las 26 pruebas unitarias)
+mvn -f sistemas-externos\pom.xml clean package      :: sistemas-externos\target\externos.war
+copy target\mediconecta.war %WILDFLY_HOME%\standalone\deployments\
+copy sistemas-externos\target\externos.war %WILDFLY_HOME%\standalone\deployments\
+wildfly\iniciar-servidor.bat                        :: perfil standalone-full
+```
+
+### macOS (entorno ya configurado)
 
 En la Mac de desarrollo ya están instalados JDK 21, Maven, WildFly 41.0.1.Final
 (`~/Downloads/wildfly-41.0.1.Final`) con el módulo de PostgreSQL, el datasource apuntando a Supabase
@@ -18,11 +41,16 @@ y `integrated-jaspi=false`. Para levantar todo:
 
 ```bash
 mvn clean package                                  # genera target/mediconecta.war
-cp target/mediconecta.war ~/Downloads/wildfly-41.0.1.Final/standalone/deployments/
+mvn -f sistemas-externos/pom.xml clean package     # genera sistemas-externos/target/externos.war
+cp target/mediconecta.war sistemas-externos/target/externos.war ~/Downloads/wildfly-41.0.1.Final/standalone/deployments/
 ./wildfly/iniciar-servidor.sh                      # levanta WildFly (Ctrl+C para frenar)
 ```
 
-App: <http://localhost:8080/mediconecta/login.xhtml>
+> En la Mac, antes del primer arranque de esta entrega, correr con el servidor apagado
+> `jboss-cli.sh --file=wildfly/configurar-integracion-entrega4.cli` (crea la cola; ver 2.2).
+
+App: <http://localhost:8080/mediconecta/login.xhtml> · Consola de sistemas externos:
+<http://localhost:8080/externos/> · WSDL del legado: <http://localhost:8080/externos/CoberturaService?wsdl>
 
 El script exporta `JAVA_HOME` a OpenJDK 21 (`/opt/homebrew/opt/openjdk@21/...`) y usa
 `WILDFLY_HOME=~/Downloads/wildfly-41.0.1.Final`; ambas se pueden pisar por variable de entorno.
@@ -33,7 +61,13 @@ Usuarios de demo ya cargados en Supabase (contraseña `demo1234` en ambos):
 | Rol | Email | Datos |
 | --- | --- | --- |
 | Profesional | `ana.lopez@mediconecta.test` | MN 12345 · Cardiología · disponibilidad 17/09/2026 11:30 |
-| Paciente | `juan.perez@mediconecta.test` | OSDE 210 · turno confirmado 17/09/2026 10:00 + 1 diagnóstico |
+| Paciente | `juan.perez@mediconecta.test` | OSDE 210 (la obra social simulada cubre el 70 %, copago del 30 %) |
+
+Tarjetas de la pasarela de prueba: `4111 1111 1111 1111` se aprueba; `4000 0000 0000 0002` se
+rechaza por fondos insuficientes; terminada en `0069`, tarjeta vencida. Cualquier vencimiento futuro
+(MM/AA) y código de 3 dígitos. La obra social simulada decide la cobertura por el nombre: OSDE
+(copago 30 %), Swiss Medical (copago fijo $3.500), PAMI/IOMA (exento), Galeno (afiliado suspendido),
+cualquier otra (no cubre: particular).
 
 Si hace falta rehacer la instalación desde cero (otra máquina), seguir las secciones 1 a 3.
 
@@ -116,6 +150,22 @@ Si al arrancar aparece `FATAL: (ENOTFOUND) tenant/user postgres.<ref> not found`
 Supabase está **pausado** (el plan gratuito lo pausa tras una semana sin uso): reanudarlo desde el
 panel de Supabase y reiniciar WildFly.
 
+## 2.2 Cola de autorizaciones (Entrega Obligatoria N.º 2)
+
+Con el servidor **apagado**:
+
+- Instalación nueva: `configurar-mensajeria.cli` (sección 2.1) ya crea todo, incluida la cola.
+- Servidor que ya tenía la configuración de la Entrega Parcial N.º 2:
+  ```
+  <WILDFLY_HOME>/bin/jboss-cli.sh --file=wildfly/configurar-integracion-entrega4.cli
+  ```
+  Crea `jms-queue=autorizaciones` (`java:/jms/queue/autorizaciones`) y su address-setting: 8 intentos
+  con espera creciente (10 s, 20 s, 40 s, tope 60 s), DLQ y ExpiryQueue.
+
+Las direcciones de los sistemas externos tienen valores por defecto (`http://localhost:8080/externos`).
+Para apuntar a otro host, levantar WildFly con `-Dmediconecta.externos.url=http://host:puerto/externos`
+(ver `ConfiguracionIntegraciones`).
+
 ## 3. Deploy
 
 Con Maven configurado (`mvn -v`), o vía el conector de servidor de Eclipse (ya hay `.project`/`.classpath`):
@@ -124,8 +174,12 @@ Con Maven configurado (`mvn -v`), o vía el conector de servidor de Eclipse (ya 
 mvn clean package
 ```
 
-Copiar `target/mediconecta.war` a `<WILDFLY_HOME>/standalone/deployments/`, o usar el "Run on Server"
-de Eclipse apuntando a la instancia de WildFly.
+Copiar `target/mediconecta.war` y `sistemas-externos/target/externos.war` (se compila con
+`mvn -f sistemas-externos/pom.xml package`) a `<WILDFLY_HOME>/standalone/deployments/`, o usar el
+"Run on Server" de Eclipse apuntando a la instancia de WildFly.
+
+El build de MediConecta genera el cliente SOAP con wsimport (`jaxws-maven-plugin`) a partir de
+`src/main/resources/wsdl/CoberturaService.wsdl`; no hace falta que el legado esté levantado para compilar.
 
 ## 4. Uso
 
@@ -137,6 +191,13 @@ de Eclipse apuntando a la instancia de WildFly.
 - `/historia.xhtml` — el profesional carga diagnósticos/recetas sobre pacientes con turno
   confirmado (protegido con `@RolesAllowed("PROFESIONAL")` a nivel EJB); el paciente ve
   (solo lectura) su propia historia.
+- `/pagos.xhtml` — pagos del paciente (pasarela REST) y, para el profesional, cobros y reclamos a
+  obras sociales generados por Facturación.
+- `/telemedicina.xhtml` — teleconsultas confirmadas: el profesional crea la sala por REST y el paciente
+  se une con su enlace.
+- `/integraciones.xhtml` — estado de los Circuit Breakers, bitácora de llamadas SOAP/REST y botón para
+  armar una falla antes del commit (demo transaccional).
+- `/api/v1/...` — API REST (ver `docs/api/README.md`).
 - `/notificaciones.xhtml` — bandeja de notificaciones. Al confirmar o cancelar un turno,
   `ServicioDeTurnos` publica un `EventoTurno` en `topico.turnos`; dos MDB suscriptos de forma
   durable lo consumen: `NotificacionesSubscriber` (email simulado al paciente + aviso en la app al
@@ -169,11 +230,24 @@ ese realm. Con `integrated-jaspi=false` (paso 6 de la sección WildFly) Elytron 
 ad-hoc a partir del `CallerPrincipalCallback`/`GroupPrincipalCallback` que emite
 `notifyContainerAboutLogin`, sin necesitar que el principal preexista en ningún realm.
 
+## Pruebas
+
+```bash
+mvn package                        # 26 pruebas unitarias
+pip install playwright             # una sola vez; usa el Google Chrome instalado
+python pruebas/prueba_entrega4.py  # 36 verificaciones de la Entrega Obligatoria N.º 2 (~2 min)
+python pruebas/prueba_e2e.py       # 13 verificaciones del recorrido básico
+python pruebas/prueba_monitor.py   # 7 verificaciones (frena y reactiva un MDB con jboss-cli)
+```
+
+Los PDF de `docs/` se regeneran con `python docs/generar_pdf.py <html> <pdf>` (Chrome + PyMuPDF).
+
 ## Nota sobre el alcance
 
 - Entrega Obligatoria N.º 1: los 3 componentes internos (`ServicioDeUsuarios` stateless,
   `ServicioDeTurnos` stateful, `ServicioDeHistoriaClinica` stateless con `@RolesAllowed`).
 - Entrega Parcial N.º 2: primer proceso de negocio asincrónico (tópico `turnos` → notificaciones y
   auditoría) sobre ActiveMQ Artemis.
-- Pendiente para la Entrega Obligatoria N.º 2 (09/11): proceso con cola punto a punto, SOAP a obra
-  social, REST a pagos/telemedicina y transacción declarativa de varios pasos.
+- Entrega Obligatoria N.º 2 (09/11): cola punto a punto `autorizaciones`, SOAP a la obra social (con
+  WSDL), REST a pagos y telemedicina más la API `/api/v1`, transacción declarativa de varios pasos con
+  compensación, Facturación con selector y temas visuales.
