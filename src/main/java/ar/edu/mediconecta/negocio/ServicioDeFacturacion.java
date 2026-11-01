@@ -12,5 +12,6 @@ public interface ServicioDeFacturacion {
 
     void procesarEvento(EventoTurno evento);
 
-    List<ReclamoObraSocial> reclamosDelProfesionalActual();
+    /** Todos los reclamos a obras sociales, para el personal administrativo. */
+    List<ReclamoObraSocial> todosLosReclamos();
 }

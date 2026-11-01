@@ -3,8 +3,6 @@ package ar.edu.mediconecta.web;
 import ar.edu.mediconecta.modelo.Rol;
 import ar.edu.mediconecta.modelo.Usuario;
 import ar.edu.mediconecta.negocio.ServicioDeUsuarios;
-import ar.edu.mediconecta.negocio.excepciones.EmailYaRegistradoException;
-import ar.edu.mediconecta.negocio.factory.DatosRegistro;
 import jakarta.enterprise.context.SessionScoped;
 import jakarta.faces.application.FacesMessage;
 import jakarta.faces.context.FacesContext;
@@ -21,11 +19,16 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.Serializable;
 import java.util.Optional;
 
+/**
+ * Sesión del usuario: login, logout y el control de acceso de las vistas. El alta de pacientes está en
+ * {@link RegistroBean} (pantalla propia) y el alta de otros roles, en {@link UsuariosBean} (administrativo).
+ */
 @Named
 @SessionScoped
 public class LoginBean implements Serializable {
 
     private static final String USUARIO_ACTUAL = LoginBean.class.getName() + ".usuarioActual";
+    static final String PERFIL = "perfil.xhtml";
 
     @Inject
     private SecurityContext securityContext;
@@ -36,42 +39,36 @@ public class LoginBean implements Serializable {
     private String email;
     private String password;
 
-    private String regNombreCompleto;
-    private String regEmail;
-    private String regPassword;
-    private String regObraSocial;
-    private String regNroAfiliado;
-    private String regMatricula;
-    private String regEspecialidad;
-    private Rol rolRegistro = Rol.PACIENTE;
+    /** Con la sesión ya iniciada, el login no tiene sentido: se va a la página de inicio (para cambiar de usuario, cerrar sesión). */
+    public String redirigirSiYaInicioSesion() {
+        return getUsuarioActual() == null ? null : getPaginaDeInicio() + "?faces-redirect=true";
+    }
 
     public String login() {
+        if (getRequest().getUserPrincipal() != null) {
+            // Si quedó otra identidad en la sesión, se descarta: si no, el contenedor seguiría usando la anterior.
+            try {
+                getRequest().logout();
+            } catch (jakarta.servlet.ServletException e) {
+                // no había identidad que descartar
+            }
+        }
         AuthenticationStatus status = securityContext.authenticate(
                 getRequest(), getResponse(),
                 AuthenticationParameters.withParams()
                         .credential(new UsernamePasswordCredential(email, new Password(password))));
 
         if (status == AuthenticationStatus.SUCCESS) {
-            return "agenda.xhtml?faces-redirect=true";
+            password = null;
+            Optional<Usuario> usuario = servicioDeUsuarios.buscarPorEmail(email);
+            if (usuario.map(Usuario::isDebeCambiarPassword).orElse(false)) {
+                return PERFIL + "?faces-redirect=true";
+            }
+            return paginaDeInicio(usuario.map(Usuario::getRol).orElse(Rol.PACIENTE)) + "?faces-redirect=true";
         }
         FacesContext.getCurrentInstance().addMessage(null,
                 new FacesMessage(FacesMessage.SEVERITY_ERROR, "Credenciales inválidas", null));
         return null;
-    }
-
-    public String registrar() {
-        try {
-            DatosRegistro datos = new DatosRegistro(regNombreCompleto, regEmail, regObraSocial, regNroAfiliado,
-                    regMatricula, regEspecialidad);
-            servicioDeUsuarios.registrar(rolRegistro, datos, regPassword);
-            FacesContext.getCurrentInstance().addMessage(null,
-                    new FacesMessage(FacesMessage.SEVERITY_INFO, "Registro exitoso, ya podés iniciar sesión", null));
-            return "login.xhtml?faces-redirect=true";
-        } catch (EmailYaRegistradoException e) {
-            FacesContext.getCurrentInstance().addMessage(null,
-                    new FacesMessage(FacesMessage.SEVERITY_ERROR, e.getMessage(), null));
-            return null;
-        }
     }
 
     public String logout() {
@@ -103,12 +100,65 @@ public class LoginBean implements Serializable {
         return usuario.orElse(null);
     }
 
+    /** Después de cambiar la contraseña, el request ya no debe usar el usuario que había leído antes. */
+    void olvidarUsuarioDelRequest() {
+        getRequest().removeAttribute(USUARIO_ACTUAL);
+    }
+
     public boolean isProfesional() {
         return getRequest().isUserInRole("PROFESIONAL");
     }
 
     public boolean isPaciente() {
         return getRequest().isUserInRole("PACIENTE");
+    }
+
+    public boolean isAdministrativo() {
+        return getRequest().isUserInRole("ADMINISTRATIVO");
+    }
+
+    /** Mientras tenga una contraseña temporal, el usuario sólo puede usar "Mi perfil" para cambiarla. */
+    public boolean isDebeCambiarPassword() {
+        Usuario usuario = getUsuarioActual();
+        return usuario != null && usuario.isDebeCambiarPassword();
+    }
+
+    /**
+     * Control de acceso de las vistas ({@code f:viewAction}): sin sesión, al login; con contraseña temporal, a
+     * "Mi perfil" para cambiarla; con un rol que no puede ver la página, a su página de inicio. Es la contracara
+     * visual del {@code @RolesAllowed} de los servicios, que sigue siendo la barrera real aunque alguien escriba
+     * la URL a mano.
+     */
+    public String exigirRol(String... rolesPermitidos) {
+        Usuario usuario = getUsuarioActual();
+        if (usuario == null) {
+            return "login.xhtml?faces-redirect=true";
+        }
+        if (usuario.isDebeCambiarPassword()) {
+            return PERFIL + "?faces-redirect=true";
+        }
+        HttpServletRequest request = getRequest();
+        for (String rol : rolesPermitidos) {
+            if (request.isUserInRole(rol)) {
+                return null;
+            }
+        }
+        return getPaginaDeInicio() + "?faces-redirect=true";
+    }
+
+    /** Para "Mi perfil": alcanza con estar autenticado (cualquier rol, aun con contraseña temporal). */
+    public String exigirSesion() {
+        return getUsuarioActual() == null ? "login.xhtml?faces-redirect=true" : null;
+    }
+
+    public String getPaginaDeInicio() {
+        Usuario usuario = getUsuarioActual();
+        return paginaDeInicio(usuario == null ? Rol.PACIENTE : usuario.getRol());
+    }
+
+    /** El administrativo arranca en Pagos; pacientes y profesionales, en la Agenda. */
+    private static String paginaDeInicio(Rol rol) {
+        return rol == Rol.ADMINISTRATIVO ? "pagos.xhtml" : "agenda.xhtml";
     }
 
     private HttpServletRequest getRequest() {
@@ -133,69 +183,5 @@ public class LoginBean implements Serializable {
 
     public void setPassword(String password) {
         this.password = password;
-    }
-
-    public String getRegNombreCompleto() {
-        return regNombreCompleto;
-    }
-
-    public void setRegNombreCompleto(String regNombreCompleto) {
-        this.regNombreCompleto = regNombreCompleto;
-    }
-
-    public String getRegEmail() {
-        return regEmail;
-    }
-
-    public void setRegEmail(String regEmail) {
-        this.regEmail = regEmail;
-    }
-
-    public String getRegPassword() {
-        return regPassword;
-    }
-
-    public void setRegPassword(String regPassword) {
-        this.regPassword = regPassword;
-    }
-
-    public String getRegObraSocial() {
-        return regObraSocial;
-    }
-
-    public void setRegObraSocial(String regObraSocial) {
-        this.regObraSocial = regObraSocial;
-    }
-
-    public String getRegNroAfiliado() {
-        return regNroAfiliado;
-    }
-
-    public void setRegNroAfiliado(String regNroAfiliado) {
-        this.regNroAfiliado = regNroAfiliado;
-    }
-
-    public String getRegMatricula() {
-        return regMatricula;
-    }
-
-    public void setRegMatricula(String regMatricula) {
-        this.regMatricula = regMatricula;
-    }
-
-    public String getRegEspecialidad() {
-        return regEspecialidad;
-    }
-
-    public void setRegEspecialidad(String regEspecialidad) {
-        this.regEspecialidad = regEspecialidad;
-    }
-
-    public Rol getRolRegistro() {
-        return rolRegistro;
-    }
-
-    public void setRolRegistro(Rol rolRegistro) {
-        this.rolRegistro = rolRegistro;
     }
 }

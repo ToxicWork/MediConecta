@@ -16,5 +16,9 @@ public interface ServicioDePagos {
 
     void reembolsarPagoDeTurno(Long turnoId, String motivo);
 
+    /** Pagos del paciente autenticado. */
     List<Pago> pagosDelUsuarioActual();
+
+    /** Todos los pagos de la plataforma, para el personal administrativo. */
+    List<Pago> todosLosPagos();
 }

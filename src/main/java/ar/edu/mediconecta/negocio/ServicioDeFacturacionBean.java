@@ -2,15 +2,11 @@ package ar.edu.mediconecta.negocio;
 
 import ar.edu.mediconecta.dao.ReclamoObraSocialDAO;
 import ar.edu.mediconecta.dao.TurnoDAO;
-import ar.edu.mediconecta.dao.UsuarioDAO;
 import ar.edu.mediconecta.mensajeria.EventoTurno;
 import ar.edu.mediconecta.modelo.ReclamoObraSocial;
 import ar.edu.mediconecta.modelo.Turno;
-import ar.edu.mediconecta.modelo.Usuario;
-import jakarta.annotation.Resource;
 import jakarta.annotation.security.DeclareRoles;
 import jakarta.annotation.security.RolesAllowed;
-import jakarta.ejb.SessionContext;
 import jakarta.ejb.Stateless;
 import jakarta.inject.Inject;
 
@@ -18,7 +14,7 @@ import java.util.List;
 import java.util.logging.Logger;
 
 @Stateless
-@DeclareRoles({"PROFESIONAL", "SISTEMA"})
+@DeclareRoles({"ADMINISTRATIVO", "SISTEMA"})
 public class ServicioDeFacturacionBean implements ServicioDeFacturacion {
 
     private static final Logger LOG = Logger.getLogger(ServicioDeFacturacionBean.class.getName());
@@ -30,13 +26,7 @@ public class ServicioDeFacturacionBean implements ServicioDeFacturacion {
     private TurnoDAO turnoDAO;
 
     @Inject
-    private UsuarioDAO usuarioDAO;
-
-    @Inject
     private ServicioDePagos pagos;
-
-    @Resource
-    private SessionContext contexto;
 
     /**
      * Sólo le llegan TURNO_AUTORIZADO y TURNO_CANCELADO: el resto lo filtra el broker con el selector de la
@@ -68,9 +58,8 @@ public class ServicioDeFacturacionBean implements ServicioDeFacturacion {
     }
 
     @Override
-    @RolesAllowed("PROFESIONAL")
-    public List<ReclamoObraSocial> reclamosDelProfesionalActual() {
-        Usuario usuario = usuarioDAO.buscarPorEmail(contexto.getCallerPrincipal().getName()).orElse(null);
-        return usuario == null ? List.of() : reclamoDAO.buscarDeProfesional(usuario.getId());
+    @RolesAllowed("ADMINISTRATIVO")
+    public List<ReclamoObraSocial> todosLosReclamos() {
+        return reclamoDAO.buscarTodos();
     }
 }

@@ -1,0 +1,106 @@
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:p="http://primefaces.org/ui"
+                template="/WEB-INF/templates/layout.xhtml">
+
+    <ui:param name="pageTitle" value="Usuarios"/>
+    <ui:param name="activePage" value="usuarios"/>
+
+    <f:metadata>
+        <f:viewAction action="#{usuariosBean.verificarAcceso}"/>
+    </f:metadata>
+
+    <ui:define name="content">
+        <p class="page-subtitle">
+            Dá de alta profesionales, pacientes y otros administrativos. Cada uno recibe una contraseña temporal que
+            tiene que cambiar la primera vez que ingresa. Los pacientes también pueden registrarse solos.
+        </p>
+
+        <div class="grid grid-usuarios">
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <h3>Nuevo usuario</h3>
+                        <div class="subtle">Pasale a la persona su email y la contraseña temporal</div>
+                    </div>
+                </div>
+                <h:form id="formAlta">
+                    <div class="field">
+                        <label for="formAlta:rol">Rol</label>
+                        <h:selectOneMenu id="rol" value="#{usuariosBean.rol}">
+                            <f:selectItems value="#{usuariosBean.roles}" var="r" itemLabel="#{r.etiqueta}" itemValue="#{r}"/>
+                            <f:ajax render="camposSegunRol"/>
+                        </h:selectOneMenu>
+                    </div>
+                    <div class="field">
+                        <label for="formAlta:nombre">Nombre completo</label>
+                        <p:inputText id="nombre" value="#{usuariosBean.nombreCompleto}" required="true" requiredMessage="Completá el nombre"/>
+                    </div>
+                    <div class="field">
+                        <label for="formAlta:email">Email</label>
+                        <p:inputText id="email" value="#{usuariosBean.email}" type="email" required="true" requiredMessage="Completá el email"/>
+                    </div>
+                    <div class="field">
+                        <label for="formAlta:passwordTemporal">Contraseña temporal</label>
+                        <p:inputText id="passwordTemporal" value="#{usuariosBean.passwordTemporal}" autocomplete="off"
+                                     required="true" requiredMessage="Elegí una contraseña temporal"/>
+                        <div class="hint">Al menos 8 caracteres. El usuario la cambia en su primer ingreso.</div>
+                    </div>
+
+                    <h:panelGroup id="camposSegunRol" layout="block">
+                        <h:panelGroup layout="block" styleClass="field-row" rendered="#{usuariosBean.rol eq 'PROFESIONAL'}">
+                            <div class="field">
+                                <label for="formAlta:matricula">Matrícula</label>
+                                <p:inputText id="matricula" value="#{usuariosBean.matricula}" placeholder="Ej.: MN 12345"/>
+                            </div>
+                            <div class="field">
+                                <label for="formAlta:especialidad">Especialidad</label>
+                                <p:inputText id="especialidad" value="#{usuariosBean.especialidad}"/>
+                            </div>
+                        </h:panelGroup>
+                        <h:panelGroup layout="block" styleClass="field-row" rendered="#{usuariosBean.rol eq 'PACIENTE'}">
+                            <div class="field">
+                                <label for="formAlta:obraSocial">Obra social</label>
+                                <p:inputText id="obraSocial" value="#{usuariosBean.obraSocial}" placeholder="Ej.: OSDE 210"/>
+                            </div>
+                            <div class="field">
+                                <label for="formAlta:nroAfiliado">N.º de afiliado</label>
+                                <p:inputText id="nroAfiliado" value="#{usuariosBean.nroAfiliado}"/>
+                            </div>
+                        </h:panelGroup>
+                    </h:panelGroup>
+
+                    <p:commandButton id="btnCrear" value="Crear usuario" action="#{usuariosBean.crear}" ajax="false"
+                                     styleClass="btn btn-primary btn-block"/>
+                </h:form>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <h3>Usuarios</h3>
+                        <div class="subtle">#{usuariosBean.usuarios.size()} usuario(s)</div>
+                    </div>
+                </div>
+                <h:panelGroup layout="block" styleClass="table-wrap">
+                    <p:dataTable id="tablaUsuarios" value="#{usuariosBean.usuarios}" var="u">
+                        <p:column headerText="Nombre">
+                            #{u.nombreCompleto}
+                            <div class="texto-tenue email-usuario">#{u.email}</div>
+                        </p:column>
+                        <p:column headerText="Rol">
+                            <span class="tag #{u.rol == 'ADMINISTRATIVO' ? 'tag-warning' : (u.rol == 'PROFESIONAL' ? 'tag-info' : 'tag-neutral')}">#{u.rol.etiqueta}</span>
+                        </p:column>
+                        <p:column headerText="Detalle">#{usuariosBean.detalle(u)}</p:column>
+                        <p:column headerText="Contraseña">
+                            <h:outputText rendered="#{u.debeCambiarPassword}" value="Temporal" styleClass="tag tag-warning"/>
+                            <h:outputText rendered="#{not u.debeCambiarPassword}" value="Propia" styleClass="tag tag-success"/>
+                        </p:column>
+                    </p:dataTable>
+                </h:panelGroup>
+            </div>
+        </div>
+    </ui:define>
+</ui:composition>

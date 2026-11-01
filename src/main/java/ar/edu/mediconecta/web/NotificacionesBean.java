@@ -23,7 +23,7 @@ public class NotificacionesBean {
     private Long noLeidas;
 
     public String verificarAcceso() {
-        return loginBean.getUsuarioActual() == null ? "login.xhtml?faces-redirect=true" : null;
+        return loginBean.exigirRol("PACIENTE", "PROFESIONAL");
     }
 
     public List<Notificacion> getNotificaciones() {

@@ -44,7 +44,7 @@ with sync_playwright() as p:
     prof=login(br,"ana.lopez@mediconecta.test")
     check("profesional ve su nombre en el layout", "Dra. Ana Lopez" in prof.content())
     check("CSS cargado (recursos estáticos)", prof.evaluate("getComputedStyle(document.querySelector('.sidebar')).backgroundImage").startswith("linear-gradient"))
-    prof.fill("#formPublicar\\:fecha",FECHA); prof.click("#formPublicar button:has-text('Publicar')"); prof.wait_for_load_state()
+    prof.fill("#formPublicar\\:fecha_input",FECHA); prof.keyboard.press("Escape"); prof.click("#formPublicar button:has-text('Publicar')"); prof.wait_for_load_state()
     check("profesional publica disponibilidad", "Disponibilidad publicada" in prof.content())
     prof.goto(B+"historia.xhtml"); check("profesional abre historia clínica", "Historia" in prof.title() or "Historia" in prof.content())
     pac=login(br,"juan.perez@mediconecta.test")

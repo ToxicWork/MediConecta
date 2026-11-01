@@ -14,8 +14,8 @@
 
     <ui:define name="content">
         <p class="page-subtitle">
-            <h:outputText rendered="#{loginBean.paciente}" value="Los cobros los procesa la pasarela de pagos externa (API REST). Si cancelás un turno pago, el reintegro se gestiona automáticamente."/>
-            <h:outputText rendered="#{loginBean.profesional}" value="Cobros de tus turnos (pasarela REST) y reclamos a obras sociales que genera Facturación cuando la obra social autoriza una prestación."/>
+            <h:outputText rendered="#{loginBean.paciente}" value="Si cancelás un turno pago, el reintegro se gestiona automáticamente."/>
+            <h:outputText rendered="#{loginBean.administrativo}" value="Cobros a pacientes de todos los profesionales y reclamos a obras sociales que genera Facturación cuando la obra social autoriza una prestación."/>
         </p>
 
         <h:form id="formPagos">
@@ -35,7 +35,7 @@
                         <div class="stat-label">reintegrado</div>
                     </div>
                     <div class="card stat">
-                        <h:panelGroup rendered="#{loginBean.profesional}">
+                        <h:panelGroup rendered="#{loginBean.administrativo}">
                             <div class="stat-num"><h:outputText value="#{pagosBean.totalReclamado}"><f:convertNumber type="currency" currencySymbol="$ " locale="es_AR" maxFractionDigits="0"/></h:outputText></div>
                             <div class="stat-label">a reclamar a obras sociales</div>
                         </h:panelGroup>
@@ -49,7 +49,7 @@
                 <div class="card">
                     <div class="card-header">
                         <div>
-                            <h3>#{loginBean.profesional ? 'Cobros a pacientes' : 'Mis pagos'}</h3>
+                            <h3>#{loginBean.administrativo ? 'Cobros a pacientes' : 'Mis pagos'}</h3>
                             <div class="subtle">Copagos y turnos particulares · nunca guardamos el número de tarjeta</div>
                         </div>
                     </div>
@@ -60,7 +60,7 @@
                             </p:column>
                             <p:column headerText="Turno">
                                 <h:outputText value="#{pago.turno.fechaHora}"><f:convertDateTime pattern="dd/MM/yyyy HH:mm" type="localDateTime"/></h:outputText>
-                                <div class="texto-tenue">#{loginBean.profesional ? pago.turno.paciente.nombreCompleto : pago.turno.profesional.nombreCompleto}</div>
+                                <div class="texto-tenue">#{loginBean.administrativo ? pago.turno.paciente.nombreCompleto.concat(' · ').concat(pago.turno.profesional.nombreCompleto) : pago.turno.profesional.nombreCompleto}</div>
                             </p:column>
                             <p:column headerText="Importe">
                                 <h:outputText styleClass="importe" value="#{pago.importe}"><f:convertNumber type="currency" currencySymbol="$ " locale="es_AR"/></h:outputText>
@@ -79,7 +79,7 @@
                     </h:panelGroup>
                 </div>
 
-                <h:panelGroup layout="block" styleClass="card" rendered="#{loginBean.profesional}">
+                <h:panelGroup layout="block" styleClass="card" rendered="#{loginBean.administrativo}">
                     <div class="card-header">
                         <div>
                             <h3>Reclamos a obras sociales</h3>
@@ -92,6 +92,7 @@
                                 <h:outputText value="#{reclamo.creadoEn}"><f:convertDateTime pattern="dd/MM/yyyy HH:mm" type="localDateTime"/></h:outputText>
                             </p:column>
                             <p:column headerText="Paciente">#{reclamo.turno.paciente.nombreCompleto}</p:column>
+                            <p:column headerText="Profesional">#{reclamo.turno.profesional.nombreCompleto}</p:column>
                             <p:column headerText="Obra social">#{reclamo.obraSocial}</p:column>
                             <p:column headerText="Prestación"><span class="mono-id">#{reclamo.codigoPrestacion}</span></p:column>
                             <p:column headerText="Autorización"><span class="mono-id">#{reclamo.codigoAutorizacion}</span></p:column>

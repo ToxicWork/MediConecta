@@ -20,6 +20,7 @@ import jakarta.inject.Named;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -55,7 +56,7 @@ public class AgendaBean implements Serializable {
     private Modalidad nuevaModalidad = Modalidad.PRESENCIAL;
 
     public String verificarAcceso() {
-        return loginBean.getUsuarioActual() == null ? "login.xhtml?faces-redirect=true" : null;
+        return loginBean.exigirRol("PACIENTE", "PROFESIONAL");
     }
 
     public List<Profesional> getProfesionales() {
@@ -64,6 +65,11 @@ public class AgendaBean implements Serializable {
 
     public Modalidad[] getModalidades() {
         return Modalidad.values();
+    }
+
+    /** Primer día elegible en el calendario de disponibilidad (el servicio igual rechaza horarios pasados). */
+    public LocalDate getHoy() {
+        return LocalDate.now();
     }
 
     public void buscarDisponibilidad() {

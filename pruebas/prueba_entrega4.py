@@ -11,11 +11,14 @@ Recorre con un navegador real (y con llamadas HTTP directas) todo lo que se defi
   I. Telemedicina: el profesional crea la sala por REST y el paciente ve el enlace.
   J. Auditoría por interceptor: el paciente ve qué profesional consultó su historia clínica.
   K. Temas visuales: cambio en tiempo real sin recargar y persistencia al navegar.
+  L. Roles: el administrativo accede a Pagos y Usuarios y el profesional ya no tiene Pagos (vista, URL y API REST).
+  M. Registro aparte y sólo de pacientes; alta de un profesional por el administrativo con contraseña temporal,
+     cambio obligatorio en el primer ingreso y "Mi perfil".
 
 Requisitos: WildFly levantado (perfil standalone-full) con mediconecta.war y externos.war desplegados,
 Google Chrome y  pip install playwright
 Uso:  python pruebas/prueba_entrega4.py
-Usa los usuarios de demo (ver SETUP.md).
+Usa los usuarios de demo (ver SETUP.md). Deja en la base un paciente y un profesional de prueba por corrida.
 Los escenarios E (selector visto en el monitor) y F (falla armada desde Integraciones) se quitaron junto con
 esas pantallas.
 """
@@ -30,6 +33,7 @@ except AttributeError:
 B = "http://localhost:8080/mediconecta/"
 EXT = "http://localhost:8080/externos/"
 PACIENTE, PROFESIONAL = "juan.perez@mediconecta.test", "ana.lopez@mediconecta.test"
+ADMINISTRATIVO = "carla.admin@mediconecta.test"
 ok = True
 
 
@@ -56,19 +60,24 @@ def consola(**cambios):
     return http(EXT + "api/consola/estado", metodo="PUT", cuerpo=cambios)
 
 
-def login(br, email):
+def login(br, email, inicio="agenda.xhtml", clave="demo1234"):
     pg = br.new_context(viewport={"width": 1366, "height": 900}).new_page()
     pg.goto(B + "login.xhtml")
     pg.fill("#formLogin\\:email", email)
-    pg.fill("#formLogin\\:password", "demo1234")
+    pg.fill("#formLogin\\:password", clave)
     pg.click("#formLogin button:has-text('Ingresar')")
-    pg.wait_for_url("**/agenda.xhtml*")
+    pg.wait_for_url("**/" + inicio + "*")
     return pg
+
+
+def mensaje(pg):
+    return " ".join(pg.locator(".ui-growl-message").all_inner_texts())
 
 
 def publicar(prof, fecha, modalidad="PRESENCIAL"):
     prof.goto(B + "agenda.xhtml")
-    prof.fill("#formPublicar\\:fecha", fecha)
+    prof.fill("#formPublicar\\:fecha_input", fecha)  # p:datePicker: también acepta la fecha tipeada
+    prof.keyboard.press("Escape")                     # cierra el calendario para que no tape el botón
     prof.select_option("#formPublicar\\:modalidad", modalidad)
     prof.click("#formPublicar button:has-text('Publicar')")
     prof.wait_for_load_state()
@@ -135,6 +144,20 @@ with sync_playwright() as p:
     br = p.chromium.launch(channel="chrome", headless=True)
     prof = login(br, PROFESIONAL)
     pac = login(br, PACIENTE)
+    adm = login(br, ADMINISTRATIVO, "pagos.xhtml")
+
+    # ---- L. Roles: el administrativo sólo ve Pagos y el profesional ya no tiene Pagos ------------
+    menu = adm.inner_text(".sidebar .nav")
+    check("L. el administrativo entra directo a Pagos y su menú tiene Pagos, Usuarios y Mi perfil",
+          "pagos.xhtml" in adm.url and "Pagos" in menu and "Usuarios" in menu and "Mi perfil" in menu
+          and "Agenda" not in menu and "Notificaciones" not in menu)
+    adm.goto(B + "agenda.xhtml")
+    check("L. si el administrativo escribe la URL de la Agenda, vuelve a Pagos", "pagos.xhtml" in adm.url)
+    check("L. el profesional no tiene la solapa Pagos", "Pagos" not in prof.inner_text(".sidebar .nav"))
+    prof.goto(B + "pagos.xhtml")
+    check("L. si el profesional escribe la URL de Pagos, vuelve a la Agenda", "agenda.xhtml" in prof.url)
+    estado, _, _ = http(B + "api/v1/turnos", ADMINISTRATIVO, "demo1234")
+    check("L. la API REST de turnos rechaza al administrativo (403, @RolesAllowed)", estado == 403)
 
     # ---- C. Flujo crítico con pago rechazado y aprobado -----------------------------------
     f1 = fecha_al_azar("01")
@@ -152,8 +175,8 @@ with sync_playwright() as p:
     # ---- D. Cola punto a punto + Facturación ---------------------------------------------
     check("D. el paciente recibe la notificación de la autorización (resuelta por cola.autorizaciones)",
           esperar(pac, B + "notificaciones.xhtml", lambda c: "autorizó la prestación" in c, 30))
-    check("D. Facturación genera el reclamo a la obra social (TURNO_AUTORIZADO)",
-          esperar(prof, B + "pagos.xhtml", lambda c: "Pendiente de presentación" in c, 15))
+    check("D. Facturación genera el reclamo a la obra social (TURNO_AUTORIZADO), visible para el administrativo",
+          esperar(adm, B + "pagos.xhtml", lambda c: "Pendiente de presentación" in c, 15))
 
     # ---- G. Legado caído: fallback de cobertura -------------------------------------------
     consola(obraSocial="CAIDO")
@@ -174,7 +197,7 @@ with sync_playwright() as p:
     check("H. cancelación aceptada, con aviso del reintegro", "reintegro" in pac.content())
     check("H. Facturación reintegra el pago por REST (estado Reembolsado)",
           esperar(pac, B + "pagos.xhtml", lambda c: "Reembolsado" in c, 20))
-    check("H. y anula el reclamo a la obra social", esperar(prof, B + "pagos.xhtml", lambda c: "Anulado" in c, 15))
+    check("H. y anula el reclamo a la obra social", esperar(adm, B + "pagos.xhtml", lambda c: "Anulado" in c, 15))
 
     # ---- I. Telemedicina -------------------------------------------------------------------
     f4 = fecha_al_azar("04")
@@ -216,6 +239,67 @@ with sync_playwright() as p:
     check("K. tema claro", pac.evaluate("document.documentElement.dataset.tema") == "claro")
     pac.click("button[data-tema-opcion='estandar']")
     check("K. vuelta al tema estándar", pac.evaluate("document.documentElement.dataset.tema") == "estandar")
+
+    # ---- M. Registro sólo de pacientes, alta por el administrativo y contraseña temporal ------
+    sufijo = random.randint(10000, 99999)
+    nuevo = br.new_context(viewport={"width": 1366, "height": 900}).new_page()
+    nuevo.goto(B + "login.xhtml")
+    nuevo.click("text=Registrate")
+    nuevo.wait_for_url("**/registro.xhtml*")
+    check("M. el login lleva a una pantalla de registro aparte, sin elegir rol",
+          nuevo.locator("#formRegistro\\:rol").count() == 0 and "Crear cuenta de paciente" in nuevo.content())
+    email_pac = "paciente.%d@mediconecta.test" % sufijo
+    nuevo.fill("#formRegistro\\:nombre", "Paciente Prueba %d" % sufijo)
+    nuevo.fill("#formRegistro\\:email", email_pac)
+    nuevo.fill("#formRegistro\\:password", "demo1234")
+    nuevo.fill("#formRegistro\\:repeticion", "demo1234")
+    nuevo.click("#formRegistro button:has-text('Registrarme')")
+    nuevo.wait_for_url("**/login.xhtml*")
+    check("M. registro exitoso: vuelve al login con el aviso", "Registro exitoso" in mensaje(nuevo))
+    nuevo.context.close()
+    nuevo = login(br, email_pac)
+    check("M. el usuario registrado es Paciente", nuevo.inner_text(".u-role") == "Paciente")
+    nuevo.context.close()
+
+    adm.goto(B + "usuarios.xhtml")
+    email_prof = "profesional.%d@mediconecta.test" % sufijo
+    adm.select_option("#formAlta\\:rol", "PROFESIONAL")
+    adm.wait_for_selector("#formAlta\\:matricula")
+    adm.fill("#formAlta\\:nombre", "Dr. Prueba %d" % sufijo)
+    adm.fill("#formAlta\\:email", email_prof)
+    adm.fill("#formAlta\\:passwordTemporal", "Temporal.2026")
+    adm.fill("#formAlta\\:matricula", "MN %d" % sufijo)
+    adm.fill("#formAlta\\:especialidad", "Pediatría")
+    adm.click("#formAlta button:has-text('Crear usuario')")
+    adm.wait_for_load_state()
+    fila = adm.locator("#formAlta\\:tablaUsuarios tr, [id$='tablaUsuarios'] tr", has_text=email_prof).first.inner_text()
+    check("M. el administrativo crea un profesional con contraseña temporal", "Profesional" in fila and "Temporal" in fila)
+
+    estado, _, _ = http(B + "api/v1/turnos", email_prof, "Temporal.2026")
+    check("M. la contraseña temporal no sirve para la API REST (401)", estado == 401)
+    doc = login(br, email_prof, "perfil.xhtml", "Temporal.2026")
+    menu = doc.inner_text(".sidebar .nav")
+    check("M. con contraseña temporal, el primer ingreso va a Mi perfil y el menú sólo ofrece Mi perfil",
+          "Elegí tu contraseña para continuar" in doc.content() and "Agenda" not in menu and "Mi perfil" in menu)
+    doc.goto(B + "agenda.xhtml")
+    check("M. hasta cambiarla no puede entrar a otra pantalla", "perfil.xhtml" in doc.url)
+    doc.fill("#formPassword\\:actual", "Temporal.2026")
+    doc.fill("#formPassword\\:nueva", "corta")
+    doc.fill("#formPassword\\:repeticion", "corta")
+    doc.click("#formPassword button:has-text('Cambiar contraseña')")
+    doc.wait_for_load_state()
+    check("M. rechaza una contraseña nueva demasiado corta", "al menos 8" in mensaje(doc))
+    doc.fill("#formPassword\\:actual", "Temporal.2026")
+    doc.fill("#formPassword\\:nueva", "demo1234")
+    doc.fill("#formPassword\\:repeticion", "demo1234")
+    doc.click("#formPassword button:has-text('Cambiar contraseña')")
+    doc.wait_for_url("**/agenda.xhtml*")
+    check("M. tras cambiarla entra a su Agenda", "Publicar disponibilidad" in doc.content())
+    doc.goto(B + "perfil.xhtml")
+    check("M. Mi perfil muestra sus datos (sólo lectura) con la matrícula",
+          "MN %d" % sufijo in doc.content() and doc.locator("#formPassword\\:nueva").count() == 1
+          and doc.locator("input[value='%s']" % email_prof).count() == 0)
+    doc.context.close()
     br.close()
 
 consola(obraSocial="EN_LINEA", autorizaciones="APROBAR", pasarela="EN_LINEA", videoconsulta="EN_LINEA")

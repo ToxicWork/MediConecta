@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<!-- Plantilla de las pantallas sin sesión (login y registro): marca a la izquierda y la tarjeta a la derecha. -->
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="jakarta.faces.html"
+      xmlns:f="jakarta.faces.core"
+      xmlns:ui="jakarta.faces.facelets"
+      xmlns:p="http://primefaces.org/ui"
+      lang="es-AR" data-tema="#{temaBean.actual}">
+<h:head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>MediConecta - #{pageTitle}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+    <h:outputStylesheet library="css" name="mediconecta.css"/>
+    <h:outputScript library="js" name="tema.js" target="head"/>
+</h:head>
+<h:body>
+    <ui:insert name="metadata"/>
+    <div class="auth-shell">
+
+        <div class="auth-brand">
+            <span class="brand-mark">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21c-4.5-2.8-8-6.2-8-10.2A5.3 5.3 0 0 1 12 6a5.3 5.3 0 0 1 8 4.8c0 4-3.5 7.4-8 10.2Z"/><path d="M9 11h6M12 8v6"/></svg>
+            </span>
+            <h1>MediConecta</h1>
+            <p>La plataforma que conecta pacientes y profesionales de la salud: turnos presenciales y por telemedicina, cobertura de tu obra social, pagos e historia clínica, todo en un solo lugar.</p>
+        </div>
+
+        <div class="auth-panel">
+            <ui:include src="/WEB-INF/includes/selector-tema.xhtml"/>
+            <div class="auth-card">
+                <p:growl showDetail="false" life="7000"/>
+                <ui:insert name="content"/>
+            </div>
+        </div>
+    </div>
+</h:body>
+</html>

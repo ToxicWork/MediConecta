@@ -6,7 +6,7 @@ import jakarta.security.enterprise.identitystore.Pbkdf2PasswordHash;
 
 /**
  * Seguridad declarativa (Unidad III): la identidad se valida contra la tabla
- * {@code usuario} y los roles asignados (PACIENTE/PROFESIONAL) se propagan al
+ * {@code usuario} y los roles asignados (PACIENTE/PROFESIONAL/ADMINISTRATIVO) se propagan al
  * contexto de seguridad de los EJB, donde {@code ServicioDeHistoriaClinicaBean}
  * los exige con {@code @RolesAllowed}. El mecanismo de autenticación en sí
  * (cómo se valida el request HTTP) está en {@link MecanismoAutenticacion}.

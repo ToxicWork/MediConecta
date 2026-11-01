@@ -28,10 +28,8 @@ public class ReclamoObraSocialDAO {
                 .findFirst();
     }
 
-    public List<ReclamoObraSocial> buscarDeProfesional(Long profesionalId) {
-        return em.createQuery("SELECT r FROM ReclamoObraSocial r WHERE r.profesionalId = :id ORDER BY r.creadoEn DESC",
-                        ReclamoObraSocial.class)
-                .setParameter("id", profesionalId)
+    public List<ReclamoObraSocial> buscarTodos() {
+        return em.createQuery("SELECT r FROM ReclamoObraSocial r ORDER BY r.creadoEn DESC", ReclamoObraSocial.class)
                 .getResultList();
     }
 }

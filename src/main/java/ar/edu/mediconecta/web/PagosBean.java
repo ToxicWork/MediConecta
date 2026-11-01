@@ -13,7 +13,7 @@ import jakarta.inject.Named;
 import java.math.BigDecimal;
 import java.util.List;
 
-/** Pagos (pasarela REST) del paciente y, para el profesional, cobros y reclamos a obras sociales (Facturación). */
+/** Pagos (pasarela REST) del paciente y, para el administrativo, todos los cobros y reclamos a obras sociales. */
 @Named
 @RequestScoped
 public class PagosBean {
@@ -31,19 +31,20 @@ public class PagosBean {
     private List<ReclamoObraSocial> reclamos;
 
     public String verificarAcceso() {
-        return loginBean.getUsuarioActual() == null ? "login.xhtml?faces-redirect=true" : null;
+        return loginBean.exigirRol("PACIENTE", "ADMINISTRATIVO");
     }
 
     public List<Pago> getPagos() {
         if (pagos == null) {
-            pagos = servicioDePagos.pagosDelUsuarioActual();
+            pagos = loginBean.isAdministrativo() ? servicioDePagos.todosLosPagos()
+                    : loginBean.isPaciente() ? servicioDePagos.pagosDelUsuarioActual() : List.of();
         }
         return pagos;
     }
 
     public List<ReclamoObraSocial> getReclamos() {
         if (reclamos == null) {
-            reclamos = loginBean.isProfesional() ? servicioDeFacturacion.reclamosDelProfesionalActual() : List.of();
+            reclamos = loginBean.isAdministrativo() ? servicioDeFacturacion.todosLosReclamos() : List.of();
         }
         return reclamos;
     }

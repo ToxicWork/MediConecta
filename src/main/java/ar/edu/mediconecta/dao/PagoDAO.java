@@ -33,9 +33,8 @@ public class PagoDAO {
                 .getResultList();
     }
 
-    public List<Pago> buscarDeProfesional(Long profesionalId) {
-        return em.createQuery("SELECT p FROM Pago p WHERE p.profesionalId = :id ORDER BY p.creadoEn DESC", Pago.class)
-                .setParameter("id", profesionalId)
+    public List<Pago> buscarTodos() {
+        return em.createQuery("SELECT p FROM Pago p ORDER BY p.creadoEn DESC", Pago.class)
                 .getResultList();
     }
 }

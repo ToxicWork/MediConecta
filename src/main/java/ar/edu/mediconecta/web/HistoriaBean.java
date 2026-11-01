@@ -55,7 +55,7 @@ public class HistoriaBean implements Serializable {
     }
 
     public String verificarAcceso() {
-        return loginBean.getUsuarioActual() == null ? "login.xhtml?faces-redirect=true" : null;
+        return loginBean.exigirRol("PACIENTE", "PROFESIONAL");
     }
 
     public void cargarHistoriaDePaciente(Long id) {

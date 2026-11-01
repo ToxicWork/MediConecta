@@ -1,5 +1,6 @@
 package ar.edu.mediconecta.negocio.factory;
 
+import ar.edu.mediconecta.modelo.Administrativo;
 import ar.edu.mediconecta.modelo.Paciente;
 import ar.edu.mediconecta.modelo.Profesional;
 import ar.edu.mediconecta.modelo.Rol;
@@ -15,6 +16,7 @@ public class UsuarioFactory {
                     vacioANull(datos.obraSocial()), vacioANull(datos.nroAfiliado()));
             case PROFESIONAL -> new Profesional(datos.nombreCompleto(), datos.email(), passwordHasheado,
                     datos.matricula(), datos.especialidad());
+            case ADMINISTRATIVO -> new Administrativo(datos.nombreCompleto(), datos.email(), passwordHasheado);
         };
     }
 

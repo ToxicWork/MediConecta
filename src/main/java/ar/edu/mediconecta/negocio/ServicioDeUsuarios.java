@@ -12,7 +12,16 @@ import java.util.Optional;
 @Local
 public interface ServicioDeUsuarios {
 
-    Usuario registrar(Rol rol, DatosRegistro datos, String passwordPlano);
+    /** Registro público: siempre crea un paciente, sin importar lo que diga el pedido. */
+    Usuario registrarPaciente(DatosRegistro datos, String passwordPlano);
+
+    /** Alta hecha por un administrativo, de cualquier rol, con contraseña temporal (se cambia al primer ingreso). */
+    Usuario crearUsuario(Rol rol, DatosRegistro datos, String passwordTemporal);
+
+    /** Cambio de contraseña del usuario autenticado (sólo la propia). */
+    void cambiarMiPassword(String passwordActual, String passwordNueva, String repeticion);
+
+    List<Usuario> listarUsuarios();
 
     Optional<Usuario> buscarPorEmail(String email);
 

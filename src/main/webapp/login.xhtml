@@ -1,107 +1,36 @@
-<!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml"
-      xmlns:h="jakarta.faces.html"
-      xmlns:f="jakarta.faces.core"
-      xmlns:ui="jakarta.faces.facelets"
-      xmlns:p="http://primefaces.org/ui"
-      lang="es-AR" data-tema="#{temaBean.actual}">
-<h:head>
-    <meta charset="UTF-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>MediConecta - Ingreso</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com"/>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
-    <h:outputStylesheet library="css" name="mediconecta.css"/>
-    <h:outputScript library="js" name="tema.js" target="head"/>
-</h:head>
-<h:body>
-    <div class="auth-shell">
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:p="http://primefaces.org/ui"
+                template="/WEB-INF/templates/acceso.xhtml">
 
-        <div class="auth-brand">
-            <span class="brand-mark">
-                <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21c-4.5-2.8-8-6.2-8-10.2A5.3 5.3 0 0 1 12 6a5.3 5.3 0 0 1 8 4.8c0 4-3.5 7.4-8 10.2Z"/><path d="M9 11h6M12 8v6"/></svg>
-            </span>
-            <h1>MediConecta</h1>
-            <p>La plataforma que conecta pacientes y profesionales de la salud: turnos presenciales y por telemedicina, cobertura de tu obra social, pagos e historia clínica, todo en un solo lugar.</p>
-        </div>
+    <ui:param name="pageTitle" value="Ingreso"/>
 
-        <div class="auth-panel">
-            <ui:include src="/WEB-INF/includes/selector-tema.xhtml"/>
-            <div class="auth-card">
+    <ui:define name="metadata">
+        <f:metadata>
+            <f:viewAction action="#{loginBean.redirigirSiYaInicioSesion}"/>
+        </f:metadata>
+    </ui:define>
 
-                <p:growl showDetail="false"/>
+    <ui:define name="content">
+        <h2>Iniciar sesión</h2>
+        <p class="page-subtitle">Ingresá con tu email y contraseña.</p>
 
-                <h2>Iniciar sesión</h2>
-                <p class="page-subtitle">Ingresá con tu email y contraseña.</p>
-
-                <h:form id="formLogin">
-                    <div class="field">
-                        <label for="formLogin:email">Email</label>
-                        <p:inputText id="email" value="#{loginBean.email}"/>
-                    </div>
-                    <div class="field">
-                        <label for="formLogin:password">Contraseña</label>
-                        <p:password id="password" value="#{loginBean.password}" feedback="false"/>
-                    </div>
-                    <p:commandButton value="Ingresar" action="#{loginBean.login}" ajax="false" styleClass="btn btn-primary btn-block"/>
-                </h:form>
-
-                <div class="auth-divider">¿Sos nuevo en MediConecta? Registrate</div>
-
-                <h:form id="formRegistro">
-                    <div class="field">
-                        <label for="formRegistro:rol">Tipo de usuario</label>
-                        <h:selectOneMenu id="rol" value="#{loginBean.rolRegistro}">
-                            <f:selectItem itemLabel="Paciente" itemValue="PACIENTE"/>
-                            <f:selectItem itemLabel="Profesional" itemValue="PROFESIONAL"/>
-                            <f:ajax render="camposSegunRol"/>
-                        </h:selectOneMenu>
-                    </div>
-
-                    <div class="field">
-                        <label for="formRegistro:regNombre">Nombre completo</label>
-                        <p:inputText id="regNombre" value="#{loginBean.regNombreCompleto}" required="true" requiredMessage="Completá tu nombre"/>
-                    </div>
-
-                    <div class="field">
-                        <label for="formRegistro:regEmail">Email</label>
-                        <p:inputText id="regEmail" value="#{loginBean.regEmail}" required="true" requiredMessage="Completá tu email"/>
-                    </div>
-
-                    <div class="field">
-                        <label for="formRegistro:regPassword">Contraseña</label>
-                        <p:password id="regPassword" value="#{loginBean.regPassword}" feedback="false" required="true" requiredMessage="Elegí una contraseña"/>
-                    </div>
-
-                    <h:panelGroup id="camposSegunRol" layout="block">
-                        <h:panelGroup layout="block" styleClass="field-row" rendered="#{loginBean.rolRegistro eq 'PACIENTE'}">
-                            <div class="field">
-                                <label for="formRegistro:regObraSocial">Obra social</label>
-                                <p:inputText id="regObraSocial" value="#{loginBean.regObraSocial}" placeholder="Ej.: OSDE 210"/>
-                            </div>
-                            <div class="field">
-                                <label for="formRegistro:regNroAfiliado">N.º de afiliado</label>
-                                <p:inputText id="regNroAfiliado" value="#{loginBean.regNroAfiliado}"/>
-                            </div>
-                        </h:panelGroup>
-
-                        <h:panelGroup layout="block" styleClass="field-row" rendered="#{loginBean.rolRegistro eq 'PROFESIONAL'}">
-                            <div class="field">
-                                <label for="formRegistro:regMatricula">Matrícula</label>
-                                <p:inputText id="regMatricula" value="#{loginBean.regMatricula}"/>
-                            </div>
-                            <div class="field">
-                                <label for="formRegistro:regEspecialidad">Especialidad</label>
-                                <p:inputText id="regEspecialidad" value="#{loginBean.regEspecialidad}"/>
-                            </div>
-                        </h:panelGroup>
-                    </h:panelGroup>
-
-                    <p:commandButton value="Registrarme" action="#{loginBean.registrar}" ajax="false" styleClass="btn btn-secondary btn-block"/>
-                </h:form>
-
+        <h:form id="formLogin">
+            <div class="field">
+                <label for="formLogin:email">Email</label>
+                <p:inputText id="email" value="#{loginBean.email}" autocomplete="username"/>
             </div>
-        </div>
-    </div>
-</h:body>
-</html>
+            <div class="field">
+                <label for="formLogin:password">Contraseña</label>
+                <p:password id="password" value="#{loginBean.password}" feedback="false" autocomplete="current-password"/>
+            </div>
+            <p:commandButton value="Ingresar" action="#{loginBean.login}" ajax="false" styleClass="btn btn-primary btn-block"/>
+        </h:form>
+
+        <p class="auth-alternativa">
+            ¿No tenés cuenta?&#160;<h:link id="linkRegistro" outcome="/registro.xhtml" value="Registrate"/>
+        </p>
+    </ui:define>
+</ui:composition>

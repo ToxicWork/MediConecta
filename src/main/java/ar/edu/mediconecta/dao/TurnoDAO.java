@@ -101,6 +101,27 @@ public class TurnoDAO {
                 .getSingleResult() > 0;
     }
 
+    /**
+     * Vencimiento de la disponibilidad: borra los horarios publicados que nadie tomó y cuya fecha ya pasó.
+     * Sólo los DISPONIBLE: confirmados, cancelados y en espera son historial o están en uso. Por las dudas
+     * respeta las claves foráneas: si un horario libre quedó referenciado (por ejemplo, el pago compensado de
+     * una confirmación fallida), no se borra; igual nunca se ofrece porque {@link #buscarDisponibles} filtra
+     * por fecha.
+     *
+     * @return cantidad de horarios eliminados
+     */
+    public int eliminarDisponiblesVencidos(LocalDateTime ahora) {
+        return em.createQuery(
+                        "DELETE FROM Turno t WHERE t.estado = :estado AND t.fechaHora <= :ahora "
+                                + "AND NOT EXISTS (SELECT 1 FROM Pago p WHERE p.turno = t) "
+                                + "AND NOT EXISTS (SELECT 1 FROM SolicitudAutorizacion s WHERE s.turno = t) "
+                                + "AND NOT EXISTS (SELECT 1 FROM ReclamoObraSocial r WHERE r.turno = t) "
+                                + "AND NOT EXISTS (SELECT 1 FROM EntradaClinica e WHERE e.turno = t)")
+                .setParameter("estado", EstadoTurno.DISPONIBLE)
+                .setParameter("ahora", ahora)
+                .executeUpdate();
+    }
+
     public List<Turno> buscarHoldsVencidos(LocalDateTime ahora) {
         return em.createQuery(
                         "SELECT t FROM Turno t WHERE t.estado = :estado AND t.holdVenceEn IS NOT NULL "

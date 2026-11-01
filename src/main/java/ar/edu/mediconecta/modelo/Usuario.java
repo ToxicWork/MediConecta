@@ -38,6 +38,14 @@ public abstract class Usuario implements Serializable {
     @Column(name = "rol", nullable = false, length = 20)
     private Rol rol;
 
+    /**
+     * Contraseña temporal: la puso un administrativo (o es la del administrador por defecto) y el usuario
+     * tiene que reemplazarla en su primer ingreso. Opcional en la base para no romper los usuarios
+     * existentes ({@code hbm2ddl.auto=update}): {@code null} equivale a {@code false}.
+     */
+    @Column(name = "debe_cambiar_password")
+    private Boolean debeCambiarPassword;
+
     protected Usuario() {
     }
 
@@ -74,5 +82,20 @@ public abstract class Usuario implements Serializable {
 
     public Rol getRol() {
         return rol;
+    }
+
+    public boolean isDebeCambiarPassword() {
+        return Boolean.TRUE.equals(debeCambiarPassword);
+    }
+
+    /** La contraseña actual es temporal: el próximo ingreso obliga a cambiarla. */
+    public void exigirCambioDePassword() {
+        this.debeCambiarPassword = Boolean.TRUE;
+    }
+
+    /** Recibe el hash (nunca la contraseña en claro) y da por cumplido el cambio obligatorio. */
+    public void cambiarPassword(String passwordHasheado) {
+        this.password = passwordHasheado;
+        this.debeCambiarPassword = Boolean.FALSE;
     }
 }

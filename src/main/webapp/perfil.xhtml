@@ -1,0 +1,88 @@
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:p="http://primefaces.org/ui"
+                template="/WEB-INF/templates/layout.xhtml">
+
+    <ui:param name="pageTitle" value="Mi perfil"/>
+    <ui:param name="activePage" value="perfil"/>
+
+    <f:metadata>
+        <f:viewAction action="#{perfilBean.verificarAcceso}"/>
+    </f:metadata>
+
+    <ui:define name="content">
+        <h:panelGroup layout="block" styleClass="card accent-warning" rendered="#{loginBean.debeCambiarPassword}">
+            <div class="card-header">
+                <div>
+                    <h3>Elegí tu contraseña para continuar</h3>
+                    <div class="subtle">Ingresaste con una contraseña temporal. Cambiala para poder usar MediConecta.</div>
+                </div>
+                <span class="tag tag-warning">Contraseña temporal</span>
+            </div>
+        </h:panelGroup>
+
+        <p class="page-subtitle">Tus datos de MediConecta. Si alguno no es correcto, pedile a la administración que lo corrija.</p>
+
+        <div class="grid grid-2">
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <h3>Mis datos</h3>
+                        <div class="subtle">Sólo lectura</div>
+                    </div>
+                    <span class="tag tag-info">#{loginBean.usuarioActual.rol.etiqueta}</span>
+                </div>
+                <dl class="datos-perfil">
+                    <dt>Nombre</dt>
+                    <dd>#{loginBean.usuarioActual.nombreCompleto}</dd>
+                    <dt>Email</dt>
+                    <dd>#{loginBean.usuarioActual.email}</dd>
+                    <dt>Rol</dt>
+                    <dd>#{loginBean.usuarioActual.rol.etiqueta}</dd>
+                    <ui:fragment rendered="#{perfilBean.paciente != null}">
+                        <dt>Obra social</dt>
+                        <dd>#{empty perfilBean.paciente.obraSocial ? 'Sin obra social (particular)' : perfilBean.paciente.obraSocial}</dd>
+                        <dt>N.º de afiliado</dt>
+                        <dd>#{empty perfilBean.paciente.nroAfiliado ? '—' : perfilBean.paciente.nroAfiliado}</dd>
+                    </ui:fragment>
+                    <ui:fragment rendered="#{perfilBean.profesional != null}">
+                        <dt>Matrícula</dt>
+                        <dd>#{perfilBean.profesional.matricula}</dd>
+                        <dt>Especialidad</dt>
+                        <dd>#{perfilBean.profesional.especialidad}</dd>
+                    </ui:fragment>
+                </dl>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <h3>Cambiar contraseña</h3>
+                        <div class="subtle">Al menos #{perfilBean.longitudMinima} caracteres, distinta de la actual</div>
+                    </div>
+                </div>
+                <h:form id="formPassword">
+                    <div class="field">
+                        <label for="formPassword:actual">#{loginBean.debeCambiarPassword ? 'Contraseña temporal' : 'Contraseña actual'}</label>
+                        <p:password id="actual" value="#{perfilBean.actual}" feedback="false" autocomplete="current-password"
+                                    required="true" requiredMessage="Ingresá tu contraseña actual"/>
+                    </div>
+                    <div class="field">
+                        <label for="formPassword:nueva">Contraseña nueva</label>
+                        <p:password id="nueva" value="#{perfilBean.nueva}" feedback="false" autocomplete="new-password"
+                                    required="true" requiredMessage="Ingresá la contraseña nueva"/>
+                    </div>
+                    <div class="field">
+                        <label for="formPassword:repeticion">Repetí la contraseña nueva</label>
+                        <p:password id="repeticion" value="#{perfilBean.repeticion}" feedback="false" autocomplete="new-password"
+                                    required="true" requiredMessage="Repetí la contraseña nueva"/>
+                    </div>
+                    <p:commandButton id="btnCambiar" value="Cambiar contraseña" action="#{perfilBean.cambiarPassword}" ajax="false"
+                                     styleClass="btn btn-primary btn-block"/>
+                </h:form>
+            </div>
+        </div>
+    </ui:define>
+</ui:composition>

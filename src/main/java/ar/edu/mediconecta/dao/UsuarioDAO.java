@@ -34,6 +34,12 @@ public class UsuarioDAO {
         return total > 0;
     }
 
+    /** Para la pantalla Usuarios del administrativo: agrupados por rol y por nombre. */
+    public List<Usuario> listarTodos() {
+        return em.createQuery("SELECT u FROM Usuario u ORDER BY u.rol, u.nombreCompleto", Usuario.class)
+                .getResultList();
+    }
+
     public List<Profesional> listarProfesionales() {
         return em.createQuery("SELECT p FROM Profesional p ORDER BY p.nombreCompleto", Profesional.class)
                 .getResultList();

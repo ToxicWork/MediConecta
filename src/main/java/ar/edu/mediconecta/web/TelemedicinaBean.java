@@ -24,7 +24,7 @@ public class TelemedicinaBean {
     private List<Turno> turnos;
 
     public String verificarAcceso() {
-        return loginBean.getUsuarioActual() == null ? "login.xhtml?faces-redirect=true" : null;
+        return loginBean.exigirRol("PACIENTE", "PROFESIONAL");
     }
 
     public List<Turno> getTurnos() {

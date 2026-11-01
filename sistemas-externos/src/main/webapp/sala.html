@@ -19,6 +19,7 @@
   footer { padding:14px 22px; border-top:1px solid #1e293b; display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
   button { border:0; border-radius:22px; padding:10px 18px; font-weight:700; cursor:pointer; background:#1f2937; color:#e2e8f0; }
   button.colgar { background:#dc2626; }
+  button.activa { background:#e2e8f0; color:#0b1120; }
   .nota { color:#94a3b8; font-size:12px; text-align:center; padding:0 22px 12px; }
 </style>
 </head>
@@ -33,7 +34,7 @@
 </main>
 <footer>
   <button id="camara">Activar cámara</button>
-  <button class="colgar" onclick="window.close()">Salir</button>
+  <button class="colgar" id="salir">Salir</button>
 </footer>
 <div class="nota">Sala provista por el proveedor externo de videoconsulta (simulado). MediConecta la creó por REST y sólo guarda el enlace.</div>
 <script>
@@ -48,18 +49,48 @@
     const yo = rol === 'profesional' ? sala.profesional : sala.paciente;
     const otro = rol === 'profesional' ? sala.paciente : sala.profesional;
     document.getElementById('nombreLocal').textContent = (yo || 'Vos') + ' (vos)';
-    document.getElementById('avatarLocal').textContent = inicial(yo);
+    avatarLocal.textContent = inicial(yo);   // aunque la cámara ya esté encendida y el avatar no esté en pantalla
     document.getElementById('nombreRemoto').textContent = otro || 'Participante';
     document.getElementById('avatarRemoto').textContent = inicial(otro);
   }).catch(() => { document.getElementById('estado').textContent = 'Sala inexistente'; });
-  document.getElementById('camara').addEventListener('click', async () => {
+  // Cámara: el mismo botón la activa y la desactiva (paciente y profesional usan esta misma sala).
+  // Al desactivarla se detienen las pistas del stream, así el navegador apaga la luz de la cámara.
+  const botonCamara = document.getElementById('camara');
+  const avatarLocal = document.getElementById('avatarLocal');
+  let stream = null;
+  let ocupado = false;
+
+  function apagarCamara() {
+    if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+    const video = document.querySelector('#local video');
+    if (video) { video.srcObject = null; video.replaceWith(avatarLocal); }
+    botonCamara.textContent = 'Activar cámara';
+    botonCamara.classList.remove('activa');
+    botonCamara.setAttribute('aria-pressed', 'false');
+  }
+
+  async function encenderCamara() {
+    stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+    const v = document.createElement('video'); v.autoplay = true; v.muted = true; v.playsInline = true; v.srcObject = stream;
+    avatarLocal.replaceWith(v);
+    botonCamara.textContent = 'Desactivar cámara';
+    botonCamara.classList.add('activa');
+    botonCamara.setAttribute('aria-pressed', 'true');
+  }
+
+  botonCamara.setAttribute('aria-pressed', 'false');
+  botonCamara.addEventListener('click', async () => {
+    if (ocupado) return;           // evita dobles clics mientras el navegador pide permiso
+    ocupado = true;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-      const v = document.createElement('video'); v.autoplay = true; v.muted = true; v.playsInline = true; v.srcObject = stream;
-      const local = document.getElementById('local');
-      local.querySelector('.avatar').replaceWith(v);
-    } catch (e) { document.getElementById('camara').textContent = 'Cámara no disponible'; }
+      if (stream) { apagarCamara(); } else { await encenderCamara(); }
+    } catch (e) {
+      apagarCamara();
+      botonCamara.textContent = 'Cámara no disponible · reintentar';
+    } finally { ocupado = false; }
   });
+  window.addEventListener('pagehide', apagarCamara);
+  document.getElementById('salir').addEventListener('click', () => { apagarCamara(); window.close(); });
 </script>
 </body>
 </html>

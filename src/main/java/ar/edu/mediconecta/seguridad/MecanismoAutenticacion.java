@@ -99,12 +99,17 @@ public class MecanismoAutenticacion implements HttpAuthenticationMechanism {
         if (partes.length == 2) {
             CredentialValidationResult result = identityStoreHandler.validate(
                     new UsernamePasswordCredential(partes[0], partes[1]));
-            if (result.getStatus() == CredentialValidationResult.Status.VALID) {
+            // Una contraseña temporal no sirve para la API: primero hay que cambiarla desde "Mi perfil".
+            if (result.getStatus() == CredentialValidationResult.Status.VALID && !tieneContrasenaTemporal(partes[0])) {
                 return httpMessageContext.notifyContainerAboutLogin(result);
             }
         }
         response.setHeader("WWW-Authenticate", "Basic realm=\"MediConecta API\"");
         return httpMessageContext.responseUnauthorized();
+    }
+
+    private boolean tieneContrasenaTemporal(String email) {
+        return servicioDeUsuarios.buscarPorEmail(email).map(Usuario::isDebeCambiarPassword).orElse(false);
     }
 
     private static boolean esApi(HttpServletRequest request) {

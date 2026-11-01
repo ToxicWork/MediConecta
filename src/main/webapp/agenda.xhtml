@@ -13,6 +13,8 @@
     </f:metadata>
 
     <ui:define name="content">
+        <!-- Textos del calendario (meses, días, "Hoy", "Borrar") en español. -->
+        <h:outputScript library="primefaces" name="locales/locale-es.js" target="head"/>
 
         <h:panelGroup layout="block" rendered="#{loginBean.paciente}">
             <p class="page-subtitle">Buscá disponibilidad, reservá tu turno y confirmalo: consultamos tu cobertura a la obra social y, si corresponde, cobramos el copago.</p>
@@ -258,15 +260,18 @@
                     <div class="card-header">
                         <div>
                             <h3>Publicar disponibilidad</h3>
-                            <div class="subtle">Formato: dd/mm/aaaa hh:mm</div>
+                            <div class="subtle">Elegí el día en el calendario y después la hora</div>
                         </div>
                     </div>
                     <h:form id="formPublicar">
                         <div class="field">
-                            <label for="formPublicar:fecha">Fecha y hora</label>
-                            <p:inputText id="fecha" value="#{agendaBean.nuevaFechaHora}" placeholder="dd/mm/aaaa hh:mm">
-                                <f:convertDateTime pattern="dd/MM/yyyy HH:mm" type="localDateTime"/>
-                            </p:inputText>
+                            <label for="formPublicar:fecha_input">Fecha y hora</label>
+                            <p:datePicker id="fecha" value="#{agendaBean.nuevaFechaHora}" showTime="true" hourFormat="24"
+                                          stepMinute="5" pattern="dd/MM/yyyy HH:mm" locale="es" mindate="#{agendaBean.hoy}"
+                                          showIcon="true" showButtonBar="true" placeholder="Elegí fecha y hora"
+                                          styleClass="selector-fecha" appendTo="@(body)"
+                                          required="true" requiredMessage="Elegí la fecha y la hora del turno"
+                                          converterMessage="Elegí una fecha y hora válidas (dd/mm/aaaa hh:mm)"/>
                         </div>
                         <div class="field">
                             <label for="formPublicar:modalidad">Modalidad</label>

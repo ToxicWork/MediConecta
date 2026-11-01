@@ -1,0 +1,64 @@
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:p="http://primefaces.org/ui"
+                template="/WEB-INF/templates/acceso.xhtml">
+
+    <ui:param name="pageTitle" value="Registro"/>
+
+    <ui:define name="metadata">
+        <f:metadata>
+            <f:viewAction action="#{registroBean.verificarAcceso}"/>
+        </f:metadata>
+    </ui:define>
+
+    <ui:define name="content">
+        <h2>Crear cuenta de paciente</h2>
+        <p class="page-subtitle">Registrate para buscar turnos, pagarlos y ver tu historia clínica.</p>
+
+        <h:form id="formRegistro">
+            <div class="field">
+                <label for="formRegistro:nombre">Nombre completo</label>
+                <p:inputText id="nombre" value="#{registroBean.nombreCompleto}" autocomplete="name"
+                             required="true" requiredMessage="Completá tu nombre"/>
+            </div>
+            <div class="field">
+                <label for="formRegistro:email">Email</label>
+                <p:inputText id="email" value="#{registroBean.email}" type="email" autocomplete="email"
+                             required="true" requiredMessage="Completá tu email"/>
+            </div>
+            <div class="field-row">
+                <div class="field">
+                    <label for="formRegistro:password">Contraseña</label>
+                    <p:password id="password" value="#{registroBean.password}" feedback="false" autocomplete="new-password"
+                                required="true" requiredMessage="Elegí una contraseña"/>
+                </div>
+                <div class="field">
+                    <label for="formRegistro:repeticion">Repetila</label>
+                    <p:password id="repeticion" value="#{registroBean.repeticion}" feedback="false" autocomplete="new-password"
+                                required="true" requiredMessage="Repetí la contraseña"/>
+                </div>
+            </div>
+            <div class="field-row">
+                <div class="field">
+                    <label for="formRegistro:obraSocial">Obra social <span class="texto-tenue">(opcional)</span></label>
+                    <p:inputText id="obraSocial" value="#{registroBean.obraSocial}" placeholder="Ej.: OSDE 210"/>
+                </div>
+                <div class="field">
+                    <label for="formRegistro:nroAfiliado">N.º de afiliado</label>
+                    <p:inputText id="nroAfiliado" value="#{registroBean.nroAfiliado}"/>
+                </div>
+            </div>
+            <p class="hint">La contraseña tiene que tener al menos 8 caracteres.</p>
+            <p:commandButton value="Registrarme" action="#{registroBean.registrar}" ajax="false" styleClass="btn btn-primary btn-block"/>
+        </h:form>
+
+        <p class="auth-alternativa">
+            ¿Ya tenés cuenta?&#160;<h:link id="linkLogin" outcome="/login.xhtml" value="Iniciá sesión"/>
+        </p>
+        <p class="auth-nota">
+            ¿Sos profesional o parte del equipo administrativo? Pedile tu usuario a la administración del centro.
+        </p>
+    </ui:define>
+</ui:composition>

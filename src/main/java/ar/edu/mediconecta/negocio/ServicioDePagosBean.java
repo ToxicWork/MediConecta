@@ -7,7 +7,6 @@ import ar.edu.mediconecta.integracion.pagos.PedidoCobro;
 import ar.edu.mediconecta.integracion.pagos.ResultadoCobro;
 import ar.edu.mediconecta.integracion.resiliencia.IntegracionNoDisponibleException;
 import ar.edu.mediconecta.modelo.Pago;
-import ar.edu.mediconecta.modelo.Paciente;
 import ar.edu.mediconecta.modelo.Turno;
 import ar.edu.mediconecta.modelo.Usuario;
 import ar.edu.mediconecta.negocio.dto.DatosPago;
@@ -33,7 +32,7 @@ import java.util.Set;
 import java.util.logging.Logger;
 
 @Stateless
-@DeclareRoles({"PACIENTE", "PROFESIONAL", "SISTEMA"})
+@DeclareRoles({"PACIENTE", "ADMINISTRATIVO", "SISTEMA"})
 public class ServicioDePagosBean implements ServicioDePagos {
 
     private static final Logger LOG = Logger.getLogger(ServicioDePagosBean.class.getName());
@@ -108,14 +107,17 @@ public class ServicioDePagosBean implements ServicioDePagos {
         pago.get().marcarReembolsado(motivo);
     }
 
+    /** Titularidad: el paciente sólo ve sus propios pagos (se resuelve con el principal autenticado). */
     @Override
-    @RolesAllowed({"PACIENTE", "PROFESIONAL"})
+    @RolesAllowed("PACIENTE")
     public List<Pago> pagosDelUsuarioActual() {
         Usuario usuario = usuarioDAO.buscarPorEmail(contexto.getCallerPrincipal().getName()).orElse(null);
-        if (usuario == null) {
-            return List.of();
-        }
-        return usuario instanceof Paciente ? pagoDAO.buscarDePaciente(usuario.getId())
-                : pagoDAO.buscarDeProfesional(usuario.getId());
+        return usuario == null ? List.of() : pagoDAO.buscarDePaciente(usuario.getId());
+    }
+
+    @Override
+    @RolesAllowed("ADMINISTRATIVO")
+    public List<Pago> todosLosPagos() {
+        return pagoDAO.buscarTodos();
     }
 }
