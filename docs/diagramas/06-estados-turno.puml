@@ -9,6 +9,7 @@ HOLD --> CONFIRMADO : confirmar()\n[PACIENTE] cobertura SOAP + cobro REST\n/ enc
 HOLD --> DISPONIBLE : liberar()\n(paciente, @StatefulTimeout + @PreDestroy\no LiberadorDeHolds @Schedule)
 CONFIRMADO --> CANCELADO : cancelar()\n[PACIENTE titular] / publica TURNO_CANCELADO\ny republica el horario como turno nuevo
 CANCELADO --> [*]
+DISPONIBLE --> [*] : se vence (fecha pasada, nadie lo reservó)\n/ VencedorDeDisponibilidad @Schedule lo elimina
 
 state CONFIRMADO {
   state "Autorización" as AUT

@@ -1,56 +1,78 @@
 @startuml 07-casos-de-uso
 !include _estilo.iuml
-title MediConecta — Casos de uso (Entrega Obligatoria N.º 2)
+title MediConecta — Casos de uso (Entrega Obligatoria N.º 2, actualizado en noviembre de 2026)
 left to right direction
 
 actor Paciente
 actor Profesional
+actor Administrativo
+actor "Partner externo\n(API REST)" as PAR
 actor "Obra social\n(legado SOAP)" as OS
 actor "Pasarela de pago\n(REST)" as PG
 actor "Proveedor de video\n(REST)" as VID
-actor "Partner externo\n(API REST)" as PAR
+actor "Temporizador\ndel contenedor" as TIMER
 
-rectangle MediConecta {
-  usecase "Registrarse" as UC1
-  usecase "Iniciar / cerrar sesión" as UC2
-  usecase "Buscar disponibilidad" as UC4
-  usecase "Reservar turno (hold 5 min)" as UC5
-  usecase "Confirmar turno" as UC6
-  usecase "Cancelar turno" as UC7
-  usecase "Publicar disponibilidad" as UC3
-  usecase "Cargar diagnóstico / receta" as UC11
-  usecase "Consultar historia clínica" as UC10
-  usecase "Ver notificaciones" as UC9
-  usecase "Notificar cambio de turno\n(asincrónico)" as UC8
-  usecase "Monitorear eventos\ne integraciones" as UC12
-  usecase "Validar cobertura" as UC13
-  usecase "Pagar copago o\nturno particular" as UC14
-  usecase "Autorizar prestación\n(asincrónico, cola)" as UC15
-  usecase "Facturar y reintegrar\n(asincrónico)" as UC16
-  usecase "Realizar teleconsulta" as UC17
-  usecase "Consultar turnos por API" as UC18
-  usecase "Elegir tema visual" as UC19
+rectangle "MediConecta" {
+  package "Mi cuenta" {
+    usecase "Registrarse\n(sólo pacientes)" as UC1
+    usecase "Iniciar / cerrar sesión" as UC2
+    usecase "Cambiar la contraseña\ntemporal (1.er ingreso)" as UC21
+    usecase "Ver mi perfil y\ncambiar mi contraseña" as UC20
+    usecase "Elegir tema visual" as UC19
+  }
+  package "Atención" {
+    usecase "Publicar disponibilidad\n(calendario)" as UC3
+    usecase "Buscar disponibilidad" as UC4
+    usecase "Reservar turno (hold 5 min)" as UC5
+    usecase "Confirmar turno" as UC6
+    usecase "Pagar copago o\nturno particular" as UC14
+    usecase "Cancelar turno" as UC7
+    usecase "Consultar historia clínica" as UC10
+    usecase "Cargar diagnóstico / receta" as UC11
+    usecase "Realizar teleconsulta\n(cámara on/off)" as UC17
+    usecase "Ver notificaciones" as UC9
+    usecase "Ver mis pagos" as UC12
+  }
+  package "Administración" {
+    usecase "Dar de alta usuarios\n(paciente, profesional,\nadministrativo)" as UC22
+    usecase "Consultar todos los pagos\ny reclamos a obras sociales" as UC23
+  }
+  package "Procesos automáticos" {
+    usecase "Validar cobertura" as UC13
+    usecase "Autorizar prestación\n(asincrónico, cola)" as UC15
+    usecase "Notificar cambio de turno\n(asincrónico)" as UC8
+    usecase "Facturar y reintegrar\n(asincrónico)" as UC16
+    usecase "Vencer disponibilidad\nno reservada" as UC24
+    usecase "Consultar turnos por API" as UC18
+  }
 }
 
 Paciente --> UC1
 Paciente --> UC2
+Paciente --> UC20
+Paciente --> UC19
 Paciente --> UC4
 Paciente --> UC5
 Paciente --> UC6
 Paciente --> UC7
-Paciente --> UC9
 Paciente --> UC10
-Paciente --> UC12
 Paciente --> UC17
-Paciente --> UC19
+Paciente --> UC9
+Paciente --> UC12
 Profesional --> UC2
+Profesional --> UC20
 Profesional --> UC3
-Profesional --> UC11
 Profesional --> UC10
+Profesional --> UC11
 Profesional --> UC17
-Profesional --> UC19
+Administrativo --> UC2
+Administrativo --> UC20
+Administrativo --> UC22
+Administrativo --> UC23
 PAR --> UC18
+UC24 <-- TIMER
 
+UC21 .> UC2 : <<extend>>\n[contraseña temporal]
 UC6 .> UC5 : <<include>>
 UC6 .> UC13 : <<include>>
 UC14 .> UC6 : <<extend>>\n[importe a cargo > 0]

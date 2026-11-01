@@ -56,12 +56,27 @@ El script exporta `JAVA_HOME` a OpenJDK 21 (`/opt/homebrew/opt/openjdk@21/...`) 
 `WILDFLY_HOME=~/Downloads/wildfly-41.0.1.Final`; ambas se pueden pisar por variable de entorno.
 Se fija la 21 (LTS soportada por WildFly 41) en vez de la 25 que ya estaba instalada en el sistema.
 
-Usuarios de demo ya cargados en Supabase (contraseña `demo1234` en ambos):
+Usuarios de demo ya cargados en Supabase (contraseña `demo1234` en los tres):
 
 | Rol | Email | Datos |
 | --- | --- | --- |
-| Profesional | `ana.lopez@mediconecta.test` | MN 12345 · Cardiología · disponibilidad 17/09/2026 11:30 |
+| Profesional | `ana.lopez@mediconecta.test` | MN 12345 · Cardiología |
 | Paciente | `juan.perez@mediconecta.test` | OSDE 210 (la obra social simulada cubre el 70 %, copago del 30 %) |
+| Administrativo | `carla.admin@mediconecta.test` | Pagos (todos los cobros y reclamos) y Usuarios. Lo usa `pruebas/prueba_entrega4.py` |
+
+**Administrador por defecto.** Al desplegar, `InicializadorDeAdministrador` crea
+`admin@mediconecta.test` si no existe, con la contraseña inicial **`Admin.2026`**, marcada como temporal:
+el primer ingreso lleva a "Mi perfil" y obliga a cambiarla antes de usar cualquier otra pantalla (y la API
+la rechaza mientras tanto). Para otra contraseña inicial: `-Dmediconecta.admin.password=...` al levantar
+WildFly. Con ese usuario (o con cualquier administrativo) se dan de alta profesionales y otros
+administrativos desde **Usuarios**: el registro público (`/registro.xhtml`) sólo crea pacientes.
+
+> **Rol Administrativo (noviembre 2026):** en una base que ya existía hay que correr una vez
+> `sql/01-rol-administrativo.sql` (Supabase > SQL Editor; en la base del grupo ya se aplicó el 1/11/2026).
+> Hibernate creó la tabla `usuario` con restricciones `CHECK` que sólo aceptan PACIENTE y PROFESIONAL, y
+> `hbm2ddl.auto=update` no las modifica: sin el script, el alta de un administrativo falla con
+> `violates check constraint usuario_rol_check`. La columna nueva `debe_cambiar_password` la agrega
+> Hibernate solo.
 
 Tarjetas de la pasarela de prueba: `4111 1111 1111 1111` se aprueba; `4000 0000 0000 0002` se
 rechaza por fondos insuficientes; terminada en `0069`, tarjeta vencida. Cualquier vencimiento futuro
@@ -183,18 +198,28 @@ El build de MediConecta genera el cliente SOAP con wsimport (`jaxws-maven-plugin
 
 ## 4. Uso
 
-- `/login.xhtml` — registro (elige Paciente o Profesional) y login. Tiene botón "Cerrar sesión" en
-  `/agenda.xhtml` para poder probar con distintos usuarios sin mezclar sesiones.
-- `/agenda.xhtml` — el profesional publica disponibilidad (`dd/mm/aaaa hh:mm`); el paciente busca,
-  reserva un hold (5 min, bean `@Stateful`) y confirma. Páginas accesibles solo autenticado (redirige
-  a `/login.xhtml` si no hay sesión, vía `f:viewAction` + `MecanismoAutenticacion`).
+- `/login.xhtml` — login; con "¿No tenés cuenta? Registrate" lleva a `/registro.xhtml`, que **sólo crea
+  pacientes** (`ServicioDeUsuarios.registrarPaciente`, `@PermitAll`, no recibe el rol). Con la sesión ya
+  iniciada, login y registro mandan a la página de inicio; para cambiar de usuario, "Cerrar sesión" en el
+  menú lateral.
+- `/perfil.xhtml` — "Mi perfil" (todos los roles): datos de sólo lectura y cambio de la propia contraseña.
+  Con contraseña temporal es la única pantalla disponible hasta cambiarla.
+- `/usuarios.xhtml` — (administrativo) alta de pacientes, profesionales y administrativos con contraseña
+  temporal, y listado (`@RolesAllowed("ADMINISTRATIVO")`).
+- `/agenda.xhtml` — el profesional publica disponibilidad eligiendo día y hora en un calendario
+  (`p:datePicker`); el paciente busca, reserva un hold (5 min, bean `@Stateful`) y confirma. La
+  disponibilidad que nadie reservó se vence sola: el timer `VencedorDeDisponibilidad` (cada minuto) borra
+  los horarios libres cuya fecha ya pasó. Páginas accesibles solo autenticado (redirige a
+  `/login.xhtml` si no hay sesión, vía `f:viewAction` + `MecanismoAutenticacion`) y con el rol que
+  corresponde (`LoginBean.exigirRol`; si no, vuelve a la página de inicio del rol).
 - `/historia.xhtml` — el profesional carga diagnósticos/recetas sobre pacientes con turno
   confirmado (protegido con `@RolesAllowed("PROFESIONAL")` a nivel EJB); el paciente ve
   (solo lectura) su propia historia.
-- `/pagos.xhtml` — pagos del paciente (pasarela REST) y, para el profesional, cobros y reclamos a
-  obras sociales generados por Facturación.
+- `/pagos.xhtml` — pagos del paciente (pasarela REST) y, para el administrativo, todos los cobros y los
+  reclamos a obras sociales generados por Facturación (`@RolesAllowed("ADMINISTRATIVO")`). El profesional
+  no tiene esta solapa. El administrativo accede a Pagos, Usuarios y Mi perfil.
 - `/telemedicina.xhtml` — teleconsultas confirmadas: el profesional crea la sala por REST y el paciente
-  se une con su enlace.
+  se une con su enlace. En la sala, el botón activa y desactiva la cámara.
 - `/api/v1/...` — API REST (ver `docs/api/README.md`).
 - `/notificaciones.xhtml` — bandeja de notificaciones. Al confirmar o cancelar un turno,
   `ServicioDeTurnos` publica un `EventoTurno` en `topico.turnos`; dos MDB suscriptos de forma
@@ -231,9 +256,9 @@ ad-hoc a partir del `CallerPrincipalCallback`/`GroupPrincipalCallback` que emite
 ## Pruebas
 
 ```bash
-mvn package                        # 26 pruebas unitarias
+mvn package                        # 34 pruebas unitarias
 pip install playwright             # una sola vez; usa el Google Chrome instalado
-python pruebas/prueba_entrega4.py  # 25 verificaciones de la Entrega Obligatoria N.º 2
+python pruebas/prueba_entrega4.py  # 40 verificaciones de la Entrega Obligatoria N.º 2
 python pruebas/prueba_e2e.py       # 13 verificaciones del recorrido básico
 ```
 

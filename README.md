@@ -59,6 +59,18 @@ real, sobre el broker ActiveMQ Artemis embebido en WildFly (perfil `standalone-f
   tarjeta nunca se guarda.
 - **Temas visuales** estándar, claro y oscuro (opcional del anexo), alternables en tiempo real.
 - Pantallas nuevas: Pagos y Telemedicina.
+- **Ajustes posteriores (noviembre 2026):**
+  - rol **Administrativo**: ve Pagos (todos los cobros y reclamos; el profesional deja de tener esa
+    solapa) y **Usuarios** (alta de pacientes, profesionales y administrativos con contraseña temporal);
+  - **registro aparte y sólo de pacientes** (`registro.xhtml`, enlace "¿No tenés cuenta? Registrate");
+  - **Mi perfil** para todos (datos de sólo lectura y cambio de contraseña) y **cambio obligatorio** de
+    la contraseña temporal en el primer ingreso;
+  - **administrador por defecto** (`admin@mediconecta.test`) que se crea al desplegar;
+  - calendario de fecha y hora para publicar disponibilidad, **vencimiento automático** de la
+    disponibilidad no reservada (timer del contenedor) y cámara que se activa y desactiva en la
+    videoconsulta.
+
+  Requiere correr `sql/01-rol-administrativo.sql` una vez en la base (ver `SETUP.md`).
 - **Sistemas externos simulados** (`sistemas-externos/`, se despliega como `externos.war`): la obra
   social (SOAP), la pasarela y la videoconsulta (REST), con una consola para tirarlos abajo en vivo.
 
@@ -72,7 +84,7 @@ real, sobre el broker ActiveMQ Artemis embebido en WildFly (perfil `standalone-f
   probables de la defensa oral.
 - [`docs/api/README.md`](docs/api/README.md): contratos SOAP y REST con ejemplos para probarlos.
 - [`docs/manual/MediConecta_Manual_de_Usuario.pdf`](docs/manual/MediConecta_Manual_de_Usuario.pdf):
-  manual de usuario (versión 0.3, con pagos, teleconsultas y temas).
+  manual de usuario (versión 0.4: pagos, teleconsultas, temas, Mi perfil y el rol administrativo).
 - [`docs/diagramas/`](docs/diagramas/): diagramas de la solución (PlantUML + PNG), incluidos los de
   secuencia de cada integración.
 - [`docs/documento-tecnico/MediConecta_Documento_Tecnico_Entrega2.pdf`](docs/documento-tecnico/MediConecta_Documento_Tecnico_Entrega2.pdf),
@@ -84,13 +96,13 @@ real, sobre el broker ActiveMQ Artemis embebido en WildFly (perfil `standalone-f
 
 ## Pruebas
 
-- Unitarias (JUnit 5): `mvn package` corre 26 pruebas de los patrones (State, Strategy, Chain of
-  Responsibility, Circuit Breaker, Retry, Builder, catálogo, selector).
+- Unitarias (JUnit 5): `mvn package` corre 34 pruebas de los patrones (State, Strategy, Chain of
+  Responsibility, Circuit Breaker, Retry, Builder, Factory, política de contraseñas, catálogo, selector).
 - De punta a punta con navegador real (requieren `pip install playwright` y Google Chrome, con la app
   desplegada):
-  - [`pruebas/prueba_entrega4.py`](pruebas/prueba_entrega4.py): 25 verificaciones de esta entrega
+  - [`pruebas/prueba_entrega4.py`](pruebas/prueba_entrega4.py): 40 verificaciones de esta entrega
     (SOAP, API REST, pago rechazado y aprobado, cola, legado caído, cancelación con reintegro,
-    telemedicina, auditoría y temas).
+    telemedicina, auditoría, temas, roles y alta de usuarios con contraseña temporal).
   - [`pruebas/prueba_e2e.py`](pruebas/prueba_e2e.py): 13 verificaciones del recorrido básico.
 
 ## Declaración de uso de inteligencia artificial generativa

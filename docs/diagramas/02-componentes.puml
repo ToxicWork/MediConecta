@@ -1,6 +1,6 @@
 @startuml 02-componentes
 !include _estilo.iuml
-title MediConecta — Componentes e interfaces (Entrega Obligatoria N.º 2)
+title MediConecta — Componentes e interfaces (Entrega Obligatoria N.º 2, actualizado en noviembre de 2026)
 left to right direction
 
 package "Presentación" {
@@ -8,7 +8,7 @@ package "Presentación" {
   [HistoriaBean] as HB
   [PagosBean] as PB
   [TelemedicinaBean] as TB
-  [MonitorBean / IntegracionesBean] as MB
+  [LoginBean / RegistroBean\nPerfilBean / UsuariosBean] as UB
   [TemaBean + tema.js] as TEMA
   [API REST /api/v1\nProfesionalesResource\nTurnosResource] as API
 }
@@ -21,7 +21,7 @@ package "Negocio (EJB)" {
   interface ServicioDePagos as I_SP
   interface ServicioDeTelemedicina as I_STM
   interface ServicioDeFacturacion as I_SF
-  interface ServicioDeMonitoreo as I_SM
+  interface ServicioDeUsuarios as I_SU
   [ServicioDeTurnosBean\n<<Stateful>>] as ST
   [ProcesoConfirmacionTurno\n<<Stateless>>] as PCT
   [ServicioDeAgendaBean\n<<Stateless>>] as SA
@@ -30,11 +30,14 @@ package "Negocio (EJB)" {
   [ServicioDePagosBean\n<<Stateless>>] as SP
   [ServicioDeTelemedicinaBean\n<<Stateless>>] as STM
   [ServicioDeFacturacionBean\n<<Stateless>>] as SF
-  [ServicioDeMonitoreoBean\n<<Stateless>>] as SM
+  [ServicioDeUsuariosBean\n<<Stateless>>] as SU
+  [UsuarioFactory\n(Factory)] as UF
   [CatalogoPrestaciones\n<<Singleton>>] as CAT
   [CadenaDeValidacion\n(Chain of Responsibility)] as CV
   [SelectorCalculoCopago\n(Strategy)] as CC
   [LiberadorDeHolds\n<<Singleton>> @Schedule] as LH
+  [VencedorDeDisponibilidad\n<<Singleton>> @Schedule] as VD
+  [InicializadorDeAdministrador\n<<Singleton>> @Startup] as IA
 }
 
 package "Integración" {
@@ -68,7 +71,7 @@ SOS -up- I_SOS
 SP -up- I_SP
 STM -up- I_STM
 SF -up- I_SF
-SM -up- I_SM
+SU -up- I_SU
 A_OS -up- G_OS
 A_PG -up- G_PG
 A_VID -up- G_VID
@@ -78,7 +81,7 @@ HB ..> I_SHC
 PB ..> I_SP
 PB ..> I_SF
 TB ..> I_STM
-MB ..> I_SM
+UB ..> I_SU
 API ..> I_SA
 
 ST --> PCT
@@ -99,5 +102,8 @@ AC --> I_SOS
 AC --> PUB
 FS --> I_SF
 SF --> I_SP
+SU --> UF
+IA --> UF
+SEC ..> I_SU : rol y contraseña temporal
 SHC ..> INT : interceptado
 @enduml

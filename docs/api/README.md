@@ -22,11 +22,13 @@ curl http://localhost:8080/mediconecta/api/v1/profesionales/20/disponibilidad
 curl -i http://localhost:8080/mediconecta/api/v1/turnos                                   # 401 + WWW-Authenticate
 curl -u juan.perez@mediconecta.test:demo1234 http://localhost:8080/mediconecta/api/v1/turnos
 curl -u juan.perez@mediconecta.test:demo1234 http://localhost:8080/mediconecta/api/v1/turnos/999999   # 404
+curl -i -u carla.admin@mediconecta.test:demo1234 http://localhost:8080/mediconecta/api/v1/turnos      # 403: el rol ADMINISTRATIVO no usa la API
 ```
 
 Implementación: `ar.edu.mediconecta.api` (`ProfesionalesResource`, `TurnosResource`: EJB `@Stateless`
 con `@PermitAll` / `@RolesAllowed`; `EnsambladorApi`; `MapeadorDeExcepciones`). La autenticación Basic
-está en `seguridad.MecanismoAutenticacion`.
+está en `seguridad.MecanismoAutenticacion`. Un usuario con **contraseña temporal** (creado por un
+administrativo y que todavía no la cambió en "Mi perfil") recibe 401 aunque la contraseña sea correcta.
 
 ## 2. Obra social — sistema legado SOAP (MediConecta es cliente)
 

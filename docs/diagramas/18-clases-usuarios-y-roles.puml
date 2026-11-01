@@ -1,0 +1,82 @@
+@startuml 18-clases-usuarios-y-roles
+!include _estilo.iuml
+title Usuarios, roles y vencimientos (ajustes de noviembre de 2026)
+skinparam classAttributeIconSize 0
+hide empty members
+left to right direction
+
+package "Factory: alta de usuarios por rol" #EEF3FF {
+  abstract class Usuario <<Product>> {
+    -rol: Rol
+    -debeCambiarPassword: Boolean
+    +isDebeCambiarPassword(): boolean
+    +exigirCambioDePassword()
+    +cambiarPassword(hash)
+  }
+  class Paciente
+  class Profesional
+  class Administrativo
+  enum Rol {
+    PACIENTE
+    PROFESIONAL
+    ADMINISTRATIVO
+  }
+  class UsuarioFactory <<Factory>> {
+    +crear(Rol, DatosRegistro, hash): Usuario
+  }
+  Usuario <|-- Paciente
+  Usuario <|-- Profesional
+  Usuario <|-- Administrativo
+  Usuario --> Rol
+  UsuarioFactory ..> Usuario : <<create>>
+}
+
+package "Seguridad declarativa" #FFF8EC {
+  interface ServicioDeUsuarios <<Local>>
+  class ServicioDeUsuariosBean <<Stateless>> {
+    +registrarPaciente(datos, pass) @PermitAll
+    +crearUsuario(rol, datos, temporal) @RolesAllowed(ADMINISTRATIVO)
+    +cambiarMiPassword(actual, nueva, rep) @RolesAllowed(todos)
+    +listarUsuarios() @RolesAllowed(ADMINISTRATIVO)
+  }
+  class PoliticaDeContrasenas <<utility>> {
+    {static} +validar(pass)
+    {static} +validarCambio(actual, nueva, rep)
+  }
+  class ServicioDePagosBean <<Stateless>> {
+    +pagosDelUsuarioActual() @RolesAllowed(PACIENTE)
+    +todosLosPagos() @RolesAllowed(ADMINISTRATIVO)
+  }
+  class ServicioDeFacturacionBean <<Stateless>> {
+    +todosLosReclamos() @RolesAllowed(ADMINISTRATIVO)
+  }
+  class LoginBean <<SessionScoped>> {
+    +exigirRol(roles...): String
+    +exigirSesion(): String
+  }
+  class MecanismoAutenticacion <<HttpAuthenticationMechanism>>
+  ServicioDeUsuarios <|.. ServicioDeUsuariosBean
+  ServicioDeUsuariosBean --> UsuarioFactory
+  ServicioDeUsuariosBean ..> PoliticaDeContrasenas
+  LoginBean ..> ServicioDeUsuarios : rol y contraseña temporal
+  MecanismoAutenticacion ..> ServicioDeUsuarios : API: rechaza\ncontraseña temporal
+}
+
+package "Timers y arranque del contenedor" #E5F7EC {
+  class VencedorDeDisponibilidad <<Singleton>> {
+    +eliminarVencidos() @Schedule(cada minuto)
+  }
+  class LiberadorDeHolds <<Singleton>> {
+    +liberarVencidos() @Schedule(cada minuto)
+  }
+  class InicializadorDeAdministrador <<Singleton>> {
+    +asegurarAdministrador() @Startup @PostConstruct (BMT)
+  }
+  class TurnoDAO <<DAO>> {
+    +eliminarDisponiblesVencidos(ahora): int
+  }
+  VencedorDeDisponibilidad --> TurnoDAO
+  LiberadorDeHolds --> TurnoDAO
+  InicializadorDeAdministrador --> UsuarioFactory : admin@mediconecta.test\n(contraseña temporal)
+}
+@enduml

@@ -45,6 +45,10 @@
   .captura.media img { width: 44%; margin: 0 auto; }
   .captura .pie-foto { font-size: 9pt; color: #6b7280; margin-top: 0.12cm; line-height: 1.4; }
   .captura.media .pie-foto { width: 44%; margin-left: auto; margin-right: auto; }
+  .captura.chica img { width: 30%; margin: 0 auto; }
+  .captura.chica .pie-foto { width: 60%; margin-left: auto; margin-right: auto; text-align: center; }
+  .captura.compacta img { width: 36%; margin: 0 auto; }
+  .captura.compacta .pie-foto { width: 60%; margin-left: auto; margin-right: auto; text-align: center; }
 
   /* Recuadros */
   .nota { border-radius: 6px; padding: 7pt 11pt; margin: 0.15cm 0 0.4cm 0; page-break-inside: avoid; line-height: 1.5; }
@@ -56,7 +60,7 @@
   .tip .t { color: #2247c0; }
 
   .indice { margin-top: 0.4cm; }
-  .indice div { display: flex; padding: 5pt 0; border-bottom: 0.5pt solid #e6e9f2; font-size: 11pt; }
+  .indice div { display: flex; padding: 3.6pt 0; border-bottom: 0.5pt solid #e6e9f2; font-size: 11pt; }
   .indice .n { width: 1cm; color: #2f5fe0; font-weight: 700; }
   .indice a { color: #1f2a44; text-decoration: none; flex: 1; }
   .indice a::after { content: none; }
@@ -78,9 +82,9 @@
 <section class="portada">
   <div class="marca">MEDICONECTA</div>
   <div class="titulo">Manual de<br>usuario</div>
-  <div class="sub">Cómo sacar, pagar y cancelar turnos, hacer una teleconsulta, publicar tus horarios y llevar la historia clínica, paso a paso.</div>
+  <div class="sub">Cómo sacar, pagar y cancelar turnos, hacer una teleconsulta, publicar tus horarios, llevar la historia clínica y administrar usuarios y pagos, paso a paso.</div>
   <div class="pie">
-    <b>Versión 0.3 · noviembre de 2026</b><br>
+    <b>Versión 0.4 · noviembre de 2026</b><br>
     Trabajo Práctico: Desarrollo de Aplicaciones II · UADE · Comisión Lunes TT<br>
     Grupo 4: Agustín Bodas, Máximo Bonarrico y Sergio Casanova
   </div>
@@ -90,46 +94,49 @@
   <h1>Antes de empezar</h1>
   <div class="bajada">Qué es MediConecta, para quién es y qué vas a encontrar en este manual.</div>
 
-  <p>MediConecta junta en un mismo lugar a pacientes y profesionales de la salud. Si sos paciente, la usás para buscar un horario con tu médico, presencial o por videoconsulta; ver al instante cuánto te cubre tu obra social y cuánto pagás vos; pagarlo con tarjeta y, si después no podés ir, cancelarlo y recibir el reintegro. Si sos profesional, publicás los horarios en los que atendés, hacés tus teleconsultas, seguís tus cobros y los reclamos a las obras sociales, y llevás la historia clínica de tus pacientes: diagnósticos y recetas, con fecha y firma.</p>
+  <p>MediConecta junta en un mismo lugar a pacientes y profesionales de la salud. Si sos paciente, la usás para buscar un horario con tu médico, presencial o por videoconsulta; ver al instante cuánto te cubre tu obra social y cuánto pagás vos; pagarlo con tarjeta y, si después no podés ir, cancelarlo y recibir el reintegro. Si sos profesional, publicás los horarios en los que atendés, hacés tus teleconsultas y llevás la historia clínica de tus pacientes: diagnósticos y recetas, con fecha y firma. Si sos parte del equipo administrativo del centro, seguís todos los cobros y los reclamos a las obras sociales, y das de alta a los profesionales, a otros administrativos y, si hace falta, a pacientes.</p>
 
   <p>No hace falta instalar nada. Alcanza con un navegador actualizado (Chrome, Firefox, Edge o Safari) en una computadora, una tablet o un celular. En pantallas chicas el menú de la izquierda pasa arriba y se desliza de costado, y las tablas anchas se pueden correr con el dedo.</p>
 
-  <p>El manual está ordenado según quién lo lea. Los dos primeros capítulos son para todos; después hay uno para pacientes y otro para profesionales, y al final un capítulo con las situaciones que más dudas generan. No hace falta leerlo de corrido: buscá lo que necesitás en el índice.</p>
+  <p>El manual está ordenado según quién lo lea. Los tres primeros capítulos son para todos; después hay uno para pacientes, otro para profesionales y otro para el equipo administrativo, y al final un capítulo con las situaciones que más dudas generan. No hace falta leerlo de corrido: buscá lo que necesitás en el índice.</p>
 
   <div class="indice">
     <div><span class="n">1</span><a href="#cap-cuenta">Crear tu cuenta</a><span class="pag" data-para="cap-cuenta"></span></div>
     <div><span class="n">2</span><a href="#cap-entrar">Entrar, salir y moverte por la aplicación</a><span class="pag" data-para="cap-entrar"></span></div>
-    <div><span class="n">3</span><a href="#cap-paciente">Si sos paciente</a><span class="pag" data-para="cap-paciente"></span></div>
-    <div><span class="n">4</span><a href="#cap-profesional">Si sos profesional</a><span class="pag" data-para="cap-profesional"></span></div>
-    <div><span class="n">5</span><a href="#cap-tele">Teleconsultas</a><span class="pag" data-para="cap-tele"></span></div>
-    <div><span class="n">6</span><a href="#cap-pagos">Pagos, reintegros y facturación</a><span class="pag" data-para="cap-pagos"></span></div>
-    <div><span class="n">7</span><a href="#cap-avisos">Tus avisos: notificaciones, monitor e integraciones</a><span class="pag" data-para="cap-avisos"></span></div>
-    <div><span class="n">8</span><a href="#cap-temas">Elegir cómo se ve: los tres temas</a><span class="pag" data-para="cap-temas"></span></div>
-    <div><span class="n">9</span><a href="#cap-faq">¿Qué hago si…?</a><span class="pag" data-para="cap-faq"></span></div>
-    <div><span class="n">10</span><a href="#cap-falta">Lo que todavía no hace</a><span class="pag" data-para="cap-falta"></span></div>
+    <div><span class="n">3</span><a href="#cap-perfil">Mi perfil y tu contraseña</a><span class="pag" data-para="cap-perfil"></span></div>
+    <div><span class="n">4</span><a href="#cap-paciente">Si sos paciente</a><span class="pag" data-para="cap-paciente"></span></div>
+    <div><span class="n">5</span><a href="#cap-profesional">Si sos profesional</a><span class="pag" data-para="cap-profesional"></span></div>
+    <div><span class="n">6</span><a href="#cap-administrativo">Si sos administrativo</a><span class="pag" data-para="cap-administrativo"></span></div>
+    <div><span class="n">7</span><a href="#cap-tele">Teleconsultas</a><span class="pag" data-para="cap-tele"></span></div>
+    <div><span class="n">8</span><a href="#cap-pagos">Pagos y reintegros</a><span class="pag" data-para="cap-pagos"></span></div>
+    <div><span class="n">9</span><a href="#cap-avisos">Tus avisos: las notificaciones</a><span class="pag" data-para="cap-avisos"></span></div>
+    <div><span class="n">10</span><a href="#cap-temas">Elegir cómo se ve: los tres temas</a><span class="pag" data-para="cap-temas"></span></div>
+    <div><span class="n">11</span><a href="#cap-faq">¿Qué hago si…?</a><span class="pag" data-para="cap-faq"></span></div>
+    <div><span class="n">12</span><a href="#cap-falta">Lo que todavía no hace</a><span class="pag" data-para="cap-falta"></span></div>
   </div>
 
-  <div class="nota tip" style="margin-top:0.6cm;"><p><span class="t">Para probarla.</span>Si querés recorrer la aplicación sin crear cuentas, hay dos usuarios de demostración: el paciente <span class="mono">juan.perez@mediconecta.test</span> y la profesional <span class="mono">ana.lopez@mediconecta.test</span>. La contraseña de los dos es <span class="mono">demo1234</span>. Todos los ejemplos de este manual están hechos con ellos. Para pagar, la pasarela de prueba aprueba la tarjeta <span class="mono">4111 1111 1111 1111</span> (cualquier vencimiento futuro y código) y rechaza la <span class="mono">4000 0000 0000 0002</span>.</p></div>
+  <div class="nota tip" style="margin-top:0.3cm;"><p><span class="t">Para probarla.</span>Hay tres usuarios de demostración: el paciente <span class="mono">juan.perez@mediconecta.test</span>, la profesional <span class="mono">ana.lopez@mediconecta.test</span> y la administrativa <span class="mono">carla.admin@mediconecta.test</span>. La contraseña de los tres es <span class="mono">demo1234</span>. Los ejemplos de este manual están hechos con ellos. La pasarela de prueba aprueba la tarjeta <span class="mono">4111 1111 1111 1111</span> y rechaza la <span class="mono">4000 0000 0000 0002</span>.</p></div>
 </section>
 
 <section class="capitulo">
   <div class="num-cap">Capítulo 1</div>
   <h1 id="cap-cuenta">Crear tu cuenta</h1>
-  <div class="bajada">Un solo formulario, y unos datos más si sos profesional.</div>
+  <div class="bajada">Los pacientes se registran solos; a profesionales y administrativos los da de alta el centro.</div>
 
-  <p>El registro está en la misma pantalla de inicio, debajo de donde dice “¿Sos nuevo en MediConecta? Registrate”. Lo primero que te pide es qué tipo de usuario sos, y eso importa: según lo que elijas, el formulario cambia. Un paciente carga su obra social; un profesional, su matrícula y su especialidad.</p>
+  <p>Si sos paciente, en la pantalla de inicio tocá <b>Registrate</b>, abajo de donde dice “¿No tenés cuenta?”. Se abre la pantalla “Crear cuenta de paciente”.</p>
 
-  <div class="captura media">
+  <div class="captura chica">
     <img src="img/m02-registro.jpg">
-    <div class="pie-foto">El formulario con “Profesional” elegido: aparecen los campos de matrícula y especialidad.</div>
+    <div class="pie-foto">El formulario de registro: sólo crea cuentas de paciente.</div>
   </div>
 
   <ol class="pasos">
-    <li>Elegí <b>Paciente</b> o <b>Profesional</b> en “Tipo de usuario”.</li>
-    <li>Completá tu nombre, tu email y una contraseña. Los tres son obligatorios; si falta alguno, la aplicación te avisa cuál.</li>
-    <li>Si sos paciente, escribí tu obra social y tu plan (por ejemplo, “OSDE 210”) y tu número de afiliado. Con esos datos MediConecta le consulta a tu obra social si te cubre cada turno. Si no tenés obra social, dejalo vacío: tus turnos se abonan como particular. Si sos profesional, cargá tu matrícula y tu especialidad: los pacientes te van a buscar por ese nombre y esa especialidad.</li>
-    <li>Tocá <b>Registrarme</b>. Si todo salió bien, ya podés entrar con tu email y tu contraseña.</li>
+    <li>Completá tu nombre, tu email y una contraseña de al menos 8 caracteres, y repetila. Si falta algo o las contraseñas no coinciden, la aplicación te avisa.</li>
+    <li>Escribí tu obra social y tu plan (por ejemplo, “OSDE 210”) y tu número de afiliado. Con esos datos MediConecta le consulta a tu obra social si te cubre cada turno. Si no tenés obra social, dejalo vacío: tus turnos se abonan como particular.</li>
+    <li>Tocá <b>Registrarme</b>. Si todo salió bien, volvés a la pantalla de inicio con el aviso “Registro exitoso” y ya podés entrar con tu email y tu contraseña.</li>
   </ol>
+
+  <p>Si sos <b>profesional</b> o parte del <b>equipo administrativo</b>, no te registrás desde acá: tu usuario lo crea un administrativo del centro (capítulo 6), que te pasa tu email y una contraseña temporal. La primera vez que entres te va a pedir que elijas tu propia contraseña (capítulo 3).</p>
 
   <div class="nota ojo"><p><span class="t">Ojo.</span>Cada email se puede usar una sola vez. Si te dice que ya está registrado, probablemente ya tenés una cuenta: intentá entrar con ese email.</p></div>
 </section>
@@ -137,27 +144,64 @@
 <section class="capitulo">
   <div class="num-cap">Capítulo 2</div>
   <h1 id="cap-entrar">Entrar, salir y moverte por la aplicación</h1>
-  <div class="bajada">El menú de la izquierda es el mismo para todos; lo que cambia es lo que ves adentro.</div>
+  <div class="bajada">El menú de la izquierda muestra sólo lo que corresponde a tu rol.</div>
 
   <p>Para entrar, escribí tu email y tu contraseña en “Iniciar sesión” y tocá <b>Ingresar</b>. Si alguno de los dos está mal, aparece un cartel rojo que dice “Credenciales inválidas” y podés volver a intentar. Por seguridad, el cartel no te dice cuál de los dos datos falló.</p>
 
-  <div class="captura media">
+  <div class="captura compacta">
     <img src="img/m01-login.jpg">
-    <div class="pie-foto">La pantalla de inicio. Arriba a la derecha está el selector de tema.</div>
+    <div class="pie-foto">La pantalla de inicio. Arriba a la derecha está el selector de tema; abajo, el enlace para registrarte.</div>
   </div>
 
-  <div class="captura media">
+  <div class="captura compacta">
     <img src="img/m12-login-error.jpg">
     <div class="pie-foto">Lo que ves si te equivocás de contraseña.</div>
   </div>
 
-  <p>Una vez adentro, a la izquierda tenés el menú en dos grupos. En <b>Atención</b> están <b>Agenda</b>, <b>Historia Clínica</b>, <b>Telemedicina</b>, <b>Pagos</b> y <b>Notificaciones</b>; al lado de Notificaciones aparece un número cuando tenés avisos sin leer. En <b>Integración</b> están el <b>Monitor de eventos</b> y el panel de <b>Integraciones</b>, que muestran lo que pasa “por detrás” (capítulo 7). Abajo de todo están tu nombre, tu rol y el botón <b>Cerrar sesión</b>. Arriba a la derecha, en todas las pantallas, está el selector de tema: <b>Estándar</b>, <b>Claro</b> u <b>Oscuro</b> (capítulo 8).</p>
+  <p>Una vez adentro, a la izquierda tenés el menú. Lo que aparece depende de tu rol:</p>
+
+  <ul class="lista">
+    <li><b>Paciente</b>: en “Atención”, <b>Agenda</b>, <b>Historia Clínica</b>, <b>Telemedicina</b>, <b>Pagos</b> y <b>Notificaciones</b>.</li>
+    <li><b>Profesional</b>: <b>Agenda</b>, <b>Historia Clínica</b>, <b>Telemedicina</b> y <b>Notificaciones</b>.</li>
+    <li><b>Administrativo</b>: en “Administración”, <b>Pagos</b> y <b>Usuarios</b>.</li>
+  </ul>
+
+  <p>Todos tienen además, en “Mi cuenta”, <b>Mi perfil</b> (capítulo 3). Al lado de Notificaciones aparece un número cuando tenés avisos sin leer. Abajo de todo están tu nombre y tu rol (tocándolos también llegás a Mi perfil) y el botón <b>Cerrar sesión</b>. Arriba a la derecha, en todas las pantallas, está el selector de tema: <b>Estándar</b>, <b>Claro</b> u <b>Oscuro</b> (capítulo 10). Si intentás abrir una pantalla que no es de tu rol (por ejemplo, escribiendo la dirección a mano), MediConecta te lleva a tu pantalla de inicio.</p>
 
   <div class="nota tip"><p><span class="t">Un consejo.</span>Si usás una computadora compartida (la de un consultorio, la de una biblioteca), cerrá siempre la sesión al terminar. Tu historia clínica es información sensible y nadie más debería poder verla.</p></div>
 </section>
 
 <section class="capitulo">
   <div class="num-cap">Capítulo 3</div>
+  <h1 id="cap-perfil">Mi perfil y tu contraseña</h1>
+  <div class="bajada">Tus datos, a la vista, y el cambio de contraseña cuando quieras.</div>
+
+  <p>En <b>Mi perfil</b> ves los datos con los que estás registrado: tu nombre, tu email y tu rol; si sos paciente, tu obra social y tu número de afiliado, y si sos profesional, tu matrícula y tu especialidad. Son de sólo lectura: si alguno no es correcto, pedile a la administración del centro que lo corrija.</p>
+
+  <div class="captura">
+    <img src="img/m23-perfil.jpg">
+    <div class="pie-foto">Mi perfil de Juan: sus datos a la izquierda y el cambio de contraseña a la derecha.</div>
+  </div>
+
+  <ol class="pasos">
+    <li>En “Cambiar contraseña”, escribí tu contraseña actual.</li>
+    <li>Escribí la nueva (al menos 8 caracteres y distinta de la actual) y repetila.</li>
+    <li>Tocá <b>Cambiar contraseña</b>. Vas a ver el aviso “Cambiaste tu contraseña”; la sesión sigue abierta y la próxima vez entrás con la nueva.</li>
+  </ol>
+
+  <h2>Si te dieron una contraseña temporal</h2>
+  <p>Cuando un administrativo crea tu usuario, te pasa una contraseña temporal. La primera vez que entres con ella, MediConecta te lleva directo a Mi perfil con el aviso “Elegí tu contraseña para continuar”, y el menú sólo te ofrece esa pantalla. Escribí la contraseña temporal en el primer campo, elegí la tuya y tocá <b>Cambiar contraseña</b>: desde ese momento entrás a tu pantalla de inicio y ya podés usar todo.</p>
+
+  <div class="captura">
+    <img src="img/m25-contrasena-temporal.jpg">
+    <div class="pie-foto">El primer ingreso del administrador por defecto, que todavía tiene la contraseña temporal.</div>
+  </div>
+
+  <div class="nota ojo"><p><span class="t">Ojo.</span>Mientras tengas la contraseña temporal no vas a poder usar nada más, ni siquiera la API para sistemas externos. Es para que nadie más que vos conozca tu contraseña definitiva.</p></div>
+</section>
+
+<section class="capitulo">
+  <div class="num-cap">Capítulo 4</div>
   <h1 id="cap-paciente">Si sos paciente</h1>
   <div class="bajada">Buscar un horario, reservarlo, confirmarlo y, si hace falta, cancelarlo.</div>
 
@@ -215,19 +259,21 @@
 </section>
 
 <section class="capitulo">
-  <div class="num-cap">Capítulo 4</div>
+  <div class="num-cap">Capítulo 5</div>
   <h1 id="cap-profesional">Si sos profesional</h1>
   <div class="bajada">Publicar tus horarios y llevar la historia clínica de tus pacientes.</div>
 
   <h2>Publicar tus horarios</h2>
-  <p>Cuando entrás, la <b>Agenda</b> te muestra dos recuadros. En “Publicar disponibilidad” escribí el día y la hora en el formato <span class="mono">dd/mm/aaaa hh:mm</span>, por ejemplo <span class="mono">20/11/2026 10:00</span>, elegí la <b>modalidad</b> (presencial o telemedicina) y tocá <b>Publicar</b>. Ese horario aparece enseguida en la lista de los pacientes que te busquen. En “Turnos confirmados” ves los turnos que ya te reservaron, con el paciente, la modalidad, la cobertura y el estado de la autorización de la obra social.</p>
+  <p>Cuando entrás, la <b>Agenda</b> te muestra dos recuadros. En “Publicar disponibilidad” tocá el campo “Fecha y hora” o el botón del calendario que está a su derecha: se abre un calendario del mes. Elegí el día (los días que ya pasaron no se pueden elegir) y, abajo, la hora y los minutos con las flechas (los minutos van de cinco en cinco). El botón <b>Ahora</b> pone la fecha y la hora actuales y <b>Limpiar</b> borra lo elegido. Después elegí la <b>modalidad</b> (presencial o telemedicina) y tocá <b>Publicar</b>. Ese horario aparece enseguida en la lista de los pacientes que te busquen. En “Turnos confirmados” ves los turnos que ya te reservaron, con el paciente, la modalidad, la cobertura y el estado de la autorización de la obra social.</p>
 
   <div class="captura">
     <img src="img/m06-profesional-publicar.jpg">
-    <div class="pie-foto">La agenda del lado del profesional: los turnos que le confirmaron y el formulario para publicar.</div>
+    <div class="pie-foto">La agenda del lado del profesional, con el calendario abierto para elegir el día y la hora.</div>
   </div>
 
   <p>Cada horario se publica de a uno, y tiene que ser una fecha futura. Si atendés toda una mañana cada media hora, vas a tener que cargarlos uno por uno; es algo que queremos mejorar.</p>
+
+  <div class="nota tip"><p><span class="t">Los horarios se vencen solos.</span>Si un horario que publicaste llega a su fecha y hora sin que ningún paciente lo haya reservado, MediConecta lo saca de tu agenda automáticamente. No tenés que borrarlo vos, y ningún paciente va a ver horarios que ya pasaron.</p></div>
 
   <h2>Cargar diagnósticos y recetas</h2>
   <p>Entrá a <b>Historia Clínica</b>. Arriba, en “Seleccionar paciente”, aparecen los pacientes que tienen un turno confirmado con vos, con la fecha del turno. Elegí uno y tocá <b>Ver historia</b>.</p>
@@ -248,7 +294,47 @@
 </section>
 
 <section class="capitulo">
-  <div class="num-cap">Capítulo 5</div>
+  <div class="num-cap">Capítulo 6</div>
+  <h1 id="cap-administrativo">Si sos administrativo</h1>
+  <div class="bajada">Los cobros y reclamos de todo el centro, y el alta de usuarios.</div>
+
+  <p>Al entrar vas directo a <b>Pagos</b>. Tu menú tiene dos pantallas de trabajo, <b>Pagos</b> y <b>Usuarios</b>, además de Mi perfil. No ves la agenda, la historia clínica ni las teleconsultas: son información de los pacientes y de los profesionales.</p>
+
+  <h2>Pagos y reclamos a obras sociales</h2>
+  <p>En <b>Pagos</b> ves los cobros a pacientes de todos los profesionales: la fecha, el turno (con el paciente y el profesional), el importe, la tarjeta (sólo la marca y los últimos cuatro dígitos), el estado y el identificador en la pasarela de pagos. Arriba hay un resumen: cuántos pagos hay, cuánto está cobrado, cuánto se reintegró y cuánto queda por reclamar a las obras sociales.</p>
+
+  <div class="captura">
+    <img src="img/m18-administrativo-pagos.jpg" style="max-height:15cm;">
+    <div class="pie-foto">Lo que ve el administrativo en Pagos: el resumen y los cobros de todos los profesionales.</div>
+  </div>
+
+  <p>Más abajo están los <b>reclamos a obras sociales</b>: cada vez que una obra social autoriza un turno, MediConecta genera el reclamo por la parte que le corresponde pagar, con el paciente, el profesional, la prestación y el código de autorización. Si el paciente cancela, el reclamo pasa a “Anulado”.</p>
+
+  <div class="captura">
+    <img src="img/m26-administrativo-reclamos.jpg">
+    <div class="pie-foto">Los reclamos generados por las autorizaciones de OSDE; los anulados corresponden a turnos cancelados.</div>
+  </div>
+
+  <h2>Dar de alta usuarios</h2>
+  <p>En <b>Usuarios</b> das de alta a los profesionales del centro, a otros administrativos y, si un paciente lo necesita, también a pacientes (aunque ellos pueden registrarse solos). A la derecha está la lista de todos los usuarios, con su rol y si todavía tienen la contraseña temporal.</p>
+
+  <div class="captura">
+    <img src="img/m24-usuarios.jpg">
+    <div class="pie-foto">El alta de una profesional: rol, datos, contraseña temporal, matrícula y especialidad.</div>
+  </div>
+
+  <ol class="pasos">
+    <li>Elegí el <b>Rol</b>: Paciente, Profesional o Administrativo. Según el rol aparecen los datos que le corresponden.</li>
+    <li>Completá el nombre, el email y una <b>contraseña temporal</b> de al menos 8 caracteres. Para un profesional, la matrícula y la especialidad son obligatorias; para un paciente, la obra social y el número de afiliado son opcionales.</li>
+    <li>Tocá <b>Crear usuario</b>. El usuario aparece en la lista con la contraseña “Temporal”.</li>
+    <li>Pasale a la persona su email y la contraseña temporal. La primera vez que entre va a tener que elegir la suya (capítulo 3); en la lista pasa a figurar como “Propia”.</li>
+  </ol>
+
+  <div class="nota tip"><p><span class="t">El primer administrador.</span>Al instalar MediConecta se crea solo un administrador, <span class="mono">admin@mediconecta.test</span>, con una contraseña inicial que figura en la guía de instalación y que hay que cambiar en el primer ingreso. Con él se dan de alta los demás.</p></div>
+</section>
+
+<section class="capitulo">
+  <div class="num-cap">Capítulo 7</div>
   <h1 id="cap-tele">Teleconsultas</h1>
   <div class="bajada">La consulta por video, sin salir de casa.</div>
 
@@ -257,7 +343,7 @@
   <ol class="pasos">
     <li>El día de la consulta, el profesional entra a <b>Telemedicina</b> y toca <b>Iniciar videoconsulta</b>. MediConecta crea la sala en el servicio de videoconsulta y le muestra el botón <b>Entrar a la sala</b>.</li>
     <li>El paciente, en su pantalla de Telemedicina, ve que la sala está abierta y toca <b>Unirme a la consulta</b>. Si todavía dice “Esperando que el profesional abra la sala”, no hace falta recargar: se actualiza sola.</li>
-    <li>La sala se abre en una pestaña nueva. Cada uno puede activar su cámara.</li>
+    <li>La sala se abre en una pestaña nueva. Cada uno puede tocar <b>Activar cámara</b> (el navegador te pide permiso la primera vez). El mismo botón pasa a decir <b>Desactivar cámara</b>: tocándolo se apaga tu cámara y vuelve a verse tu inicial. Al tocar <b>Salir</b> o cerrar la pestaña, la cámara se apaga sola.</li>
   </ol>
 
   <div class="captura">
@@ -267,14 +353,14 @@
 
   <div class="captura media">
     <img src="img/m16-sala-videoconsulta.jpg">
-    <div class="pie-foto">La sala de videoconsulta, provista por el servicio externo.</div>
+    <div class="pie-foto">La sala de videoconsulta, provista por el servicio externo, con el botón para activar o desactivar la cámara.</div>
   </div>
 </section>
 
 <section class="capitulo">
-  <div class="num-cap">Capítulo 6</div>
-  <h1 id="cap-pagos">Pagos, reintegros y facturación</h1>
-  <div class="bajada">Todo lo que se cobró, se devolvió o se le reclama a una obra social.</div>
+  <div class="num-cap">Capítulo 8</div>
+  <h1 id="cap-pagos">Pagos y reintegros</h1>
+  <div class="bajada">Todo lo que pagaste y lo que se te devolvió.</div>
 
   <p>Si sos paciente, en <b>Pagos</b> ves cada pago que hiciste: la fecha, el turno, el importe, la tarjeta (sólo la marca y los últimos cuatro dígitos) y su estado. “Aprobado” es un pago vigente; “Reembolsado” es un pago que se te devolvió, porque cancelaste el turno o porque la confirmación no se completó. En ese segundo caso el turno no se confirma y el dinero vuelve solo: no tenés que reclamar nada.</p>
 
@@ -283,17 +369,12 @@
     <div class="pie-foto">Los pagos de Juan: copagos aprobados y uno reembolsado por una cancelación.</div>
   </div>
 
-  <p>Si sos profesional, en <b>Pagos</b> ves los cobros a tus pacientes y, más abajo, los <b>reclamos a obras sociales</b>: cada vez que una obra social autoriza un turno tuyo, MediConecta genera el reclamo por la parte que le corresponde pagar, con el código de autorización. Si el paciente cancela, el reclamo pasa a “Anulado”.</p>
-
-  <div class="captura">
-    <img src="img/m18-profesional-pagos.jpg">
-    <div class="pie-foto">Lo que ve la Dra. López: sus cobros, lo que le van a pagar las obras sociales y los reclamos generados.</div>
-  </div>
+  <p>Los cobros de todos los profesionales y los reclamos a las obras sociales los sigue el equipo administrativo del centro (capítulo 6); los profesionales no tienen la sección Pagos.</p>
 </section>
 
 <section class="capitulo">
-  <div class="num-cap">Capítulo 7</div>
-  <h1 id="cap-avisos">Tus avisos: notificaciones, monitor e integraciones</h1>
+  <div class="num-cap">Capítulo 9</div>
+  <h1 id="cap-avisos">Tus avisos: las notificaciones</h1>
   <div class="bajada">Cómo te enterás de lo que pasa con tus turnos, sin tener que estar recargando la página.</div>
 
   <h2>Notificaciones</h2>
@@ -308,29 +389,11 @@
 
   <div class="nota tip"><p><span class="t">Sobre el email.</span>En esta versión el correo todavía no sale a tu casilla: el aviso queda registrado y lo ves en la bandeja con la etiqueta “Email”. Conectar el envío real es uno de los próximos pasos.</p></div>
 
-  <h2>Monitor de eventos</h2>
-  <p>El <b>Monitor de eventos</b> es la pantalla más técnica de la aplicación, pero vale la pena conocerla. Cada vez que algo pasa con uno de tus turnos, el sistema genera un “evento” que procesan tres servicios por separado: el que arma las notificaciones, el que deja registro de cada cambio (la auditoría) y el de facturación. El monitor te muestra, para cada evento, si cada servicio ya lo procesó y cuánto tardó, en milisegundos. Facturación sólo se ocupa de las autorizaciones y las cancelaciones; en el resto de los eventos dice “no aplica”.</p>
-
-  <p>Más abajo está la <b>cola de autorizaciones</b>: cada pedido de autorización que se le hizo a tu obra social, si sigue “En cola” o ya fue “Autorizada” o “Rechazada”, con el código que dio la obra social.</p>
-
-  <div class="captura">
-    <img src="img/m19-monitor-cola.jpg">
-    <div class="pie-foto">Los eventos de los turnos de Juan, procesados por los tres servicios, y la cola de autorizaciones.</div>
-  </div>
-
-  <p>Lo normal es ver todo en verde, con un tilde y unos pocos cientos de milisegundos. Si alguno dice <b>Pendiente</b> o “En cola”, significa que ese servicio, o la obra social, todavía no lo procesó, por ejemplo porque está detenido. El aviso no se pierde: queda guardado, el sistema lo vuelve a intentar solo y en cuanto se procesa el monitor pasa a verde. Solo ves los eventos de tus propios turnos.</p>
-
-  <h2>Panel de integraciones</h2>
-  <p>El panel de <b>Integraciones</b> muestra la conexión con los tres servicios externos: la obra social, la pasarela de pagos y el servicio de videoconsulta. Para cada uno indica si está respondiendo bien (“CERRADO”) o si dejó de responder y MediConecta suspendió las llamadas por unos segundos para no trabarse esperando (“ABIERTO”). Abajo hay una lista de las últimas consultas a esos servicios. Es la pantalla que usamos en la demostración del trabajo práctico, por eso incluye también un botón para simular una falla.</p>
-
-  <div class="captura">
-    <img src="img/m21-integraciones.jpg">
-    <div class="pie-foto">La conexión con la obra social suspendida (ABIERTO) mientras su sistema no responde.</div>
-  </div>
+  <p>Si en algún momento un servicio interno o la obra social están demorados, los avisos no se pierden: quedan guardados y el sistema los vuelve a intentar solo. Lo mismo pasa con la autorización de tu obra social: mientras no responde, en “Mis turnos” ves “Autorización en trámite”, y cuando responde cambia sola.</p>
 </section>
 
 <section class="capitulo">
-  <div class="num-cap">Capítulo 8</div>
+  <div class="num-cap">Capítulo 10</div>
   <h1 id="cap-temas">Elegir cómo se ve: los tres temas</h1>
   <div class="bajada">Estándar, claro u oscuro, y el cambio es instantáneo.</div>
 
@@ -338,12 +401,12 @@
 
   <div class="captura">
     <img src="img/m22-tema-oscuro.jpg">
-    <div class="pie-foto">El Monitor de eventos con el tema oscuro.</div>
+    <div class="pie-foto">La Agenda del paciente con el tema oscuro.</div>
   </div>
 </section>
 
 <section class="capitulo">
-  <div class="num-cap">Capítulo 9</div>
+  <div class="num-cap">Capítulo 11</div>
   <h1 id="cap-faq">¿Qué hago si…?</h1>
   <div class="bajada">Las situaciones que más se repiten, con su solución.</div>
 
@@ -363,7 +426,13 @@
   <div class="a">Hubo un problema al confirmar y la operación se deshizo por completo: el turno no se confirmó y, si ya se había cobrado, el importe se reintegró automáticamente (lo ves en Pagos como “Reembolsado”). Tu turno sigue en espera: volvé a intentarlo.</div></div>
 
   <div class="faq"><div class="q">…me dice “Credenciales inválidas”?</div>
-  <div class="a">El email o la contraseña no coinciden. Revisá que el email esté bien escrito y que no tengas activadas las mayúsculas. Todavía no hay una opción para recuperar la contraseña.</div></div>
+  <div class="a">El email o la contraseña no coinciden. Revisá que el email esté bien escrito y que no tengas activadas las mayúsculas. Si cambiaste la contraseña hace poco, usá la nueva. Todavía no hay una opción para recuperar la contraseña por email.</div></div>
+
+  <div class="faq"><div class="q">…soy profesional y no encuentro cómo registrarme?</div>
+  <div class="a">El registro de la pantalla de inicio es sólo para pacientes. Tu usuario lo crea la administración del centro y te pasa una contraseña temporal; la primera vez que entres vas a elegir la tuya.</div></div>
+
+  <div class="faq"><div class="q">…al entrar me lleva a Mi perfil y no me deja ir a otra pantalla?</div>
+  <div class="a">Entraste con una contraseña temporal. Cambiala en Mi perfil (escribí la temporal en el primer campo) y vas a poder usar todo.</div></div>
 
   <div class="faq"><div class="q">…quiero cambiar el día de mi turno?</div>
   <div class="a">Cancelá el turno que tenés en “Mis turnos” y reservá uno nuevo. El horario que liberaste queda disponible para otro paciente.</div></div>
@@ -372,10 +441,13 @@
   <div class="a">Solo aparecen los pacientes que tienen un turno confirmado con vos. Si el paciente canceló, o todavía no confirmó, no figura en la lista.</div></div>
 
   <div class="faq"><div class="q">…la notificación no llega?</div>
-  <div class="a">Esperá unos segundos: la bandeja se actualiza sola. Si querés saber qué pasó, mirá el Monitor de eventos. Si el servicio de notificaciones aparece como “Pendiente”, el aviso está en camino y va a llegar apenas se procese.</div></div>
+  <div class="a">Esperá unos segundos: la bandeja se actualiza sola. Si un servicio interno está demorado, el aviso no se pierde: queda guardado y va a llegar apenas se procese.</div></div>
 
-  <div class="faq"><div class="q">…me manda a la pantalla de inicio cuando quiero entrar a una sección?</div>
-  <div class="a">Tu sesión se cerró, por ejemplo porque pasó mucho tiempo sin actividad. Volvé a entrar con tu email y tu contraseña.</div></div>
+  <div class="faq"><div class="q">…me manda a otra pantalla cuando quiero entrar a una sección?</div>
+  <div class="a">Si te manda a la pantalla de inicio de sesión, tu sesión se cerró (por ejemplo, porque pasó mucho tiempo sin actividad): volvé a entrar. Si te manda a la Agenda o a Pagos, esa sección no es de tu rol; por ejemplo, los profesionales no tienen Pagos y los administrativos no tienen la Agenda.</div></div>
+
+  <div class="faq"><div class="q">…publiqué un horario y desapareció de mi agenda?</div>
+  <div class="a">Si nadie lo reservó y ya pasó su fecha y hora, MediConecta lo sacó solo: los horarios vencidos no se ofrecen a los pacientes.</div></div>
 
   <div class="bloque-glosario">
   <h2>Palabras que vas a ver</h2>
@@ -385,7 +457,8 @@
     <tr><td>Turno confirmado</td><td>Un turno que ya es tuyo. Lo ves en “Mis turnos” y el profesional ya recibió el aviso.</td></tr>
     <tr><td>Entrada clínica</td><td>Cada diagnóstico o receta que un profesional carga en tu historia clínica.</td></tr>
     <tr><td>Evento</td><td>El registro que genera el sistema cada vez que un turno se confirma o se cancela. A partir de él se arman los avisos.</td></tr>
-    <tr><td>Latencia</td><td>Cuánto tardó un servicio en procesar un evento, desde que se generó. Se mide en milisegundos (mil milisegundos son un segundo).</td></tr>
+    <tr><td>Contraseña temporal</td><td>La que te da la administración al crear tu usuario. Sirve sólo para entrar la primera vez y elegir la tuya.</td></tr>
+    <tr><td>Horario vencido</td><td>Un horario publicado que nadie reservó y cuya fecha ya pasó. MediConecta lo saca de la agenda solo.</td></tr>
     <tr><td>Cobertura</td><td>Lo que tu obra social paga de una consulta. MediConecta se la consulta en el momento de reservar.</td></tr>
     <tr><td>Copago</td><td>La parte de la consulta que pagás vos aunque tengas obra social (un porcentaje o un monto fijo, según tu plan).</td></tr>
     <tr><td>Autorización</td><td>El permiso que da tu obra social para una prestación. Se pide solo después de confirmar y no te hace esperar.</td></tr>
@@ -396,13 +469,13 @@
 </section>
 
 <section class="capitulo">
-  <div class="num-cap">Capítulo 10</div>
+  <div class="num-cap">Capítulo 12</div>
   <h1 id="cap-falta">Lo que todavía no hace</h1>
   <div class="bajada">Para que no busques algo que no está.</div>
 
   <p>MediConecta está en desarrollo, y preferimos decirte de entrada qué falta. Los avisos por email todavía no salen a tu casilla (los ves en la bandeja). La obra social, la pasarela de pagos y el servicio de videoconsulta con los que se conecta esta versión son de prueba: no se cobra dinero real ni se usa una obra social real.</p>
 
-  <p>Faltan además algunas comodidades que ya tenemos anotadas: reprogramar un turno sin cancelarlo, recuperar la contraseña por email, publicar varios horarios de una vez y un perfil para el administrador de la clínica.</p>
+  <p>Faltan además algunas comodidades que ya tenemos anotadas: reprogramar un turno sin cancelarlo, recuperar la contraseña por email, publicar varios horarios de una vez, editar tus datos desde Mi perfil y que la administración pueda modificar o dar de baja usuarios.</p>
 
   <p>Si encontrás algo que no funciona como dice este manual, o se te ocurre algo que te gustaría que haga, avisanos: este manual se actualiza junto con la aplicación.</p>
 </section>

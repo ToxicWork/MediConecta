@@ -8,11 +8,12 @@ skinparam linetype ortho
 entity usuario {
   * id : bigint <<PK>>
   --
-  * tipo_usuario : varchar  (PACIENTE | PROFESIONAL)
+  * tipo_usuario : varchar  (PACIENTE | PROFESIONAL | ADMINISTRATIVO)
   * nombre_completo : varchar
   * email : varchar <<UNIQUE>>
   * password : varchar
-  * rol : varchar
+  * rol : varchar  (CHECK: los mismos tres valores)
+  debe_cambiar_password : boolean  (contraseña temporal)
   obra_social : varchar
   nro_afiliado : varchar(40)
   matricula : varchar

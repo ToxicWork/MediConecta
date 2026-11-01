@@ -205,6 +205,7 @@
     <li><a href="#p5">Parte V: Patrones, seguridad e interfaz</a><span class="relleno"></span><span class="pag" data-para="p5"></span></li>
     <li class="n2"><a href="#patrones">Patrones de diseño incorporados</a><span class="relleno"></span><span class="pag" data-para="patrones"></span></li>
     <li class="n2"><a href="#seguridad">Seguridad</a><span class="relleno"></span><span class="pag" data-para="seguridad"></span></li>
+    <li class="n2"><a href="#roles">Roles, usuarios y contraseñas</a><span class="relleno"></span><span class="pag" data-para="roles"></span></li>
     <li class="n2"><a href="#temas">Temas visuales en tiempo real</a><span class="relleno"></span><span class="pag" data-para="temas"></span></li>
     <li><a href="#pruebas">Pruebas y resultados</a><span class="relleno"></span><span class="pag" data-para="pruebas"></span></li>
     <li><a href="#lim">Limitaciones y trabajo futuro</a><span class="relleno"></span><span class="pag" data-para="lim"></span></li>
@@ -221,7 +222,7 @@
 
   <p>Este documento acompaña la Entrega Obligatoria N.º 2 de MediConecta, la plataforma que conecta pacientes con profesionales de la salud para gestionar turnos presenciales y por telemedicina, con cobertura de obras sociales. La consigna de esta instancia pide demostrar el sistema integrado: al menos dos procesos de negocio con mensajería asincrónica (uno con cola punto a punto y otro con tópico), al menos un servicio SOAP con su WSDL justificado como integración con un sistema legado, al menos un servicio REST justificado como integración con un partner moderno o como API de consumo externo, y transacciones declarativas en un flujo crítico de varios pasos (Cátedra de Desarrollo de Aplicaciones II, 2026a). El anexo resume esta instancia como "integración sincrónica (SOAP y REST), mensajería completa y transacciones" y exige que cada entrega sume valor verificable respecto de la anterior (Cátedra de Desarrollo de Aplicaciones II, 2026b).</p>
 
-  <p>Respecto de la Entrega Parcial N.º 2, MediConecta pasó de seis a diez componentes de negocio, se integró con tres sistemas externos por HTTP real (uno SOAP y dos REST), expone su propia API REST, suma un segundo proceso asincrónico con cola y convierte la confirmación de un turno en un flujo transaccional de siete pasos que cruza la base de datos, el broker y dos servicios web. Además se implementaron los tres temas visuales del anexo, que se alternan en tiempo real. La Tabla 1 vincula cada requisito con la sección donde se explica y con la prueba que lo verifica.</p>
+  <p>Respecto de la Entrega Parcial N.º 2, MediConecta pasó de seis a diez componentes de negocio, se integró con tres sistemas externos por HTTP real (uno SOAP y dos REST), expone su propia API REST, suma un segundo proceso asincrónico con cola y convierte la confirmación de un turno en un flujo transaccional de siete pasos que cruza la base de datos, el broker y dos servicios web. Además se implementaron los tres temas visuales del anexo, que se alternan en tiempo real, y, en los ajustes de noviembre de 2026, un tercer rol (Administrativo), el alta de usuarios con contraseña temporal, el registro público sólo de pacientes y el vencimiento automático de la disponibilidad. La Tabla 1 vincula cada requisito con la sección donde se explica y con la prueba que lo verifica.</p>
 
   <div class="tabla">
     <div class="num">Tabla 1</div>
@@ -230,14 +231,15 @@
       <thead><tr><th style="width:30%">Requisito</th><th>Implementación</th><th style="width:22%">Verificación</th></tr></thead>
       <tbody>
         <tr><td>Proceso asincrónico con cola punto a punto</td><td><span class="mono">cola.autorizaciones</span>: autorización de prestaciones a la obra social, con consumidores en competencia (Parte III)</td><td>Prueba E4, escenarios D y G</td></tr>
-        <tr><td>Proceso asincrónico con tópico</td><td><span class="mono">topico.turnos</span> con tres suscriptores durables, uno con selector (Parte III)</td><td>Prueba E4, D, E y H; prueba del monitor</td></tr>
+        <tr><td>Proceso asincrónico con tópico</td><td><span class="mono">topico.turnos</span> con tres suscriptores durables, uno con selector (Parte III)</td><td>Prueba E4, D y H</td></tr>
         <tr><td>Servicio SOAP con WSDL (sistema legado)</td><td><span class="mono">CoberturaService</span> de la obra social, consumido con un cliente generado por wsimport (Parte II)</td><td>Prueba E4, A, C y G</td></tr>
-        <tr><td>Servicio REST (partner moderno / API externa)</td><td>Pasarela de pagos y videoconsulta como cliente; API <span class="mono">/api/v1</span> propia como servidor (Parte II)</td><td>Prueba E4, B, C, F, H e I</td></tr>
-        <tr><td>Transacciones declarativas en un flujo crítico</td><td><span class="mono">ProcesoConfirmacionTurno.confirmar</span> (REQUIRED) con compensación del cobro (Parte IV)</td><td>Prueba E4, escenario F</td></tr>
+        <tr><td>Servicio REST (partner moderno / API externa)</td><td>Pasarela de pagos y videoconsulta como cliente; API <span class="mono">/api/v1</span> propia como servidor (Parte II)</td><td>Prueba E4, B, C, H, I y L</td></tr>
+        <tr><td>Transacciones declarativas en un flujo crítico</td><td><span class="mono">ProcesoConfirmacionTurno.confirmar</span> (REQUIRED) con compensación del cobro (Parte IV)</td><td>Prueba E4, C; Figura 7</td></tr>
+        <tr><td>Seguridad declarativa por rol</td><td><span class="mono">@RolesAllowed</span> por operación con tres roles; registro público sólo de pacientes; contraseña temporal (Parte V)</td><td>Prueba E4, L y M</td></tr>
         <tr><td>Temas claro, oscuro y estándar (opcional)</td><td>Variables CSS por tema y cambio en vivo sin recargar (Parte V)</td><td>Prueba E4, escenario K</td></tr>
       </tbody>
     </table>
-    <div class="nota"><em class="etq">Nota.</em> "Prueba E4" es <span class="mono">pruebas/prueba_entrega4.py</span>, que recorre la aplicación desplegada con un navegador real (36 verificaciones).</div>
+    <div class="nota"><em class="etq">Nota.</em> "Prueba E4" es <span class="mono">pruebas/prueba_entrega4.py</span>, que recorre la aplicación desplegada con un navegador real (40 verificaciones).</div>
   </div>
 </section>
 
@@ -254,7 +256,7 @@
     <table>
       <thead><tr><th style="width:27%">Componente</th><th style="width:17%">Tipo</th><th>Responsabilidad e integración</th></tr></thead>
       <tbody>
-        <tr><td>ServicioDeUsuarios</td><td>Stateless</td><td>Registro y autenticación (PBKDF2), Factory de usuarios.</td></tr>
+        <tr><td>ServicioDeUsuarios</td><td>Stateless</td><td>Registro público de pacientes, alta de usuarios por el administrativo y cambio de contraseña (PBKDF2); Factory de usuarios con tres roles.</td></tr>
         <tr><td>ServicioDeTurnos</td><td>Stateful</td><td>Conversación del hold de 5 minutos; delega la confirmación en <span class="mono">ProcesoConfirmacionTurno</span>.</td></tr>
         <tr><td>ServicioDeHistoriaClinica</td><td>Stateless</td><td>Diagnósticos y recetas, con titularidad y auditoría de accesos.</td></tr>
         <tr><td>ServicioDeObrasSociales</td><td>Stateless</td><td>Cobertura y autorización contra el legado (SOAP).</td></tr>
@@ -263,7 +265,7 @@
         <tr><td>ServicioDeNotificaciones</td><td>MDB + Stateless</td><td>Email al paciente y aviso al profesional por cada evento del tópico.</td></tr>
         <tr><td>ServicioDeFacturacion</td><td>MDB + Stateless</td><td>Reclamos a la obra social y reintegros, con selector sobre el tópico.</td></tr>
         <tr><td>ServicioDeAgenda</td><td>Stateless</td><td>Consultas sin estado conversacional para la API REST.</td></tr>
-        <tr><td>ServicioDeMonitoreo</td><td>Stateless</td><td>Monitor de eventos, cola, circuitos y bitácora de integraciones.</td></tr>
+        <tr><td>ServicioDeMonitoreo</td><td>Stateless</td><td>Consultas de seguimiento de eventos, cola, circuitos y bitácora de integraciones (sus pantallas se retiraron en noviembre de 2026).</td></tr>
       </tbody>
     </table>
   </div>
@@ -381,7 +383,7 @@
   <h2 id="cola">Proceso con cola punto a punto</h2>
   <p>Cuando un paciente con obra social confirma un turno, la misma transacción que lo confirma registra una solicitud de autorización y envía un mensaje a <span class="mono">cola.autorizaciones</span>. Del otro lado, <span class="mono">AutorizacionConsumer</span> lo procesa: verifica que no lo haya procesado antes (Idempotent Receiver, con la misma tabla <span class="mono">evento_procesado</span> de la entrega anterior), pide la autorización al legado por SOAP y, en una única transacción, marca la solicitud como resuelta, actualiza el turno y publica TURNO_AUTORIZADO o AUTORIZACION_RECHAZADA en el tópico. Consumir, actualizar y publicar ocurren juntos o no ocurren.</p>
 
-  <p>Si el legado no responde, el consumidor no confirma el mensaje (<span class="mono">setRollbackOnly</span>) y el broker lo reentrega con espera creciente; mientras el circuito está abierto los intentos fallan al instante sin colgar hilos. Cuando el legado vuelve, el siguiente intento lo resuelve. La cola tiene dos consumidores en competencia (Competing Consumers): ante un pico de confirmaciones el broker reparte los mensajes y cada uno lo procesa una sola sesión, lo que el monitor muestra en la columna "Consumidor". Como un MDB no tiene un usuario que lo invoque, corre con la identidad técnica SISTEMA (<span class="mono">@RunAs</span>), el único rol autorizado para pedir autorizaciones al legado. La Figura 4 muestra la secuencia con el legado caído.</p>
+  <p>Si el legado no responde, el consumidor no confirma el mensaje (<span class="mono">setRollbackOnly</span>) y el broker lo reentrega con espera creciente; mientras el circuito está abierto los intentos fallan al instante sin colgar hilos. Cuando el legado vuelve, el siguiente intento lo resuelve. La cola tiene dos consumidores en competencia (Competing Consumers): ante un pico de confirmaciones el broker reparte los mensajes y cada uno lo procesa una sola sesión, lo que el log del servidor registra con el hilo de cada consumidor. Como un MDB no tiene un usuario que lo invoque, corre con la identidad técnica SISTEMA (<span class="mono">@RunAs</span>), el único rol autorizado para pedir autorizaciones al legado. La Figura 4 muestra la secuencia con el legado caído.</p>
 
   <div class="figura">
     <div class="num">Figura 4</div>
@@ -392,7 +394,7 @@
   <p>La garantía de entrega quedó probada, además, por accidente. En la primera versión el consumidor era rechazado por la seguridad de WildFly, que deniega por defecto los métodos sin permisos explícitos en un bean que declara roles. El broker reintentó cuatro veces, con 10, 20 y 40 segundos de espera; corregimos el permiso (<span class="mono">@PermitAll</span> en el MDB, que el contenedor invoca sin usuario) y la solicitud se resolvió en el quinto intento, sin perderse y sin intervención manual.</p>
 
   <h2 id="topico">Proceso con tópico y consumidor selectivo</h2>
-  <p>El proceso de la entrega anterior sigue funcionando y creció sin tocar al productor, que es la ventaja de un Publish-Subscribe Channel: se sumaron los dos eventos de autorización y un tercer suscriptor, Facturación. Facturación sólo necesita dos eventos, así que su suscripción usa el selector <span class="mono">tipoEvento IN ('TURNO_AUTORIZADO','TURNO_CANCELADO')</span> sobre una propiedad que el productor pone en la cabecera (Selective Consumer): el broker filtra el resto y esos mensajes ni siquiera llegan a su cola de suscripción. Con TURNO_AUTORIZADO genera el reclamo a la obra social por la parte que le corresponde; con TURNO_CANCELADO anula el reclamo y reintegra el pago del paciente por REST (Figura 5). El monitor de eventos muestra una columna por suscriptor y "no aplica" donde el selector filtró el evento (Figura A1).</p>
+  <p>El proceso de la entrega anterior sigue funcionando y creció sin tocar al productor, que es la ventaja de un Publish-Subscribe Channel: se sumaron los dos eventos de autorización y un tercer suscriptor, Facturación. Facturación sólo necesita dos eventos, así que su suscripción usa el selector <span class="mono">tipoEvento IN ('TURNO_AUTORIZADO','TURNO_CANCELADO')</span> sobre una propiedad que el productor pone en la cabecera (Selective Consumer): el broker filtra el resto y esos mensajes ni siquiera llegan a su cola de suscripción. Con TURNO_AUTORIZADO genera el reclamo a la obra social por la parte que le corresponde; con TURNO_CANCELADO anula el reclamo y reintegra el pago del paciente por REST (Figura 5). En los pagos del administrativo se ven los reclamos que generó Facturación y los reintegros por cancelación (Figura A1).</p>
 
   <div class="figura">
     <div class="num">Figura 5</div>
@@ -462,7 +464,7 @@
 
   <p>Dos detalles sostienen este comportamiento. Las reglas de negocio se lanzan como excepciones de aplicación con <span class="mono">rollback=true</span>, que revierten la transacción sin destruir la instancia del bean con estado, así que el paciente conserva su hold y puede reintentar; y si ocurre un error de sistema dentro del proceso, la conversación lo traduce a una excepción de aplicación por la misma razón. Como red de seguridad, un temporizador del contenedor libera cada minuto los holds vencidos, por si un reinicio del servidor dejara un turno retenido.</p>
 
-  <p>Para demostrarlo en vivo, el panel de integraciones permite armar una falla que se dispara al final del flujo, después de todos los pasos y antes del commit. Al confirmar un turno con copago, el paciente ve que la operación se revirtió, el turno sigue en espera, la consola de la pasarela muestra el pago REEMBOLSADO y la bitácora registra el cobro y su compensación, que sobreviven al rollback (Figura A2).</p>
+  <p>Para verificarlo usamos una falla de demostración (<span class="mono">InyectorDeFallas</span>) que se dispara al final del flujo, después de todos los pasos y antes del commit. En la corrida del 31 de octubre de 2026, al confirmar un turno con copago, el paciente vio que la operación se revirtió, el turno siguió en espera, la consola de la pasarela mostró el pago REEMBOLSADO y la bitácora registró el cobro y su compensación, que sobreviven al rollback. Esa falla se armaba desde el panel de integraciones, que se retiró en noviembre de 2026 junto con el monitor de eventos; en la demostración en vivo se muestran el pago rechazado y la pasarela caída, en los que el turno tampoco se confirma y el paciente conserva el hold.</p>
 
 </section>
 
@@ -488,8 +490,11 @@
         <tr><td>Singleton (EJB)</td><td>Catálogo de prestaciones leído en cada cotización.</td><td><span class="mono">CatalogoPrestaciones</span></td></tr>
         <tr><td>Point-to-Point, Competing Consumers, Selective Consumer, Message Expiration</td><td>Procesar cada autorización una sola vez, absorber picos y filtrar eventos.</td><td><span class="mono">AutorizacionConsumer</span>, <span class="mono">FacturacionSubscriber</span></td></tr>
         <tr><td>Transacción compensatoria</td><td>Deshacer un efecto no transaccional (el cobro REST).</td><td><span class="mono">CompensacionDePago</span></td></tr>
+        <tr><td>Factory (ampliado en noviembre)</td><td>Crear la subclase de usuario correcta según el rol, ahora con tres roles, sin un <span class="mono">switch</span> en cada alta.</td><td><span class="mono">UsuarioFactory</span>, <span class="mono">Administrativo</span></td></tr>
+        <tr><td>Singleton con Timer Service y arranque</td><td>Tareas del contenedor sin intervención del usuario: vencer la disponibilidad no reservada y crear el administrador por defecto.</td><td><span class="mono">VencedorDeDisponibilidad</span>, <span class="mono">InicializadorDeAdministrador</span></td></tr>
       </tbody>
     </table>
+    <div class="nota"><em class="etq">Nota.</em> Las dos últimas filas corresponden a los ajustes de noviembre de 2026 (Figura A5).</div>
   </div>
 
 
@@ -500,6 +505,26 @@
 
   <p>El resto de las medidas acompaña las integraciones: HTTP Basic sobre el identity store para la API, con <span class="mono">@RolesAllowed</span> en cada recurso y 404 para recursos ajenos, que evita revelar identificadores (IDOR); WS-Security con UsernameToken hacia el legado; la identidad técnica SISTEMA para los MDB, que es el único rol que puede pedir autorizaciones, emitir reclamos o reintegrar pagos; Bean Validation sobre los datos de la tarjeta en la vista y otra vez en el servicio antes de llamar a la pasarela; y el número de tarjeta, que viaja a la pasarela y nunca se guarda (sólo la marca y los últimos cuatro dígitos). Los eventos y mensajes siguen sin datos clínicos, como exige la Ley 25.326 (2000) para datos sensibles.</p>
 
+  <h2 id="roles">Roles, usuarios y contraseñas</h2>
+  <p>En noviembre de 2026 se agregó un tercer rol, Administrativo, y se revisó quién puede hacer qué. La regla de diseño fue que la seguridad la decide el servicio, operación por operación, y que las pantallas sólo acompañan: esconder un botón no alcanza, porque un pedido HTTP se puede armar a mano. La Tabla 10 resume las operaciones sensibles nuevas o modificadas.</p>
+
+  <div class="tabla">
+    <div class="num">Tabla 10</div>
+    <div class="tit">Seguridad declarativa de las operaciones sobre usuarios y pagos</div>
+    <table>
+      <thead><tr><th style="width:36%">Operación</th><th style="width:24%">Quién</th><th>Por qué</th></tr></thead>
+      <tbody>
+        <tr><td><span class="mono">registrarPaciente</span></td><td><span class="mono">@PermitAll</span></td><td>El registro público no recibe el rol: siempre crea un paciente.</td></tr>
+        <tr><td><span class="mono">crearUsuario</span>, <span class="mono">listarUsuarios</span></td><td><span class="mono">ADMINISTRATIVO</span></td><td>Profesionales y administrativos los da de alta el centro, con contraseña temporal.</td></tr>
+        <tr><td><span class="mono">cambiarMiPassword</span></td><td>Los tres roles</td><td>Sólo la propia: el usuario sale del principal autenticado, no de un parámetro; exige la contraseña actual.</td></tr>
+        <tr><td><span class="mono">pagosDelUsuarioActual</span></td><td><span class="mono">PACIENTE</span></td><td>Titularidad: cada paciente ve sus pagos.</td></tr>
+        <tr><td><span class="mono">todosLosPagos</span>, <span class="mono">todosLosReclamos</span></td><td><span class="mono">ADMINISTRATIVO</span></td><td>El seguimiento de cobros y reclamos es tarea administrativa; el profesional ya no tiene Pagos.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>Un usuario creado por un administrativo queda marcado con contraseña temporal. Mientras la tenga, el control de acceso de las vistas (<span class="mono">LoginBean.exigirRol</span>, en el <span class="mono">f:viewAction</span> de cada página) lo lleva siempre a "Mi perfil" para cambiarla, y el mecanismo de autenticación rechaza esa contraseña en la API REST. El primer administrador lo crea al desplegar un <span class="mono">@Singleton @Startup</span> si no existe, con una contraseña inicial documentada que también es temporal; como el bean maneja su propia transacción, si la base no responde al arrancar la aplicación despliega igual y lo reintenta la próxima vez. Las contraseñas siguen guardándose con PBKDF2 y la política (largo mínimo, repetición, distinta de la actual) está en una clase sin contenedor, cubierta por pruebas unitarias. La base de datos necesitó un cambio que Hibernate no hace solo: ampliar las restricciones <span class="mono">CHECK</span> de las columnas de rol (script <span class="mono">sql/01-rol-administrativo.sql</span>).</p>
+
   <h2 id="temas">Temas visuales en tiempo real</h2>
   <p>El anexo propone, como punto extra, implementar los temas claro, oscuro y el estándar de la aplicación, alternables en tiempo real. Rehicimos la hoja de estilos para que todos los colores salgan de variables CSS (tokens de diseño); cada tema sólo redefine esas variables según el atributo <span class="mono">data-tema</span> del documento. El selector, presente en la barra superior y en el inicio de sesión, cambia ese atributo con JavaScript y el navegador recalcula la página al instante, sin recargarla ni perder lo que el usuario estaba haciendo. La elección se guarda en una cookie, que el servidor lee para dibujar las páginas siguientes ya con el tema elegido, y en el almacenamiento local, que sincroniza otras pestañas abiertas. El servidor valida el valor contra una lista cerrada, así que una cookie manipulada no puede inyectar contenido en la página. La Figura A4 muestra la misma pantalla en los tres temas.</p>
 
@@ -508,26 +533,27 @@
 <!-- ======================= PRUEBAS ======================= -->
 <section>
   <h1 id="pruebas">Pruebas y resultados</h1>
-  <p>Probamos en tres niveles, siempre contra WildFly 41 con el perfil completo y la base real en Supabase. Las pruebas unitarias cubren la lógica de los patrones sin contenedor, incluido el Circuit Breaker con un reloj controlado; las de navegador recorren la aplicación desplegada como lo haría un usuario y verifican también los efectos asincrónicos. La Tabla 10 resume los resultados de la última corrida, del 31 de octubre de 2026.</p>
+  <p>Probamos en tres niveles, siempre contra WildFly 41 con el perfil completo y la base real en Supabase. Las pruebas unitarias cubren la lógica de los patrones sin contenedor, incluido el Circuit Breaker con un reloj controlado; las de navegador recorren la aplicación desplegada como lo haría un usuario y verifican también los efectos asincrónicos. La Tabla 11 resume los resultados.</p>
 
   <div class="tabla">
-    <div class="num">Tabla 10</div>
+    <div class="num">Tabla 11</div>
     <div class="tit">Pruebas automatizadas y resultados</div>
     <table>
       <thead><tr><th style="width:34%">Prueba</th><th>Qué verifica</th><th style="width:13%">Resultado</th></tr></thead>
       <tbody>
-        <tr><td>Unitarias (JUnit 5, <span class="mono">mvn package</span>)</td><td>State, Strategy, Chain of Responsibility, Circuit Breaker, Retry, Builder, selector de Facturación y catálogo.</td><td>26 de 26</td></tr>
-        <tr><td><span class="mono">pruebas/prueba_entrega4.py</span></td><td>Escenarios A a K de esta entrega: WSDL, API REST, pago rechazado y aprobado, cola, selector, falla con compensación, legado caído, cancelación con reintegro, telemedicina, auditoría y temas.</td><td>36 de 36</td></tr>
-        <tr><td><span class="mono">pruebas/prueba_e2e.py</span></td><td>Recorrido de la entrega anterior adaptado al pago del copago.</td><td>13 de 13</td></tr>
-        <tr><td><span class="mono">pruebas/prueba_monitor.py</span></td><td>Monitor con un suscriptor detenido desde la consola de WildFly y titularidad.</td><td>7 de 7</td></tr>
+        <tr><td>Unitarias (JUnit 5, <span class="mono">mvn package</span>)</td><td>State, Strategy, Chain of Responsibility, Circuit Breaker, Retry, Builder, Factory de usuarios, política de contraseñas, selector de Facturación y catálogo.</td><td>34 de 34 (1/11)</td></tr>
+        <tr><td><span class="mono">pruebas/prueba_entrega4.py</span></td><td>Escenarios A–D y G–M: WSDL, API REST, pago rechazado y aprobado, cola, legado caído, cancelación con reintegro, telemedicina, auditoría, temas, roles (L) y alta de usuarios con contraseña temporal (M).</td><td>36 de 36 (31/10)<sup>a</sup></td></tr>
+        <tr><td><span class="mono">pruebas/prueba_e2e.py</span></td><td>Recorrido de la entrega anterior adaptado al pago del copago.</td><td>13 de 13 (31/10)<sup>a</sup></td></tr>
+        <tr><td>Recorrido manual en el navegador</td><td>Registro, Mi perfil, contraseña temporal, alta de usuarios, roles por pantalla y por URL, calendario, vencimiento de la disponibilidad, cámara, vista de 390 px.</td><td>Sin fallas (1/11)</td></tr>
       </tbody>
     </table>
+    <div class="nota"><em class="etq">Nota.</em> <sup>a</sup> Última corrida completa con navegador, anterior a los ajustes de noviembre (en ese momento la prueba E4 tenía 36 verificaciones e incluía los escenarios E y F sobre el monitor y el panel de integraciones, hoy retirados). Los escenarios nuevos L y M se verificaron a mano el 1 de noviembre; hay que volver a correr las dos pruebas antes de la defensa.</div>
   </div>
 
-  <p>Los escenarios de falla dieron el resultado esperado. Con la falla armada, el turno no quedó confirmado, la cantidad de turnos del paciente no cambió, la pasarela registró el pago como reembolsado con el motivo de la reversión y la bitácora conservó el cobro y la compensación. Con el legado caído, la cotización usó la caché, el circuito se abrió, el turno se confirmó igual y la solicitud de autorización quedó en cola hasta que el legado volvió, momento en que se autorizó sola. Las pruebas también encontraron errores reales que corregimos antes de entregar, como el permiso del consumidor de la cola ya mencionado y un evento de la entrega anterior que el monitor marcaba como pendiente para Facturación, una suscripción que en ese momento no existía; ahora cada evento guarda qué suscripciones debían recibirlo al publicarse.</p>
+  <p>Los escenarios de falla dieron el resultado esperado. En la corrida del 31 de octubre, con la falla armada, el turno no quedó confirmado, la cantidad de turnos del paciente no cambió, la pasarela registró el pago como reembolsado con el motivo de la reversión y la bitácora conservó el cobro y la compensación. Con el legado caído, la cotización usó la caché, el circuito se abrió, el turno se confirmó igual y la solicitud de autorización quedó en cola hasta que el legado volvió, momento en que se autorizó sola. Las pruebas también encontraron errores reales que corregimos antes de entregar, como el permiso del consumidor de la cola ya mencionado y un evento de la entrega anterior que el monitor marcaba como pendiente para Facturación, una suscripción que en ese momento no existía; ahora cada evento guarda qué suscripciones debían recibirlo al publicarse.</p>
 
   <h1 id="lim">Limitaciones y trabajo futuro</h1>
-  <p>Preferimos documentar lo que todavía falta antes que dejar que aparezca en la defensa. La aplicación corre sobre HTTP y no HTTPS; el UsernameToken viaja con la contraseña en texto (perfil PasswordText), aceptable sólo sobre TLS, y en producción correspondería el perfil con resumen. Las credenciales de los sistemas externos son de prueba y se pueden cambiar por propiedades del sistema, pero deberían vivir en el almacén de credenciales de Elytron. Si el reembolso compensatorio falla porque la pasarela también cayó, el caso queda registrado para conciliación manual; el siguiente paso sería encolarlo para reintentarlo. Los tres sistemas externos son simuladores. El administrador de clínica, el decorador de enmascarado, los tokens JWT para la API y el cifrado de columnas sensibles quedan para la Entrega Final.</p>
+  <p>Preferimos documentar lo que todavía falta antes que dejar que aparezca en la defensa. La aplicación corre sobre HTTP y no HTTPS; el UsernameToken viaja con la contraseña en texto (perfil PasswordText), aceptable sólo sobre TLS, y en producción correspondería el perfil con resumen. Las credenciales de los sistemas externos son de prueba y se pueden cambiar por propiedades del sistema, pero deberían vivir en el almacén de credenciales de Elytron. Si el reembolso compensatorio falla porque la pasarela también cayó, el caso queda registrado para conciliación manual; el siguiente paso sería encolarlo para reintentarlo. Los tres sistemas externos son simuladores. Desde que se retiró el panel de integraciones, la falla de demostración no se puede armar desde la aplicación; volver a exponerla (por ejemplo, en la consola de sistemas externos) es una opción para la defensa. La edición y baja de usuarios, la recuperación de contraseña por email, el decorador de enmascarado, los tokens JWT para la API y el cifrado de columnas sensibles quedan para la Entrega Final.</p>
 
   <h1 id="conclusiones">Conclusiones</h1>
   <p>Esta entrega cambió la naturaleza del sistema: hasta ahora todo pasaba dentro de MediConecta, y desde ahora una confirmación depende de tres empresas que no controlamos. Eso nos obligó a pensar cada integración desde la falla y no desde el caso feliz: qué pasa si el legado no responde, si la pasarela cobra y después algo se rompe, si un mensaje llega dos veces. Las respuestas terminaron siendo decisiones de diseño concretas y defendibles: fallback para la cobertura pero no para el cobro, la autorización por cola en lugar de esperarla, el reintegro después del commit y una compensación donde la transacción no llega.</p>
@@ -558,20 +584,20 @@
 <section class="salto">
   <h1 id="anexoA">Apéndice A</h1>
   <h2 style="text-align:center;">Evidencias de la aplicación funcionando</h2>
-  <p>Capturas tomadas sobre la aplicación desplegada en WildFly 41 con la base real, durante la última corrida de las pruebas (31 de octubre de 2026). Complementan las Partes III a V.</p>
+  <p>Capturas tomadas sobre la aplicación desplegada en WildFly 41 con la base real (31 de octubre y 1 de noviembre de 2026). Complementan las Partes III a V.</p>
 
   <div class="figura">
     <div class="num">Figura A1</div>
-    <div class="tit">Monitor de eventos: tópico con tres suscriptores y cola de autorizaciones</div>
-    <img src="img/e4-monitor.jpg" alt="Monitor de eventos" style="max-height:19cm;">
-    <div class="nota"><em class="etq">Nota.</em> Facturación figura "no aplica" en las confirmaciones porque su selector las filtra en el broker. La latencia de 5813 ms en Auditoría corresponde a una prueba con ese suscriptor detenido desde la consola de WildFly.</div>
+    <div class="tit">Pagos del administrativo: cobros por REST y reclamos generados por Facturación</div>
+    <img src="img/e4-administrativo-pagos.jpg" alt="Pagos del administrativo" style="max-height:19cm;">
+    <div class="nota"><em class="etq">Nota.</em> Los reintegrados corresponden a cancelaciones: Facturación los procesó al consumir TURNO_CANCELADO del tópico, después del commit. Más abajo en la misma pantalla están los reclamos a la obra social que generó al recibir TURNO_AUTORIZADO, el evento que publica el consumidor de la cola de autorizaciones.</div>
   </div>
 
   <div class="figura">
     <div class="num">Figura A2</div>
-    <div class="tit">Panel de integraciones después de la falla y con el legado caído</div>
-    <img src="img/e4-integraciones.jpg" alt="Panel de integraciones" style="max-height:17cm;">
-    <div class="nota"><em class="etq">Nota.</em> Arriba, el circuito de la obra social ABIERTO tras tres fallas. En la bitácora: el cobro aprobado y su reembolso COMPENSACION, y las consultas resueltas desde la caché mientras el legado estaba caído.</div>
+    <div class="tit">Cotización con el sistema legado de la obra social caído</div>
+    <img src="img/e4-cotizacion-legado-caido.jpg" alt="Cotización con el legado caído" style="max-height:12cm;">
+    <div class="nota"><em class="etq">Nota.</em> La consulta SOAP no respondió y la cotización usó la última validación vigente (fallback con caché); el turno se puede confirmar igual y la autorización queda en la cola hasta que el legado vuelve.</div>
   </div>
 
   <div class="figura">
@@ -584,6 +610,19 @@
     <div class="num">Figura A4</div>
     <div class="tit">La misma pantalla en los temas estándar, claro y oscuro</div>
     <img src="img/e4-temas.jpg" alt="Temas visuales" style="max-height:18cm;">
+  </div>
+
+  <div class="figura">
+    <div class="num">Figura A5</div>
+    <div class="tit">Diagrama de clases de usuarios, roles y vencimientos (ajustes de noviembre de 2026)</div>
+    <img class="alto" src="../diagramas/18-clases-usuarios-y-roles.png" alt="Clases de usuarios y roles">
+  </div>
+
+  <div class="figura">
+    <div class="num">Figura A6</div>
+    <div class="tit">Alta de usuarios por el administrativo, con contraseña temporal</div>
+    <img src="img/e4-usuarios.jpg" alt="Pantalla Usuarios" style="max-height:15cm;">
+    <div class="nota"><em class="etq">Nota.</em> En la lista se ve qué usuarios todavía tienen la contraseña temporal; entre ellos, el administrador por defecto que se crea al desplegar.</div>
   </div>
 </section>
 
