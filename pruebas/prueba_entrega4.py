@@ -3,7 +3,9 @@
 Recorre con un navegador real (y con llamadas HTTP directas) todo lo que se defiende en esta entrega:
 
   A. Contrato SOAP: el WSDL del legado de la obra social está publicado.
-  B. API REST propia: pública, 401 sin credenciales, 200 con HTTP Basic y 404 para un turno ajeno.
+  B. API REST propia: pública, login que entrega un JWT, 401 sin token o con un token adulterado, 200 con
+     Bearer y 404 para un turno ajeno.
+  N. Patrón State por la API: cancelar un turno ya cancelado o todavía en espera devuelve 409.
   C. Flujo crítico: cotización por SOAP, pago rechazado por la pasarela (el turno sigue en espera) y pago aprobado.
   D. Cola punto a punto: la autorización se resuelve sola, llega la notificación y Facturación genera el reclamo.
   G. Legado caído: la cotización usa el fallback (caché o cobertura pendiente) y el turno se confirma igual.
@@ -43,17 +45,46 @@ def check(nombre, condicion):
     print(("OK   " if condicion else "FALLA"), nombre)
 
 
-def http(url, usuario=None, clave=None, metodo="GET", cuerpo=None):
+def http(url, usuario=None, clave=None, metodo="GET", cuerpo=None, token=None, basic=False):
+    """Con usuario y clave pide primero un JWT (POST /auth/login) y lo envía como Bearer."""
     pedido = urllib.request.Request(url, method=metodo, data=None if cuerpo is None else json.dumps(cuerpo).encode())
     if cuerpo is not None:
         pedido.add_header("Content-Type", "application/json")
-    if usuario:
+    if usuario and basic:
         pedido.add_header("Authorization", "Basic " + base64.b64encode(f"{usuario}:{clave}".encode()).decode())
+    elif usuario:
+        estado, cuerpo_login, cabeceras = iniciar_sesion(usuario, clave)
+        if estado != 200:
+            return estado, cuerpo_login, cabeceras
+        token = json.loads(cuerpo_login)["token"]
+    if token:
+        pedido.add_header("Authorization", "Bearer " + token)
     try:
         with urllib.request.urlopen(pedido, timeout=10) as r:
             return r.status, r.read().decode("utf-8"), dict(r.headers)
     except urllib.error.HTTPError as e:
         return e.code, e.read().decode("utf-8"), dict(e.headers)
+
+
+def iniciar_sesion(usuario, clave):
+    return http(B + "api/v1/auth/login", metodo="POST", cuerpo={"email": usuario, "password": clave})
+
+
+def token_de(usuario, clave="demo1234"):
+    return json.loads(iniciar_sesion(usuario, clave)[1])["token"]
+
+
+def turno_id(fecha):
+    """Id del turno del paciente de demo en esa fecha ("dd/mm/aaaa hh:mm"), buscado por la API."""
+    dia, hora = fecha.split(" ")
+    d, m, a = dia.split("/")
+    iso = "%s-%s-%sT%s" % (a, m, d, hora)
+    turnos = json.loads(http(B + "api/v1/turnos", token=token_de(PACIENTE))[1])
+    return next((t["id"] for t in turnos if t["fechaHora"].startswith(iso) and t["estado"] != "CANCELADO"), 0)
+
+
+def b64url(texto):
+    return base64.urlsafe_b64encode(texto.encode()).decode().rstrip("=")
 
 
 def consola(**cambios):
@@ -79,8 +110,9 @@ def publicar(prof, fecha, modalidad="PRESENCIAL"):
     prof.fill("#formPublicar\\:fecha_input", fecha)  # p:datePicker: también acepta la fecha tipeada
     prof.keyboard.press("Escape")                     # cierra el calendario para que no tape el botón
     prof.select_option("#formPublicar\\:modalidad", modalidad)
-    prof.click("#formPublicar button:has-text('Publicar')")
-    prof.wait_for_load_state()
+    # Clic por DOM: si el calendario quedó abierto tapa el botón y un clic con el puntero no llega.
+    with prof.expect_navigation():
+        prof.locator("#formPublicar button:has-text('Publicar')").evaluate("boton => boton.click()")
     return "Disponibilidad publicada" in prof.content()
 
 
@@ -130,13 +162,29 @@ check("A. WSDL del legado publicado (CoberturaService, operaciones validarCobert
 # ---- B. API REST ----------------------------------------------------------------------------
 estado, cuerpo, _ = http(B + "api/v1/profesionales")
 check("B. GET /api/v1/profesionales es público y devuelve JSON", estado == 200 and "Ana Lopez" in cuerpo)
-estado, _, cabeceras = http(B + "api/v1/turnos")
-check("B. GET /api/v1/turnos sin credenciales: 401 con WWW-Authenticate",
-      estado == 401 and "Basic" in cabeceras.get("WWW-Authenticate", ""))
-estado, _, _ = http(B + "api/v1/turnos", PACIENTE, "incorrecta")
-check("B. credenciales inválidas: 401", estado == 401)
-estado, cuerpo, _ = http(B + "api/v1/turnos", PACIENTE, "demo1234")
-check("B. con HTTP Basic válido: 200 con los turnos del paciente", estado == 200 and cuerpo.startswith("["))
+estado, cuerpo, cabeceras = http(B + "api/v1/turnos")
+check("B. GET /api/v1/turnos sin token: 401 con WWW-Authenticate: Bearer",
+      estado == 401 and "Bearer" in cabeceras.get("WWW-Authenticate", "") and "no_autenticado" in cuerpo)
+estado, cuerpo, _ = iniciar_sesion(PACIENTE, "incorrecta")
+check("B. login con credenciales inválidas: 401 sin token", estado == 401 and "token" not in json.loads(cuerpo))
+estado, cuerpo, _ = iniciar_sesion(PACIENTE, "demo1234")
+sesion = json.loads(cuerpo) if estado == 200 else {}
+TOKEN = sesion.get("token", "")
+check("B. POST /api/v1/auth/login devuelve un JWT (tres partes, Bearer, con vencimiento y rol)",
+      estado == 200 and TOKEN.count(".") == 2 and sesion.get("tipo") == "Bearer"
+      and sesion.get("expiraEnSegundos", 0) > 0 and sesion.get("rol") == "PACIENTE")
+estado, cuerpo, _ = http(B + "api/v1/turnos", token=TOKEN)
+check("B. con el JWT en Authorization: Bearer: 200 con los turnos del paciente", estado == 200 and cuerpo.startswith("["))
+cabecera, contenido, firma = TOKEN.split(".")
+datos = json.loads(base64.urlsafe_b64decode(contenido + "=" * (-len(contenido) % 4)))
+adulterado = cabecera + "." + b64url(json.dumps(dict(datos, rol="ADMINISTRATIVO"), separators=(",", ":"))) + "." + firma
+estado, cuerpo, _ = http(B + "api/v1/turnos", token=adulterado)
+check("B. JWT con el rol adulterado (firma inválida): 401 en JSON", estado == 401 and "token_invalido" in cuerpo)
+sin_firma = b64url('{"alg":"none","typ":"JWT"}') + "." + contenido + "."
+estado, _, _ = http(B + "api/v1/turnos", token=sin_firma)
+check("B. JWT con alg none y sin firma: 401", estado == 401)
+estado, _, _ = http(B + "api/v1/turnos", PACIENTE, "demo1234", basic=True)
+check("B. HTTP Basic ya no se acepta en la API: 401", estado == 401)
 estado, cuerpo, _ = http(B + "api/v1/turnos/999999999", PACIENTE, "demo1234")
 check("B. turno inexistente o ajeno: 404 sin trazas", estado == 404 and "no_encontrado" in cuerpo and "Exception" not in cuerpo)
 
@@ -190,6 +238,31 @@ with sync_playwright() as p:
     check("G. el turno se confirma igual: el resto de la plataforma sigue funcionando", "Turno confirmado" in msg)
     consola(obraSocial="EN_LINEA")
 
+    # ---- N. Patrón State por la API: una transición inválida devuelve 409 ------------------
+    id3 = turno_id(f3)
+    estado, cuerpo, _ = http(B + "api/v1/turnos/%s/cancelacion" % id3, metodo="POST")
+    check("N. cancelar por la API sin token: 401", estado == 401)
+    estado, cuerpo, _ = http(B + "api/v1/turnos/%s/cancelacion" % id3, metodo="POST", token=token_de(PROFESIONAL))
+    check("N. cancelar con token de profesional: 403 (sólo el paciente cancela)", estado == 403)
+    estado, cuerpo, _ = http(B + "api/v1/turnos/%s/cancelacion" % id3, metodo="POST", token=TOKEN)
+    check("N. el paciente cancela su turno confirmado por la API: 200 y estado CANCELADO",
+          estado == 200 and json.loads(cuerpo)["estado"] == "CANCELADO")
+    estado, cuerpo, _ = http(B + "api/v1/turnos/%s/cancelacion" % id3, metodo="POST", token=TOKEN)
+    check("N. cancelarlo otra vez es una transición inválida: 409 transicion_invalida",
+          estado == 409 and "transicion_invalida" in cuerpo and "cancelado" in cuerpo and "Exception" not in cuerpo)
+    estado, cuerpo, _ = http(B + "api/v1/turnos/%s" % id3, token=TOKEN)
+    check("N. tras el 409 el turno sigue CANCELADO (la transacción se revirtió sin efectos)",
+          estado == 200 and json.loads(cuerpo)["estado"] == "CANCELADO")
+    estado, cuerpo, _ = http(B + "api/v1/turnos/999999999/cancelacion", metodo="POST", token=TOKEN)
+    check("N. cancelar un turno inexistente o ajeno: 404", estado == 404)
+    ana = next(p["id"] for p in json.loads(http(B + "api/v1/profesionales")[1]) if "Ana Lopez" in p["nombre"])
+    ofrecidos = json.loads(http(B + "api/v1/profesionales/%s/disponibilidad" % ana)[1])
+    d3, h3 = f3.split(" ")
+    check("N. el horario del turno cancelado vuelve a ofrecerse a otros pacientes",
+          any(t["fechaHora"].startswith("%s-%s-%sT%s" % (d3[6:], d3[3:5], d3[:2], h3)) for t in ofrecidos))
+    check("N. la disponibilidad pública sólo ofrece horarios futuros",
+          len(ofrecidos) > 0 and all(t["fechaHora"] > time.strftime("%Y-%m-%dT%H:%M") for t in ofrecidos))
+
     # ---- H. Cancelación con reintegro asincrónico -------------------------------------------
     pac.goto(B + "agenda.xhtml")
     pac.locator("#formAgenda\\:tablaMisTurnos tr", has_text=f1.replace(" ", " · ")).locator("button:has-text('Cancelar')").click()
@@ -203,6 +276,8 @@ with sync_playwright() as p:
     f4 = fecha_al_azar("04")
     publicar(prof, f4, "TELEMEDICINA")
     reservar(pac, f4)
+    estado, cuerpo, _ = http(B + "api/v1/turnos/%s/cancelacion" % turno_id(f4), metodo="POST", token=TOKEN)
+    check("N. cancelar un turno que todavía está en espera (HOLD): 409", estado == 409 and "en espera" in cuerpo)
     msg = pagar(pac)
     check("I. teleconsulta confirmada (precio con descuento de telemedicina)", "Turno confirmado" in msg)
     prof.goto(B + "telemedicina.xhtml")
@@ -276,7 +351,7 @@ with sync_playwright() as p:
     check("M. el administrativo crea un profesional con contraseña temporal", "Profesional" in fila and "Temporal" in fila)
 
     estado, _, _ = http(B + "api/v1/turnos", email_prof, "Temporal.2026")
-    check("M. la contraseña temporal no sirve para la API REST (401)", estado == 401)
+    check("M. con contraseña temporal el login de la API no entrega token (403)", estado == 403)
     doc = login(br, email_prof, "perfil.xhtml", "Temporal.2026")
     menu = doc.inner_text(".sidebar .nav")
     check("M. con contraseña temporal, el primer ingreso va a Mi perfil y el menú sólo ofrece Mi perfil",
