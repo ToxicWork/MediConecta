@@ -76,6 +76,12 @@
             </ui:fragment>
             <ui:fragment rendered="#{loginBean.administrativo}">
             <li>
+                <h:link outcome="/turnos.xhtml" styleClass="nav-item #{activePage == 'turnos' ? 'active' : ''}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg>
+                    Turnos
+                </h:link>
+            </li>
+            <li>
                 <h:link outcome="/usuarios.xhtml" styleClass="nav-item #{activePage == 'usuarios' ? 'active' : ''}">
                     <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.9-3.2 3.1-4.9 5.5-4.9s4.6 1.7 5.5 4.9"/><path d="M16 11h5M18.5 8.5v5"/></svg>
                     Usuarios

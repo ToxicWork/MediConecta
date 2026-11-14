@@ -21,4 +21,10 @@ public interface ServicioDeAgenda {
     List<Turno> turnosDelUsuarioActual();
 
     Optional<Turno> turnoDelUsuarioActual(Long turnoId);
+
+    /** Administrativo: una página de los próximos turnos confirmados ({@code profesionalId} {@code null} = todos). */
+    List<Turno> proximosConfirmados(Long profesionalId, int desde, int cantidad);
+
+    /** Administrativo: cuántos próximos turnos confirmados hay (para el paginador). */
+    int contarProximosConfirmados(Long profesionalId);
 }

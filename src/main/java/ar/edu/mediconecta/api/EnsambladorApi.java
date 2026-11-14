@@ -25,11 +25,14 @@ final class EnsambladorApi {
 
     static TurnoApi turno(Turno t, Usuario quienConsulta) {
         boolean esPaciente = t.getPaciente() != null && t.getPaciente().getId().equals(quienConsulta.getId());
+        boolean esProfesional = t.esDelProfesional(quienConsulta.getId());
+        // El enlace a la sala sólo para quien participa (un administrativo que cancela no lo recibe).
+        String sala = esPaciente ? t.getSalaUrlPaciente() : (esProfesional ? t.getSalaUrlProfesional() : null);
         return new TurnoApi(t.getId(), t.getFechaHora(), t.getModalidad().name(), t.getEstado().name(),
                 t.getProfesional().getNombreCompleto(), t.getProfesional().getEspecialidad(),
                 t.getPaciente() == null ? null : t.getPaciente().getNombreCompleto(),
                 t.getCobertura() == null ? null : t.getCobertura().name(), t.getEstadoAutorizacion().name(),
                 t.getCodigoAutorizacion(), t.getImportePaciente(),
-                esPaciente ? t.getSalaUrlPaciente() : t.getSalaUrlProfesional());
+                sala);
     }
 }

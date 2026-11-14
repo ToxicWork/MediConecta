@@ -32,5 +32,5 @@ public interface ServicioDeTurnos {
 
     List<Turno> buscarConfirmadosDeProfesional(Long profesionalId);
 
-    Turno cancelar(Long turnoId, Long pacienteId);
+    Turno cancelar(Long turnoId);
 }

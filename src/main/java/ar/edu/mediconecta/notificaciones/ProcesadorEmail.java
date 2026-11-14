@@ -31,11 +31,7 @@ public class ProcesadorEmail extends ProcesadorNotificacion {
                             + (evento.tieneImporteAPagar() ? " Abonaste $ " + evento.importePaciente().toPlainString() + "." : "")
                             + ("PENDIENTE".equals(evento.cobertura())
                             ? " Tu obra social no respondió a tiempo: te avisamos cuando confirme la cobertura." : ""));
-            case TURNO_CANCELADO -> email(evento, "Cancelaste tu turno",
-                    "Hola " + evento.pacienteNombre() + ", registramos la cancelación de tu turno con " + profesional
-                            + " del " + fecha + "."
-                            + (evento.tieneImporteAPagar() ? " El reintegro de $ " + evento.importePaciente().toPlainString()
-                            + " se acredita en tu tarjeta." : ""));
+            case TURNO_CANCELADO -> cancelacion(evento, profesional, fecha);
             case TURNO_AUTORIZADO -> email(evento, "Tu obra social autorizó el turno",
                     "Hola " + evento.pacienteNombre() + ", " + evento.obraSocial() + " autorizó la prestación de tu turno con "
                             + profesional + " del " + fecha + " (código " + evento.codigoAutorizacion() + ").");
@@ -43,6 +39,23 @@ public class ProcesadorEmail extends ProcesadorNotificacion {
                     "Hola " + evento.pacienteNombre() + ", " + evento.obraSocial() + " no autorizó la prestación de tu turno del "
                             + fecha + ": " + evento.motivoAutorizacion() + " El turno sigue confirmado; la diferencia se "
                             + "abona en el consultorio.");
+        };
+    }
+
+    /** El aviso dice quién canceló: el propio paciente, su profesional o la administración. */
+    private static Notificacion cancelacion(EventoTurno evento, String profesional, String fecha) {
+        String reintegro = evento.tieneImporteAPagar()
+                ? " El reintegro de $ " + evento.importePaciente().toPlainString() + " se acredita en tu tarjeta." : "";
+        return switch (evento.canceladoPor() == null ? "PACIENTE" : evento.canceladoPor()) {
+            case "PROFESIONAL" -> email(evento, "Tu profesional canceló el turno",
+                    "Hola " + evento.pacienteNombre() + ", " + profesional + " canceló tu turno del " + fecha + "."
+                            + reintegro + " Podés sacar otro turno desde la Agenda.");
+            case "ADMINISTRATIVO" -> email(evento, "Cancelamos tu turno",
+                    "Hola " + evento.pacienteNombre() + ", la administración de MediConecta canceló tu turno con "
+                            + profesional + " del " + fecha + "." + reintegro + " Podés sacar otro turno desde la Agenda.");
+            default -> email(evento, "Cancelaste tu turno",
+                    "Hola " + evento.pacienteNombre() + ", registramos la cancelación de tu turno con " + profesional
+                            + " del " + fecha + "." + reintegro);
         };
     }
 

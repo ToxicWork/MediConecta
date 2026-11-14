@@ -101,6 +101,11 @@ public class Turno implements Serializable {
     @Column(name = "cancelado_en")
     private LocalDateTime canceladoEn;
 
+    /** Quién canceló el turno: el paciente, su profesional o un administrativo. {@code null} si no se canceló. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "cancelado_por", length = 20)
+    private Rol canceladoPor;
+
     @Version
     private int version;
 
@@ -130,6 +135,21 @@ public class Turno implements Serializable {
 
     public void cancelar() {
         estado = estado.comportamiento().cancelar(this);
+    }
+
+    /** Cancela (patrón State: sólo un turno confirmado) y registra quién lo hizo. */
+    public void cancelar(Rol quien) {
+        cancelar();
+        this.canceladoPor = quien;
+    }
+
+    /**
+     * Si al cancelar el horario se vuelve a ofrecer a otros pacientes: sólo cuando cancela el propio paciente y el
+     * turno todavía no pasó. Si cancela el profesional o un administrativo, normalmente es porque el profesional no
+     * puede atender en ese horario, así que no se vuelve a publicar.
+     */
+    public boolean liberaElHorario(LocalDateTime ahora) {
+        return canceladoPor == Rol.PACIENTE && fechaHora.isAfter(ahora);
     }
 
     public void liberar() {
@@ -298,6 +318,10 @@ public class Turno implements Serializable {
 
     public LocalDateTime getConfirmadoEn() {
         return confirmadoEn;
+    }
+
+    public Rol getCanceladoPor() {
+        return canceladoPor;
     }
 
     public LocalDateTime getCanceladoEn() {

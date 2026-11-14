@@ -48,6 +48,31 @@ public class TurnoDAO {
                 .getResultList();
     }
 
+    /**
+     * Pantalla Turnos del administrativo: una página de los turnos confirmados que todavía no pasaron, del más
+     * próximo al más lejano, de todos los profesionales o de uno ({@code profesionalId} {@code null} = todos).
+     */
+    public List<Turno> buscarProximosConfirmados(Long profesionalId, LocalDateTime ahora, int desde, int cantidad) {
+        return em.createQuery("SELECT t FROM Turno t WHERE t.estado = :estado AND t.fechaHora > :ahora "
+                                + "AND (:profesionalId IS NULL OR t.profesional.id = :profesionalId) "
+                                + "ORDER BY t.fechaHora, t.id", Turno.class)
+                .setParameter("estado", EstadoTurno.CONFIRMADO)
+                .setParameter("ahora", ahora)
+                .setParameter("profesionalId", profesionalId)
+                .setFirstResult(desde)
+                .setMaxResults(cantidad)
+                .getResultList();
+    }
+
+    public int contarProximosConfirmados(Long profesionalId, LocalDateTime ahora) {
+        return em.createQuery("SELECT COUNT(t) FROM Turno t WHERE t.estado = :estado AND t.fechaHora > :ahora "
+                                + "AND (:profesionalId IS NULL OR t.profesional.id = :profesionalId)", Long.class)
+                .setParameter("estado", EstadoTurno.CONFIRMADO)
+                .setParameter("ahora", ahora)
+                .setParameter("profesionalId", profesionalId)
+                .getSingleResult().intValue();
+    }
+
     public List<Turno> buscarConfirmadosDeProfesional(Long profesionalId) {
         return em.createQuery(
                         "SELECT t FROM Turno t WHERE t.profesional.id = :profesionalId "

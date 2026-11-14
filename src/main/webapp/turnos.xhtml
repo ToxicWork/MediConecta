@@ -1,0 +1,79 @@
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:p="http://primefaces.org/ui"
+                template="/WEB-INF/templates/layout.xhtml">
+
+    <ui:param name="pageTitle" value="Turnos"/>
+    <ui:param name="activePage" value="turnos"/>
+
+    <f:metadata>
+        <f:viewAction action="#{turnosAdminBean.verificarAcceso}"/>
+    </f:metadata>
+
+    <ui:define name="content">
+        <p class="page-subtitle">
+            Los próximos turnos confirmados. Si un profesional no puede atender, cancelá el turno desde acá: le avisamos
+            al paciente y al profesional, el pago se reintegra solo y el horario no se vuelve a ofrecer.
+        </p>
+
+        <h:form id="formTurnos">
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <h3>Próximos turnos confirmados</h3>
+                        <div class="subtle">Del más próximo al más lejano</div>
+                    </div>
+                </div>
+
+                <div class="field-row filtro-turnos">
+                    <div class="field" style="margin-bottom:0;">
+                        <label for="formTurnos:profesional">Profesional</label>
+                        <h:selectOneMenu id="profesional" value="#{turnosAdminBean.profesionalId}">
+                            <f:selectItem itemLabel="Todos los profesionales" itemValue="#{null}"/>
+                            <f:selectItems value="#{turnosAdminBean.profesionales}" var="prof"
+                                           itemLabel="#{prof.nombreCompleto} · #{prof.especialidad}" itemValue="#{prof.id}"/>
+                            <p:ajax update="tablaTurnos" process="@this" oncomplete="PF('tablaTurnos').getPaginator().setPage(0)"/>
+                        </h:selectOneMenu>
+                    </div>
+                </div>
+
+                <h:panelGroup layout="block" styleClass="table-wrap">
+                    <!-- Carga de a tandas: lazy + paginador, la base devuelve sólo la página visible. -->
+                    <p:dataTable id="tablaTurnos" widgetVar="tablaTurnos" value="#{turnosAdminBean.turnos}" var="turno"
+                                 lazy="true" paginator="true" rows="#{turnosAdminBean.tamanoPagina}"
+                                 paginatorPosition="bottom" paginatorAlwaysVisible="false"
+                                 paginatorTemplate="{PreviousPageLink} {CurrentPageReport} {NextPageLink}"
+                                 currentPageReportTemplate="{startRecord}–{endRecord} de {totalRecords}"
+                                 emptyMessage="No hay turnos confirmados próximos.">
+                        <p:column headerText="Fecha y hora" style="width:150px">#{turnosAdminBean.formatear(turno)}</p:column>
+                        <p:column headerText="Paciente">#{turno.paciente.nombreCompleto}</p:column>
+                        <p:column headerText="Profesional">
+                            #{turno.profesional.nombreCompleto}
+                            <div class="texto-tenue">#{turno.profesional.especialidad}</div>
+                        </p:column>
+                        <p:column headerText="Modalidad" style="width:120px">
+                            <span class="tag #{turno.telemedicina ? 'tag-info' : 'tag-neutral'}">#{turno.modalidad.etiqueta}</span>
+                        </p:column>
+                        <p:column headerText="Pagó" style="width:110px">
+                            #{turno.importePaciente != null and turno.importePaciente.signum() > 0 ? '$ '.concat(turno.importePaciente.toPlainString()) : '—'}
+                        </p:column>
+                        <p:column headerText="" styleClass="col-accion" style="width:130px">
+                            <p:commandButton value="Cancelar" action="#{turnosAdminBean.cancelar(turno.id)}" ajax="false"
+                                             styleClass="btn btn-danger btn-sm">
+                                <p:confirm header="Cancelar turno"
+                                           message="¿Cancelar el turno de #{turno.paciente.nombreCompleto} con #{turno.profesional.nombreCompleto} del #{turnosAdminBean.formatear(turno)}? Les avisamos a los dos y, si el paciente pagó, se le reintegra. El horario no se vuelve a ofrecer."/>
+                            </p:commandButton>
+                        </p:column>
+                    </p:dataTable>
+                </h:panelGroup>
+            </div>
+
+            <p:confirmDialog global="true" responsive="true" width="440">
+                <p:commandButton value="Sí, cancelar el turno" type="button" styleClass="ui-confirmdialog-yes btn btn-danger"/>
+                <p:commandButton value="No" type="button" styleClass="ui-confirmdialog-no btn btn-secondary"/>
+            </p:confirmDialog>
+        </h:form>
+    </ui:define>
+</ui:composition>

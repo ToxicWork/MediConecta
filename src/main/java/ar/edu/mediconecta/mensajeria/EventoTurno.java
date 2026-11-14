@@ -32,7 +32,8 @@ public record EventoTurno(
         BigDecimal importePaciente,
         BigDecimal importeObraSocial,
         String codigoAutorizacion,
-        String motivoAutorizacion) {
+        String motivoAutorizacion,
+        String canceladoPor) {
 
     public static Builder builder() {
         return new Builder();
@@ -82,7 +83,8 @@ public record EventoTurno(
                     turno.getImportePaciente(),
                     turno.getImporteObraSocial(),
                     turno.getCodigoAutorizacion(),
-                    turno.getMotivoAutorizacion());
+                    turno.getMotivoAutorizacion(),
+                    turno.getCanceladoPor() == null ? null : turno.getCanceladoPor().name());
         }
     }
 }

@@ -168,11 +168,14 @@ public class ServicioDeTurnosBean implements ServicioDeTurnos {
         return turnoDAO.buscarConfirmadosDeProfesional(profesionalId);
     }
 
-    /** Delega en {@link ProcesoCancelacionTurno}, que es sin estado y también atiende a la API REST. */
+    /**
+     * Delega en {@link ProcesoCancelacionTurno}, que es sin estado y también atiende a la API REST y a la pantalla
+     * Turnos del administrativo. El paciente cancela sus turnos y el profesional los de su agenda.
+     */
     @Override
-    @RolesAllowed("PACIENTE")
-    public Turno cancelar(Long turnoId, Long pacienteId) {
-        return procesoCancelacion.cancelar(turnoId, pacienteId);
+    @RolesAllowed({"PACIENTE", "PROFESIONAL"})
+    public Turno cancelar(Long turnoId) {
+        return procesoCancelacion.cancelar(turnoId);
     }
 
     private void exigirHold() {

@@ -823,3 +823,10 @@ html[data-tema="oscuro"] .stat-num { color: var(--color-primary); }
   .notif-head { flex-direction: column; align-items: flex-start; }
   .card-header { flex-wrap: wrap; gap: 10px; }
 }
+
+/* Cancelación por el profesional y el administrativo: columna del botón, filtro y diálogo de confirmación */
+.col-accion { width: 1%; white-space: nowrap; text-align: right; }
+.filtro-turnos { margin-bottom: 14px; }
+.ui-confirm-dialog.ui-dialog { border-radius: 14px; max-width: calc(100vw - 32px); }
+.ui-confirm-dialog .ui-dialog-content { line-height: 1.5; }
+.ui-confirm-dialog .ui-dialog-footer { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }

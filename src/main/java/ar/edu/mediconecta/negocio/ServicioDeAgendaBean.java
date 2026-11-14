@@ -13,11 +13,12 @@ import jakarta.ejb.SessionContext;
 import jakarta.ejb.Stateless;
 import jakarta.inject.Inject;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 @Stateless
-@DeclareRoles({"PACIENTE", "PROFESIONAL"})
+@DeclareRoles({"PACIENTE", "PROFESIONAL", "ADMINISTRATIVO"})
 public class ServicioDeAgendaBean implements ServicioDeAgenda {
 
     @Inject
@@ -59,6 +60,22 @@ public class ServicioDeAgendaBean implements ServicioDeAgenda {
         }
         boolean propio = turno.perteneceAPaciente(usuario.getId()) || turno.esDelProfesional(usuario.getId());
         return propio ? Optional.of(turno) : Optional.empty();
+    }
+
+    /** Tope por página, aunque la pantalla pida más. */
+    private static final int MAXIMO_POR_PAGINA = 25;
+
+    @Override
+    @RolesAllowed("ADMINISTRATIVO")
+    public List<Turno> proximosConfirmados(Long profesionalId, int desde, int cantidad) {
+        return turnoDAO.buscarProximosConfirmados(profesionalId, LocalDateTime.now(), Math.max(desde, 0),
+                Math.min(Math.max(cantidad, 1), MAXIMO_POR_PAGINA));
+    }
+
+    @Override
+    @RolesAllowed("ADMINISTRATIVO")
+    public int contarProximosConfirmados(Long profesionalId) {
+        return turnoDAO.contarProximosConfirmados(profesionalId, LocalDateTime.now());
     }
 
     private Usuario usuarioActual() {

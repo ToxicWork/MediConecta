@@ -16,8 +16,16 @@ public class ProcesadorAvisoProfesional extends ProcesadorNotificacion {
         return switch (evento.tipo()) {
             case TURNO_CONFIRMADO -> aviso(evento, "Nuevo turno confirmado",
                     evento.pacienteNombre() + " confirmó un turno para el " + fecha + modalidad + ".");
-            case TURNO_CANCELADO -> aviso(evento, "Turno cancelado",
-                    evento.pacienteNombre() + " canceló su turno del " + fecha + ". El horario volvió a quedar disponible.");
+            case TURNO_CANCELADO -> switch (evento.canceladoPor() == null ? "PACIENTE" : evento.canceladoPor()) {
+                case "PROFESIONAL" -> aviso(evento, "Cancelaste un turno",
+                        "Cancelaste el turno de " + evento.pacienteNombre() + " del " + fecha
+                                + ". Le avisamos al paciente. El horario no se vuelve a ofrecer.");
+                case "ADMINISTRATIVO" -> aviso(evento, "La administración canceló un turno",
+                        "La administración canceló el turno de " + evento.pacienteNombre() + " del " + fecha
+                                + ". Le avisamos al paciente. El horario no se vuelve a ofrecer.");
+                default -> aviso(evento, "Turno cancelado",
+                        evento.pacienteNombre() + " canceló su turno del " + fecha + ". El horario volvió a quedar disponible.");
+            };
             case TURNO_AUTORIZADO -> aviso(evento, "Prestación autorizada",
                     evento.obraSocial() + " autorizó el turno de " + evento.pacienteNombre() + " del " + fecha
                             + " (código " + evento.codigoAutorizacion() + "). Ya se generó el reclamo de facturación.");

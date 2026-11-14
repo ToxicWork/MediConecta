@@ -3,6 +3,7 @@ package ar.edu.mediconecta.api;
 import ar.edu.mediconecta.api.dto.ErrorApi;
 import ar.edu.mediconecta.modelo.ErrorDeNegocioException;
 import ar.edu.mediconecta.modelo.TransicionInvalidaException;
+import ar.edu.mediconecta.negocio.excepciones.TurnoInexistenteException;
 import ar.edu.mediconecta.seguridad.MecanismoAutenticacion;
 import jakarta.ejb.EJBAccessException;
 import jakarta.ejb.EJBException;
@@ -54,6 +55,7 @@ public class MapeadorDeExcepciones implements ExceptionMapper<Exception> {
      *   <li>{@link TransicionInvalidaException} (patrón State: la operación no vale en el estado actual del
      *       turno): <b>409 Conflict</b>, código {@code transicion_invalida}. El pedido está bien formado, pero
      *       choca con el estado del recurso.</li>
+     *   <li>{@link TurnoInexistenteException} (no existe o es ajeno): <b>404</b>, igual que un id inexistente.</li>
      *   <li>Otras reglas de negocio: 409, código {@code regla_de_negocio}.</li>
      *   <li>Sin permiso: 401 si no hay token, 403 si el rol no alcanza.</li>
      * </ul>
@@ -69,6 +71,9 @@ public class MapeadorDeExcepciones implements ExceptionMapper<Exception> {
             int estado = web.getResponse().getStatus();
             return ErrorApi.de(estado, estado == 404 ? "no_encontrado" : "error_http",
                     estado == 404 ? "El recurso no existe." : web.getMessage());
+        }
+        if (causa instanceof TurnoInexistenteException) {
+            return ErrorApi.de(404, "no_encontrado", "El recurso no existe.");
         }
         if (causa instanceof TransicionInvalidaException transicion) {
             return ErrorApi.de(409, "transicion_invalida", transicion.getMessage());

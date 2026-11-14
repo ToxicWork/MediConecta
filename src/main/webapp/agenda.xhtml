@@ -229,8 +229,10 @@
                             <div class="subtle">#{agendaBean.turnosConfirmadosProfesional.size()} turno(s) · cobertura y autorización de la obra social</div>
                         </div>
                     </div>
+                    <h:form id="formTurnosProfesional">
                     <h:panelGroup layout="block" styleClass="table-wrap" rendered="#{not empty agendaBean.turnosConfirmadosProfesional}">
-                        <p:dataTable id="tablaConfirmadosProfesional" value="#{agendaBean.turnosConfirmadosProfesional}" var="turno">
+                        <p:dataTable id="tablaConfirmadosProfesional" value="#{agendaBean.turnosConfirmadosProfesional}" var="turno"
+                                     tableStyle="table-layout:auto">
                             <p:column headerText="Fecha y hora">
                                 <h:outputText value="#{turno.fechaHora}">
                                     <f:convertDateTime pattern="dd/MM/yyyy HH:mm" type="localDateTime"/>
@@ -249,8 +251,20 @@
                                 <h:outputText value="#{turno.estadoAutorizacion.etiqueta}"
                                               styleClass="tag #{turno.estadoAutorizacion == 'AUTORIZADA' ? 'tag-success' : (turno.estadoAutorizacion == 'PENDIENTE' ? 'tag-warning' : (turno.estadoAutorizacion == 'RECHAZADA' ? 'tag-danger' : 'tag-neutral'))}"/>
                             </p:column>
+                            <p:column headerText="" styleClass="col-accion">
+                                <p:commandButton value="Cancelar" action="#{agendaBean.cancelar(turno.id)}" ajax="false"
+                                                 styleClass="btn btn-danger btn-sm">
+                                    <p:confirm header="Cancelar turno"
+                                               message="¿Cancelar el turno de #{turno.paciente.nombreCompleto} del #{agendaBean.formatear(turno.fechaHora)}? Le avisamos al paciente y, si pagó, le reintegramos el pago. El horario no se vuelve a ofrecer."/>
+                                </p:commandButton>
+                            </p:column>
                         </p:dataTable>
                     </h:panelGroup>
+                    <p:confirmDialog global="true" responsive="true" width="420">
+                        <p:commandButton value="Sí, cancelar el turno" type="button" styleClass="ui-confirmdialog-yes btn btn-danger"/>
+                        <p:commandButton value="No" type="button" styleClass="ui-confirmdialog-no btn btn-secondary"/>
+                    </p:confirmDialog>
+                    </h:form>
                     <h:panelGroup layout="block" styleClass="empty-state" rendered="#{empty agendaBean.turnosConfirmadosProfesional}">
                         Todavía no te confirmaron turnos.
                     </h:panelGroup>

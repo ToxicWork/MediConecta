@@ -5,6 +5,7 @@ import ar.edu.mediconecta.api.dto.ErrorApi;
 import ar.edu.mediconecta.modelo.ErrorDeNegocioException;
 import ar.edu.mediconecta.modelo.TransicionInvalidaException;
 import ar.edu.mediconecta.modelo.Turno;
+import ar.edu.mediconecta.negocio.excepciones.TurnoInexistenteException;
 import jakarta.ejb.EJBAccessException;
 import org.junit.jupiter.api.Test;
 
@@ -27,6 +28,14 @@ class MapeadorDeExcepcionesTest {
         assertEquals(409, error.estado());
         assertEquals("transicion_invalida", error.error());
         assertEquals("No se puede cancelar un turno disponible.", error.mensaje());
+    }
+
+    @Test
+    void unTurnoInexistenteOAjenoEs404ComoUnIdQueNoExiste() {
+        ErrorApi error = MapeadorDeExcepciones.clasificar(new TurnoInexistenteException(), true);
+
+        assertEquals(404, error.estado());
+        assertEquals("no_encontrado", error.error());
     }
 
     @Test

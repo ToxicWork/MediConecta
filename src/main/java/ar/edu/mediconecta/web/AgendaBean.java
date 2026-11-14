@@ -110,17 +110,31 @@ public class AgendaBean implements Serializable {
     }
 
     private void invalidarMisTurnos() {
-        FacesContext.getCurrentInstance().getExternalContext().getRequestMap().remove(MIS_TURNOS);
+        Map<String, Object> request = FacesContext.getCurrentInstance().getExternalContext().getRequestMap();
+        request.remove(MIS_TURNOS);
+        request.remove(TURNOS_PROFESIONAL);
     }
 
+    /** Fecha y hora como se muestran en las tablas y en los mensajes ("dd/MM/yyyy HH:mm"). */
+    public String formatear(LocalDateTime fechaHora) {
+        return fechaHora == null ? "" : FORMATO_FECHA.format(fechaHora);
+    }
+
+    /** El paciente cancela un turno suyo; el profesional, uno de su agenda (el horario no se vuelve a ofrecer). */
     public void cancelar(Long turnoId) {
         try {
-            Usuario usuario = loginBean.getUsuarioActual();
-            Turno cancelado = servicioDeTurnos.cancelar(turnoId, usuario.getId());
+            Turno cancelado = servicioDeTurnos.cancelar(turnoId);
             invalidarMisTurnos();
             boolean habiaPago = cancelado.getImportePaciente() != null && cancelado.getImportePaciente().signum() > 0;
-            info("Turno cancelado" + (habiaPago ? ". El reintegro de $ " + cancelado.getImportePaciente().toPlainString()
-                    + " se procesa en unos segundos (Pagos)." : "."));
+            String reintegro = "$ " + (habiaPago ? cancelado.getImportePaciente().toPlainString() : "");
+            if (loginBean.isProfesional()) {
+                info("Cancelaste el turno de " + cancelado.getPaciente().getNombreCompleto() + " del "
+                        + FORMATO_FECHA.format(cancelado.getFechaHora()) + ". Le avisamos al paciente"
+                        + (habiaPago ? " y le reintegramos " + reintegro : "") + ". El horario no se vuelve a ofrecer.");
+            } else {
+                info("Turno cancelado" + (habiaPago ? ". El reintegro de " + reintegro
+                        + " se procesa en unos segundos (Pagos)." : "."));
+            }
         } catch (ErrorDeNegocioException e) {
             error(e.getMessage());
         }

@@ -29,7 +29,7 @@ import java.util.List;
  */
 @Path("/v1/turnos")
 @Stateless
-@DeclareRoles({"PACIENTE", "PROFESIONAL"})
+@DeclareRoles({"PACIENTE", "PROFESIONAL", "ADMINISTRATIVO"})
 @RolesAllowed({"PACIENTE", "PROFESIONAL"})
 @Produces(MediaType.APPLICATION_JSON)
 public class TurnosResource {
@@ -62,20 +62,19 @@ public class TurnosResource {
     }
 
     /**
-     * {@code POST /api/v1/turnos/{id}/cancelacion}: el paciente cancela su turno. La cancelación se modela
-     * como un sub-recurso que se crea, porque es un cambio de estado con efectos (reintegro, aviso) y no un
-     * borrado: el turno sigue existiendo como historial.
+     * {@code POST /api/v1/turnos/{id}/cancelacion}: cancela un turno. Puede el paciente (sus turnos), el profesional
+     * (los de su agenda) o un administrativo (cualquiera); la titularidad la verifica {@link ProcesoCancelacionTurno}.
+     * La cancelación se modela como un sub-recurso que se crea, porque es un cambio de estado con efectos (reintegro,
+     * aviso) y no un borrado: el turno sigue existiendo como historial.
      *
      * <p>200 con el turno cancelado; 404 si no existe o es ajeno; <b>409</b> si el estado actual no admite
      * la cancelación (patrón State): cancelar dos veces el mismo turno, o uno que todavía está en espera.
      */
     @POST
     @Path("/{id}/cancelacion")
-    @RolesAllowed("PACIENTE")
+    @RolesAllowed({"PACIENTE", "PROFESIONAL", "ADMINISTRATIVO"})
     public TurnoApi cancelar(@PathParam("id") Long turnoId) {
-        Usuario usuario = usuarioActual();
-        agenda.turnoDelUsuarioActual(turnoId).orElseThrow(() -> new NotFoundException("El turno no existe."));
-        return EnsambladorApi.turno(cancelacion.cancelar(turnoId, usuario.getId()), usuario);
+        return EnsambladorApi.turno(cancelacion.cancelar(turnoId), usuarioActual());
     }
 
     private Usuario usuarioActual() {

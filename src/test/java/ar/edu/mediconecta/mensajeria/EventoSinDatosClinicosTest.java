@@ -35,7 +35,8 @@ class EventoSinDatosClinicosTest {
             "profesionalId", "profesionalNombre", "especialidad",              // del profesional
             "pacienteId", "pacienteNombre", "pacienteEmail",                   // contacto (Notificaciones)
             "obraSocial", "cobertura", "importePaciente", "importeObraSocial", // cobro (Facturación)
-            "codigoAutorizacion", "motivoAutorizacion");                       // respuesta administrativa de la obra social
+            "codigoAutorizacion", "motivoAutorizacion",                        // respuesta administrativa de la obra social
+            "canceladoPor");                                                   // rol que canceló (PACIENTE, PROFESIONAL, ADMINISTRATIVO)
 
     private static final Pattern NOMBRE_CLINICO = Pattern.compile(
             "(?i).*(diagn|receta|tratamiento|historia|antecedente|sintoma|clinic|descripcion|entrada|medicac|estudio).*");
