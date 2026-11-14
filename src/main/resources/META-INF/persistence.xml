@@ -8,8 +8,13 @@
         <jta-data-source>java:/mediconectaDS</jta-data-source>
         <properties>
             <property name="hibernate.hbm2ddl.auto" value="update"/>
-            <property name="hibernate.show_sql" value="true"/>
-            <property name="hibernate.format_sql" value="true"/>
+            <!--
+              SQL de Hibernate apagado: con show_sql y format_sql el log tenía unas 44.500 líneas por corrida de
+              pruebas y tapaba lo importante (avisos, integraciones, seguridad). Para depurar en una máquina, poner
+              las dos en true; nunca muestra los valores (usa "?"), pero llena el log.
+            -->
+            <property name="hibernate.show_sql" value="false"/>
+            <property name="hibernate.format_sql" value="false"/>
         </properties>
     </persistence-unit>
 
