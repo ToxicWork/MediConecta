@@ -49,8 +49,13 @@ cp target/mediconecta.war sistemas-externos/target/externos.war ~/Downloads/wild
 > En la Mac, antes del primer arranque de esta entrega, correr con el servidor apagado
 > `jboss-cli.sh --file=wildfly/configurar-integracion-entrega4.cli` (crea la cola; ver 2.2).
 
-App: <http://localhost:8080/mediconecta/login.xhtml> · Consola de sistemas externos:
-<http://localhost:8080/externos/> · WSDL del legado: <http://localhost:8080/externos/CoberturaService?wsdl>
+App: <https://localhost:8443/mediconecta/login.xhtml> (por HTTPS desde el 14/11; `http://localhost:8080/mediconecta/`
+redirige solo) · Consola de sistemas externos: <http://localhost:8080/externos/> · WSDL del legado:
+<http://localhost:8080/externos/CoberturaService?wsdl>
+
+> **Primera vez por HTTPS:** WildFly usa un certificado autofirmado que genera solo para `localhost`, así que el
+> navegador muestra "La conexión no es privada". Se acepta una vez ("Avanzado" → "Continuar a localhost") y no
+> vuelve a aparecer en ese navegador. Hacerlo antes de la defensa en la PC que proyecte.
 
 El script exporta `JAVA_HOME` a OpenJDK 21 (`/opt/homebrew/opt/openjdk@21/...`) y usa
 `WILDFLY_HOME=~/Downloads/wildfly-41.0.1.Final`; ambas se pueden pisar por variable de entorno.
@@ -62,7 +67,7 @@ Usuarios de demo ya cargados en Supabase (contraseña `demo1234` en los tres):
 | --- | --- | --- |
 | Profesional | `ana.lopez@mediconecta.test` | MN 12345 · Cardiología |
 | Paciente | `juan.perez@mediconecta.test` | OSDE 210 (la obra social simulada cubre el 70 %, copago del 30 %) |
-| Administrativo | `carla.admin@mediconecta.test` | Pagos (todos los cobros y reclamos) y Usuarios. Lo usa `pruebas/prueba_entrega4.py` |
+| Administrativo | `carla.admin@mediconecta.test` | Pagos (todos los cobros y reclamos), Turnos y Usuarios. Lo usan las pruebas de punta a punta |
 
 **Administrador por defecto.** Al desplegar, `InicializadorDeAdministrador` crea
 `admin@mediconecta.test` si no existe, con la contraseña inicial **`Admin.2026`**, marcada como temporal:
@@ -201,26 +206,35 @@ El build de MediConecta genera el cliente SOAP con wsimport (`jaxws-maven-plugin
 - `/login.xhtml` — login; con "¿No tenés cuenta? Registrate" lleva a `/registro.xhtml`, que **sólo crea
   pacientes** (`ServicioDeUsuarios.registrarPaciente`, `@PermitAll`, no recibe el rol). Con la sesión ya
   iniciada, login y registro mandan a la página de inicio; para cambiar de usuario, "Cerrar sesión" en el
-  menú lateral.
+  menú lateral. **Cinco contraseñas incorrectas seguidas bloquean la cuenta 15 minutos** (web y API, con el
+  mismo mensaje genérico); un administrativo la puede desbloquear antes desde Usuarios.
 - `/perfil.xhtml` — "Mi perfil" (todos los roles): datos de sólo lectura y cambio de la propia contraseña.
   Con contraseña temporal es la única pantalla disponible hasta cambiarla.
 - `/usuarios.xhtml` — (administrativo) alta de pacientes, profesionales y administrativos con contraseña
-  temporal, y listado (`@RolesAllowed("ADMINISTRATIVO")`).
+  temporal, y listado (`@RolesAllowed("ADMINISTRATIVO")`). Muestra las cuentas bloqueadas por intentos
+  fallidos, con el botón **Desbloquear**.
+- `/turnos.xhtml` — (administrativo) próximos turnos confirmados de todos los profesionales, con filtro por
+  profesional y de a 10 por página, y botón **Cancelar** con confirmación.
 - `/agenda.xhtml` — el profesional publica disponibilidad eligiendo día y hora en un calendario
   (`p:datePicker`); el paciente busca, reserva un hold (5 min, bean `@Stateful`) y confirma. La
   disponibilidad que nadie reservó se vence sola: el timer `VencedorDeDisponibilidad` (cada minuto) borra
   los horarios libres cuya fecha ya pasó. Páginas accesibles solo autenticado (redirige a
   `/login.xhtml` si no hay sesión, vía `f:viewAction` + `MecanismoAutenticacion`) y con el rol que
-  corresponde (`LoginBean.exigirRol`; si no, vuelve a la página de inicio del rol).
+  corresponde (`LoginBean.exigirRol`; si no, vuelve a la página de inicio del rol). El profesional puede
+  **cancelar** los turnos confirmados de su agenda (con confirmación).
 - `/historia.xhtml` — el profesional carga diagnósticos/recetas sobre pacientes con turno
   confirmado (protegido con `@RolesAllowed("PROFESIONAL")` a nivel EJB); el paciente ve
   (solo lectura) su propia historia.
 - `/pagos.xhtml` — pagos del paciente (pasarela REST) y, para el administrativo, todos los cobros y los
   reclamos a obras sociales generados por Facturación (`@RolesAllowed("ADMINISTRATIVO")`). El profesional
-  no tiene esta solapa. El administrativo accede a Pagos, Usuarios y Mi perfil.
+  no tiene esta solapa. El administrativo accede a Pagos, Turnos, Usuarios y Mi perfil.
 - `/telemedicina.xhtml` — teleconsultas confirmadas: el profesional crea la sala por REST y el paciente
   se une con su enlace. En la sala, el botón activa y desactiva la cámara.
-- `/api/v1/...` — API REST (ver `docs/api/README.md`).
+- `/monitor.xhtml` — Monitor de eventos (paciente y profesional, HU-09): para cada aviso de sus turnos, si
+  ya lo procesaron Notificaciones, Auditoría y Facturación y con qué latencia. De a 10 por página y se
+  actualiza solo cada 5 s.
+- `/api/v1/...` — API REST (ver `docs/api/README.md`). `POST /api/v1/turnos/{id}/cancelacion` acepta al
+  paciente, al profesional (turnos de su agenda) y al administrativo; un turno ajeno da 404.
 - `/notificaciones.xhtml` — bandeja de notificaciones. Al confirmar o cancelar un turno,
   `ServicioDeTurnos` publica un `EventoTurno` en `topico.turnos`; dos MDB suscriptos de forma
   durable lo consumen: `NotificacionesSubscriber` (email simulado al paciente + aviso en la app al
@@ -256,12 +270,25 @@ ad-hoc a partir del `CallerPrincipalCallback`/`GroupPrincipalCallback` que emite
 ## Pruebas
 
 ```bash
-mvn package                        # 34 pruebas unitarias
-pip install playwright             # una sola vez; usa el Google Chrome instalado
-python pruebas/prueba_entrega4.py  # verificaciones de punta a punta (integraciones, JWT, 409, roles)
+mvn package                          # 70 pruebas unitarias
+pip install playwright               # una sola vez; usa el Google Chrome instalado
+python pruebas/prueba_entrega4.py    # punta a punta (integraciones, JWT, 409, roles)
+python pruebas/prueba_e2e.py         # 13 verificaciones del recorrido básico
+python pruebas/prueba_seguridad.py   # tarjetas SEC-*: bloqueo, HTTPS y cookie, inyección SQL, DLQ, historia, logs
+python pruebas/prueba_monitor.py     # HU-09: Monitor de eventos (suscriptor caído y recuperado, paginación)
+python pruebas/prueba_cancelacion.py # cancelación por paciente, profesional, administrativo y API
+python pruebas/prueba_hold_vence.py  # el hold vence solo (tarda unos 6 minutos)
 python pruebas/demo_api_jwt_409.py --sin-cancelar   # guion del login con JWT (no modifica datos)
-python pruebas/prueba_e2e.py       # 13 verificaciones del recorrido básico
 ```
+
+Todas usan `https://localhost:8443/mediconecta/` y aceptan el certificado autofirmado de WildFly. Dos variables:
+
+- `NAVEGADOR=msedge` para usar Microsoft Edge en vez de Google Chrome (el valor por defecto es `chrome`).
+- `WILDFLY_HOME` con la carpeta de WildFly: la necesitan `prueba_seguridad.py` (consulta la DLQ y lee el log
+  del servidor) y `prueba_monitor.py` (frena y reactiva un MDB con `jboss-cli`).
+
+En Windows, por ejemplo: `set NAVEGADOR=msedge` y `set WILDFLY_HOME=C:\WildFly\wildfly-41.0.0.Final`. Las pruebas
+crean pacientes de prueba con email `@mediconecta.test`; nunca bloquean ni cancelan turnos de los usuarios de demo.
 
 Los PDF de `docs/` se regeneran con `python docs/generar_pdf.py <html> <pdf>` (Chrome + PyMuPDF).
 
@@ -293,3 +320,26 @@ por su propia API; sin RLS, las tablas se pueden leer con la clave anónima del 
 `sql/02-habilitar-rls.sql` en el editor SQL de Supabase. La aplicación no cambia: se conecta con el rol dueño
 de las tablas. Hibernate crea las tablas nuevas sin RLS, así que hay que repetirlo si una versión agrega
 entidades (el asesor de seguridad de Supabase lo avisa como "RLS Disabled in Public").
+
+## Tarjetas de seguridad y cancelación (14/11)
+
+Los cambios de esta tanda no requieren pasos manuales: alcanza con desplegar el WAR nuevo.
+
+- **Base de datos.** Hibernate agrega solo las columnas nuevas: `usuario.intentos_fallidos`,
+  `usuario.bloqueado_hasta` y `turno.cancelado_por`. No hay tablas nuevas, así que Row Level Security no cambia.
+- **HTTPS.** La app exige HTTPS (`transport-guarantee CONFIDENTIAL` en `web.xml`) y la cookie de sesión lleva
+  `HttpOnly`, `Secure` y `SameSite=Lax` (este último lo agrega `WEB-INF/undertow-handlers.conf`). WildFly 41 ya
+  trae el puerto 8443 con el certificado autofirmado (`applicationSSC` en `standalone-full.xml`); no hay que
+  configurar nada.
+- **Log.** Los emails se escriben enmascarados (`ju***@mediconecta.test`) y el SQL de Hibernate quedó apagado en
+  `persistence.xml` (para depurar, poner `hibernate.show_sql` en `true`).
+- **Reprocesar la DLQ.** Si Facturación no pudo reintegrar un pago (pasarela caída), el mensaje queda en
+  `jms.queue.DLQ` después de 3 intentos. Para reprocesarlo, con la pasarela en línea y 30 segundos después de la
+  última falla (el Circuit Breaker de la pasarela tiene que haberse cerrado):
+
+  ```bat
+  %WILDFLY_HOME%\bin\jboss-cli.bat --connect --command="/subsystem=messaging-activemq/server=default/jms-queue=DLQ:list-messages"
+  %WILDFLY_HOME%\bin\jboss-cli.bat --connect --command="/subsystem=messaging-activemq/server=default/runtime-queue=jms.queue.DLQ:move-messages(other-queue-name=mediconecta-facturacion.facturacion)"
+  ```
+
+  `list-messages` muestra en `_AMQ_ORIG_QUEUE` de qué suscripción vino cada mensaje.

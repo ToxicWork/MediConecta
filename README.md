@@ -85,6 +85,24 @@ documentadas.
 - Cookie de sesión `HttpOnly` y sin id de sesión en la URL.
 - 13 pruebas unitarias nuevas (JWT, códigos HTTP y la matriz completa de transiciones inválidas) y verificaciones nuevas en las pruebas de navegador.
 
+**Tarjetas de seguridad y cancelación (14/11)**: las nueve tarjetas de "POR HACER" del tablero. Resuelven los
+defectos D-01, D-02, D-04, D-07 y D-09 del informe del 16/11.
+
+- **SEC-W01**: cinco contraseñas incorrectas seguidas bloquean la cuenta 15 minutos (web y API, con el mismo
+  mensaje genérico); el administrativo la puede desbloquear desde Usuarios.
+- **SEC-W04**: toda la app por **HTTPS** (`https://localhost:8443/mediconecta/`; `http` redirige) y cookie de
+  sesión con `HttpOnly`, `Secure` y `SameSite=Lax`.
+- **SEC-W06, SEC-I01, SEC-I02 y SEC-D01**: el código ya cumplía; se agregaron las pruebas que lo demuestran
+  (inyección SQL, eventos sin datos clínicos, Dead Letter Channel con la pasarela caída y reproceso, historia
+  clínica sólo con turno confirmado). En la historia clínica, además, el servidor valida el turno de cada entrada.
+- **SEC-D02**: los emails se escriben enmascarados en el log (`ju***@mediconecta.test`); el SQL de Hibernate se
+  apagó para que el log muestre lo importante.
+- **HU-09**: vuelve el **Monitor de eventos** (paciente y profesional), mínimo: sólo los avisos de sus turnos,
+  con el estado y la latencia de cada suscriptor, de a 10 por página.
+- **Cancelación por el profesional y el administrativo**: botón Cancelar en la agenda del profesional y pantalla
+  **Turnos** del administrativo (de a tandas, con filtro por profesional). El turno registra quién lo canceló,
+  los avisos lo dicen y el horario no se vuelve a ofrecer (sí cuando cancela el paciente). También por la API.
+
 - **Sistemas externos simulados** (`sistemas-externos/`, se despliega como `externos.war`): la obra
   social (SOAP), la pasarela y la videoconsulta (REST), con una consola para tirarlos abajo en vivo.
 
@@ -115,10 +133,17 @@ documentadas.
 
 ## Pruebas
 
-- Unitarias (JUnit 5): `mvn package` corre 47 pruebas (State, Strategy, Chain of Responsibility, Circuit
-  Breaker, Retry, Builder, Factory, política de contraseñas, catálogo, JWT y códigos HTTP de la API).
-- De punta a punta con navegador real (requieren `pip install playwright` y Google Chrome, con la app
-  desplegada):
+- Unitarias (JUnit 5): `mvn package` corre 70 pruebas (State, Strategy, Chain of Responsibility, Circuit
+  Breaker, Retry, Builder, Factory, política de contraseñas, catálogo, JWT, códigos HTTP de la API, bloqueo
+  por intentos, eventos sin datos clínicos, enmascarado de emails y cancelación por rol).
+- De punta a punta con navegador real (requieren `pip install playwright` y Google Chrome, o Edge con
+  `NAVEGADOR=msedge`, con la app desplegada; ver `SETUP.md`):
+  - [`pruebas/prueba_seguridad.py`](pruebas/prueba_seguridad.py): las pruebas de seguridad del diseño (SEC-W01,
+    W04, W06, I02, D01 y D02). Necesita `WILDFLY_HOME`.
+  - [`pruebas/prueba_monitor.py`](pruebas/prueba_monitor.py): Monitor de eventos (HU-09), con un suscriptor
+    frenado y recuperado y la paginación. Necesita `WILDFLY_HOME`.
+  - [`pruebas/prueba_cancelacion.py`](pruebas/prueba_cancelacion.py): cancelación por el profesional, el
+    administrativo, el paciente y la API.
   - [`pruebas/prueba_entrega4.py`](pruebas/prueba_entrega4.py): verificaciones de punta a punta
     (SOAP, API REST con JWT, transición inválida con 409, pago rechazado y aprobado, cola, legado caído, cancelación con reintegro,
     telemedicina, auditoría, temas, roles y alta de usuarios con contraseña temporal).
