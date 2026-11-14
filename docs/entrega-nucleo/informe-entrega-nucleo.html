@@ -513,6 +513,21 @@
   </div>
   <h2 id="tablero">Tablero y participación</h2>
   <p>El seguimiento del equipo se lleva en Trello, una de las herramientas equivalentes a Jira que admite el anexo: https://trello.com/b/7c84ZN3J/mediconecta-grupo-04. El tablero tiene cuatro columnas (por hacer, en progreso, en revisión y terminado) y los tres integrantes son miembros.</p>
+  <p>El trabajo se repartió por capa de la arquitectura, con un responsable por capa. La Tabla 11 indica qué abarca cada una. El reparto ordena el trabajo, no la defensa: los tres integrantes revisamos el sistema completo y cualquiera puede responder por cualquier parte, incluidas las pruebas.</p>
+
+  <div class="tabla" style="page-break-inside:auto">
+    <div class="num">Tabla 11</div>
+    <div class="tit">Reparto del trabajo por capa</div>
+    <table class="">
+      <thead><tr><th style="width:16%">Capa</th><th style="width:19%">Responsable</th><th>Qué abarca</th></tr></thead>
+      <tbody>
+        <tr><td>Presentación</td><td>Sergio Casanova</td><td>Vistas JSF y PrimeFaces, beans de <span class="mono">web</span>, temas visuales y diseño adaptable; API REST (<span class="mono">api</span>: recursos, DTO, <span class="mono">MapeadorDeExcepciones</span>) y la entrada de seguridad (<span class="mono">MecanismoAutenticacion</span>, login y JWT)</td></tr>
+        <tr><td>Negocio</td><td>Agustín Bodas</td><td>Componentes EJB de <span class="mono">negocio</span> y sus interfaces, transacciones declarativas, reglas del dominio y patrones (State, Strategy, Chain of Responsibility, Factory), mensajería (<span class="mono">mensajeria</span>) e integraciones con los sistemas externos (<span class="mono">integracion</span>)</td></tr>
+        <tr><td>Datos</td><td>Máximo Bonarrico</td><td>Entidades JPA de <span class="mono">modelo</span> y su mapeo, los DAO (<span class="mono">dao</span>), la unidad de persistencia, la base en Supabase, los scripts de <span class="mono">sql/</span> y Row Level Security; configuración del datasource en WildFly</td></tr>
+        <tr><td>Común a los tres</td><td>Todo el grupo</td><td>Pruebas unitarias y de punta a punta, documentación, diagramas, tablero y preparación de la demostración</td></tr>
+      </tbody>
+    </table>
+  </div>
   <p>El repositorio Git tiene 26 commits entre el 28 de agosto y el 1 de noviembre, a los que se suman los de esta entrega. El historial muestra la evolución por entregas: componentes y seguridad en septiembre, mensajería en octubre, integraciones y transacciones a fines de octubre y los ajustes de roles en noviembre.</p>
 </section>
 <section class="salto">
