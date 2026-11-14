@@ -8,6 +8,9 @@
   W06. Login resistente a inyección SQL: los ataques típicos en el email y la contraseña (web y API) reciben el
        rechazo genérico, sin error 500 ni detalles de la base; en el registro, un nombre "peligroso" se guarda
        como texto literal; la base sigue intacta.
+  D01. Historia clínica sólo con turno confirmado: sin turno el profesional no ve al paciente; con un turno
+       confirmado abre su historia y registra un diagnóstico; si el turno se cancela con la historia todavía abierta
+       en pantalla, el servidor rechaza la nueva entrada.
   I02. Dead Letter Channel: con la pasarela de pagos caída, Facturación no puede reintegrar una cancelación; el
        broker reintenta 3 veces y deja el mensaje en jms.queue.DLQ (no se pierde). Con la pasarela de nuevo en
        línea, se reenvían los mensajes de la DLQ y el reintegro se hace.
@@ -138,11 +141,66 @@ def registrar_paciente(br, email, clave, nombre="Paciente Seguridad"):
     pg.context.close()
 
 
+def fecha_libre():
+    """Un horario de diciembre al azar, lejos de los que usan las otras pruebas (días 1 a 6)."""
+    return "%02d/12/2026 %02d:%02d" % (random.randint(20, 28), random.randint(7, 19), random.choice(range(5, 60, 10)))
+
+
+def publicar_horario(br, fecha):
+    prof, _ = login_web(br, PROFESIONAL, "demo1234")
+    prof.goto(B + "agenda.xhtml")
+    prof.fill("#formPublicar\\:fecha_input", fecha)
+    prof.keyboard.press("Escape")
+    with prof.expect_navigation():
+        prof.locator("#formPublicar button:has-text('Publicar')").evaluate("boton => boton.click()")
+    prof.context.close()
+
+
+def reservar_y_pagar(br, email, clave, fecha):
+    """El paciente reserva ese horario de la Dra. Ana Lopez y lo paga. Devuelve su página (en la Agenda)."""
+    dia, hora = fecha.split(" ")
+    pac, _ = login_web(br, email, clave)
+    sel = pac.locator("#formAgenda\\:profesional")
+    sel.select_option(sel.locator("option", has_text="Ana Lopez").first.get_attribute("value"))
+    with pac.expect_navigation():
+        pac.click("button:has-text('Ver turnos disponibles')")
+    with pac.expect_navigation():
+        pac.locator("#formAgenda\\:tablaTurnos tr", has_text=dia + " · " + hora).locator(
+            "button:has-text('Reservar')").first.click()
+    pac.fill("#formConfirmacion\\:titular", "Paciente Seguridad")
+    pac.fill("#formConfirmacion\\:numeroTarjeta", "4111 1111 1111 1111")
+    pac.fill("#formConfirmacion\\:vencimiento", "12/29")
+    pac.fill("#formConfirmacion\\:codigoSeguridad", "123")
+    with pac.expect_navigation():
+        pac.click("#formConfirmacion\\:btnConfirmar")
+    return pac
+
+
+def cancelar_turno(pac, fecha):
+    dia, hora = fecha.split(" ")
+    pac.goto(B + "agenda.xhtml")
+    with pac.expect_navigation():
+        pac.locator("#formAgenda\\:tablaMisTurnos tr", has_text=dia + " · " + hora).locator(
+            "button:has-text('Cancelar')").first.click()
+
+
+def fila_de_pago(pac, fecha):
+    """Texto de la fila de Pagos del turno de esa fecha (la columna Turno muestra "dd/mm/aaaa hh:mm")."""
+    fila = pac.locator("#tablaPagos tr, [id$='tablaPagos'] tr", has_text=fecha)
+    return fila.first.inner_text() if fila.count() else ""
+
+
+def pacientes_en_historia(prof):
+    prof.goto(B + "historia.xhtml")
+    return prof.locator("#formSeleccion\\:paciente option").all_inner_texts()
+
+
 with sync_playwright() as p:
     br = p.chromium.launch(channel=NAVEGADOR, headless=True)
     sufijo = random.randint(10000, 99999)
     email, clave = "seguridad.%d@mediconecta.test" % sufijo, "demo1234"
-    registrar_paciente(br, email, clave)
+    nombre = "Paciente Seguridad %d" % sufijo
+    registrar_paciente(br, email, clave, nombre)
 
     # ---- W01. Bloqueo tras 5 intentos fallidos ------------------------------------------------
     print("-- W01. Bloqueo tras 5 intentos fallidos")
@@ -252,6 +310,44 @@ with sync_playwright() as p:
           cookie["httpOnly"] and cookie["secure"] and cookie["sameSite"] == "Lax")
     pac.context.close()
 
+    # ---- D01. Historia clínica sólo con turno confirmado --------------------------------------
+    print("-- D01. Historia clínica sólo con turno confirmado")
+    consola(pasarela="EN_LINEA", obraSocial="EN_LINEA", autorizaciones="APROBAR")
+    prof, _ = login_web(br, PROFESIONAL, "demo1234")
+    check("D01. sin turno, el paciente no figura entre los que la profesional puede ver",
+          not any(nombre in o for o in pacientes_en_historia(prof)))
+    fecha = fecha_libre()
+    publicar_horario(br, fecha)
+    pac = reservar_y_pagar(br, email, clave, fecha)
+    check("D01. el paciente confirma un turno con la Dra. Ana Lopez (%s)" % fecha, "Turno confirmado" in pac.content())
+    opcion = next((o for o in pacientes_en_historia(prof) if nombre in o), None)
+    check("D01. con el turno confirmado, el paciente aparece en la historia clínica de la profesional", opcion is not None)
+    prof.select_option("#formSeleccion\\:paciente", label=opcion)
+    with prof.expect_navigation():
+        prof.click("#formSeleccion button:has-text('Ver historia')")
+    diagnostico = "Diagnóstico de prueba D01 %d" % sufijo
+    prof.fill("#formHistoria\\:descripcion", diagnostico)
+    with prof.expect_navigation():
+        prof.click("#formHistoria button:has-text('Guardar')")
+    check("D01. la profesional abre la historia y registra un diagnóstico", diagnostico in prof.content())
+    pac.goto(B + "historia.xhtml")
+    check("D01. el paciente ve el diagnóstico en su historia y que la Dra. Ana Lopez la consultó",
+          diagnostico in pac.content() and "Ana Lopez" in pac.content())
+
+    cancelar_turno(pac, fecha)  # la profesional sigue con la historia abierta en su pantalla
+    check("D01. el paciente cancela el turno", "Turno cancelado" in pac.content())
+    prof.fill("#formHistoria\\:descripcion", "Intento después de la cancelación %d" % sufijo)
+    with prof.expect_navigation():
+        prof.click("#formHistoria button:has-text('Guardar')")
+    check("D01. con la historia todavía abierta, el servidor rechaza la nueva entrada (ya no hay turno confirmado)",
+          "No tenés acceso a la historia clínica de este paciente" in prof.content())
+    pac.goto(B + "historia.xhtml")
+    check("D01. y la entrada rechazada no quedó guardada", "Intento después de la cancelación" not in pac.content())
+    check("D01. al recargar, el paciente ya no figura entre los de la profesional",
+          not any(nombre in o for o in pacientes_en_historia(prof)))
+    prof.context.close()
+    pac.context.close()
+
     # ---- I02. Dead Letter Channel ------------------------------------------------------------
     print("-- I02. Un mensaje que falla va a la DLQ")
     if not WILDFLY_HOME:
@@ -261,31 +357,10 @@ with sync_playwright() as p:
         inicio_log = os.path.getsize(log)
         consola(pasarela="EN_LINEA", obraSocial="EN_LINEA", autorizaciones="APROBAR")
         en_dlq_antes = mensajes_en_dlq()
-        fecha = "%02d/12/2026 %02d:%02d" % (random.randint(20, 28), random.randint(7, 19), random.choice(range(5, 60, 10)))
+        fecha = fecha_libre()
         dia, hora = fecha.split(" ")
-
-        prof, _ = login_web(br, PROFESIONAL, "demo1234")
-        prof.goto(B + "agenda.xhtml")
-        prof.fill("#formPublicar\\:fecha_input", fecha)
-        prof.keyboard.press("Escape")
-        with prof.expect_navigation():
-            prof.locator("#formPublicar button:has-text('Publicar')").evaluate("boton => boton.click()")
-        prof.context.close()
-
-        pac, _ = login_web(br, email, clave)
-        sel = pac.locator("#formAgenda\\:profesional")
-        sel.select_option(sel.locator("option", has_text="Ana Lopez").first.get_attribute("value"))
-        with pac.expect_navigation():
-            pac.click("button:has-text('Ver turnos disponibles')")
-        with pac.expect_navigation():
-            pac.locator("#formAgenda\\:tablaTurnos tr", has_text=dia + " · " + hora).locator(
-                "button:has-text('Reservar')").first.click()
-        pac.fill("#formConfirmacion\\:titular", "Paciente Seguridad")
-        pac.fill("#formConfirmacion\\:numeroTarjeta", "4111 1111 1111 1111")
-        pac.fill("#formConfirmacion\\:vencimiento", "12/29")
-        pac.fill("#formConfirmacion\\:codigoSeguridad", "123")
-        with pac.expect_navigation():
-            pac.click("#formConfirmacion\\:btnConfirmar")
+        publicar_horario(br, fecha)
+        pac = reservar_y_pagar(br, email, clave, fecha)
         check("I02. el paciente confirma y paga un turno (%s)" % fecha, "Turno confirmado" in pac.content())
 
         origen = None
@@ -317,7 +392,7 @@ with sync_playwright() as p:
                   origen is not None and "facturacion" in origen.group(1))
             pac.goto(B + "pagos.xhtml")
             check("I02. mientras está en la DLQ el pago no figura reembolsado (nada se perdió ni se hizo a medias)",
-                  "Reembolsado" not in pac.content())
+                  (lambda fila: fila != "" and "Reembolsado" not in fila)(fila_de_pago(pac, fecha)))
         finally:
             consola(pasarela="EN_LINEA")
 
@@ -333,7 +408,7 @@ with sync_playwright() as p:
         while time.time() < fin and not reembolsado:
             time.sleep(3)
             pac.goto(B + "pagos.xhtml")
-            reembolsado = "Reembolsado" in pac.content()
+            reembolsado = "Reembolsado" in fila_de_pago(pac, fecha)
         check("I02. con la pasarela en línea, el mensaje vuelve a Facturación y el pago queda Reembolsado", reembolsado)
         check("I02. la DLQ quedó vacía de nuevo", mensajes_en_dlq() == 0)
         pac.context.close()

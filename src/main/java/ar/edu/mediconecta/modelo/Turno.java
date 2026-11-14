@@ -204,6 +204,14 @@ public class Turno implements Serializable {
         return profesional.getId().equals(profesionalId);
     }
 
+    /**
+     * SEC-D01: una entrada de historia clínica sólo se puede asociar a un turno confirmado entre ese profesional y
+     * ese paciente (no a un turno ajeno, ni cancelado, ni todavía en espera).
+     */
+    public boolean habilitaHistoriaClinica(Long profesionalId, Long pacienteId) {
+        return getEstado() == EstadoTurno.CONFIRMADO && esDelProfesional(profesionalId) && perteneceAPaciente(pacienteId);
+    }
+
     public boolean isTelemedicina() {
         return getModalidad() == Modalidad.TELEMEDICINA;
     }

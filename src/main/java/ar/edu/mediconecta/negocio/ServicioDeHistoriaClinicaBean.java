@@ -67,8 +67,12 @@ public class ServicioDeHistoriaClinicaBean implements ServicioDeHistoriaClinica 
     @Auditado(recurso = RECURSO)
     public EntradaClinica agregarEntrada(Long pacienteId, Long turnoId, TipoEntrada tipo, String descripcion) {
         Usuario profesional = verificarTitularidad(pacienteId);
-        HistoriaClinica historia = obtenerOCrear(pacienteId);
         Turno turno = turnoId == null ? null : turnoDAO.buscarPorId(turnoId);
+        if (turnoId != null && (turno == null || !turno.habilitaHistoriaClinica(profesional.getId(), pacienteId))) {
+            // La pantalla no manda turno, pero el servicio no confía en quien lo llama (SEC-D01).
+            throw new AccesoDenegadoException("La entrada sólo se puede asociar a un turno confirmado tuyo con este paciente.");
+        }
+        HistoriaClinica historia = obtenerOCrear(pacienteId);
         EntradaClinica entrada = new EntradaClinica((Profesional) profesional, turno, tipo, descripcion);
         historia.agregarEntrada(entrada);
         historiaClinicaDAO.agregarEntrada(entrada);
