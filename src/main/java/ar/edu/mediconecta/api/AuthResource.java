@@ -5,13 +5,13 @@ import ar.edu.mediconecta.api.dto.ErrorApi;
 import ar.edu.mediconecta.api.dto.TokenApi;
 import ar.edu.mediconecta.modelo.Usuario;
 import ar.edu.mediconecta.negocio.ServicioDeUsuarios;
+import ar.edu.mediconecta.seguridad.ControlDeIngresos;
 import ar.edu.mediconecta.seguridad.ServicioDeTokens;
 import jakarta.annotation.security.PermitAll;
 import jakarta.ejb.Stateless;
 import jakarta.inject.Inject;
 import jakarta.security.enterprise.credential.UsernamePasswordCredential;
 import jakarta.security.enterprise.identitystore.CredentialValidationResult;
-import jakarta.security.enterprise.identitystore.IdentityStoreHandler;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
@@ -26,7 +26,8 @@ import java.util.Optional;
  * viaja la contraseña; el resto de los pedidos llevan {@code Authorization: Bearer <token>}.
  *
  * <p>Valida contra el mismo identity store que la web (PBKDF2 sobre la tabla usuario). La respuesta ante
- * credenciales inválidas es siempre la misma, exista o no el email, para no revelar qué cuentas existen.
+ * credenciales inválidas es siempre la misma, exista o no el email y esté o no bloqueada la cuenta, para no
+ * revelar qué cuentas existen. Cinco fallos seguidos bloquean la cuenta 15 minutos ({@link ControlDeIngresos}).
  */
 @Path("/v1/auth")
 @Stateless
@@ -36,7 +37,7 @@ import java.util.Optional;
 public class AuthResource {
 
     @Inject
-    private IdentityStoreHandler identityStoreHandler;
+    private ControlDeIngresos controlDeIngresos;
 
     @Inject
     private ServicioDeUsuarios usuarios;
@@ -51,7 +52,7 @@ public class AuthResource {
             return error(400, "pedido_invalido", "Enviá un JSON con email y password.");
         }
         String email = credenciales.getEmail().trim();
-        CredentialValidationResult resultado = identityStoreHandler.validate(
+        CredentialValidationResult resultado = controlDeIngresos.validar( // con bloqueo por intentos fallidos (SEC-W01)
                 new UsernamePasswordCredential(email, credenciales.getPassword()));
         Optional<Usuario> usuario = resultado.getStatus() == CredentialValidationResult.Status.VALID
                 ? usuarios.buscarPorEmail(email) : Optional.empty();

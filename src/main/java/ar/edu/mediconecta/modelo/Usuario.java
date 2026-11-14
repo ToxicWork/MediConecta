@@ -14,6 +14,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.EnumType;
 
 import java.io.Serializable;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "usuario")
@@ -45,6 +46,17 @@ public abstract class Usuario implements Serializable {
      */
     @Column(name = "debe_cambiar_password")
     private Boolean debeCambiarPassword;
+
+    /**
+     * Intentos de ingreso fallidos seguidos (SEC-W01). Opcional en la base por el mismo motivo que
+     * {@link #debeCambiarPassword}: {@code null} equivale a cero.
+     */
+    @Column(name = "intentos_fallidos")
+    private Integer intentosFallidos;
+
+    /** Hasta cuándo la cuenta rechaza todo ingreso, incluso con la contraseña correcta. */
+    @Column(name = "bloqueado_hasta")
+    private LocalDateTime bloqueadoHasta;
 
     protected Usuario() {
     }
@@ -97,5 +109,52 @@ public abstract class Usuario implements Serializable {
     public void cambiarPassword(String passwordHasheado) {
         this.password = passwordHasheado;
         this.debeCambiarPassword = Boolean.FALSE;
+    }
+
+    // ---- Bloqueo por intentos fallidos (SEC-W01) ----------------------------------------------------------
+
+    public int getIntentosFallidos() {
+        return intentosFallidos == null ? 0 : intentosFallidos;
+    }
+
+    public LocalDateTime getBloqueadoHasta() {
+        return bloqueadoHasta;
+    }
+
+    public boolean estaBloqueado(LocalDateTime ahora) {
+        return bloqueadoHasta != null && ahora.isBefore(bloqueadoHasta);
+    }
+
+    /**
+     * Cuenta un ingreso con contraseña incorrecta. Al llegar a {@link PoliticaDeBloqueo#MAX_INTENTOS_FALLIDOS}
+     * la cuenta queda bloqueada {@link PoliticaDeBloqueo#DURACION_BLOQUEO}. Mientras dura el bloqueo los intentos
+     * no se cuentan ni lo extienden; cuando vence, la cuenta empieza de cero.
+     *
+     * @return {@code true} si este intento es el que bloqueó la cuenta
+     */
+    public boolean registrarIntentoFallido(LocalDateTime ahora) {
+        if (estaBloqueado(ahora)) {
+            return false;
+        }
+        if (bloqueadoHasta != null) {
+            desbloquear();
+        }
+        intentosFallidos = getIntentosFallidos() + 1;
+        if (intentosFallidos >= PoliticaDeBloqueo.MAX_INTENTOS_FALLIDOS) {
+            bloqueadoHasta = ahora.plus(PoliticaDeBloqueo.DURACION_BLOQUEO);
+            return true;
+        }
+        return false;
+    }
+
+    /** Un ingreso correcto pone el contador en cero. */
+    public void registrarIngresoExitoso() {
+        desbloquear();
+    }
+
+    /** Levanta el bloqueo antes de tiempo (lo hace un administrativo) y pone el contador en cero. */
+    public void desbloquear() {
+        intentosFallidos = 0;
+        bloqueadoHasta = null;
     }
 }

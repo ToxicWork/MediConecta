@@ -24,6 +24,7 @@ Usa los usuarios de demo (ver SETUP.md). Deja en la base un paciente y un profes
 Los escenarios E (selector visto en el monitor) y F (falla armada desde Integraciones) se quitaron junto con
 esas pantallas.
 """
+import os
 import base64, json, random, sys, time, urllib.error, urllib.request
 from playwright.sync_api import sync_playwright
 
@@ -189,7 +190,7 @@ estado, cuerpo, _ = http(B + "api/v1/turnos/999999999", PACIENTE, "demo1234")
 check("B. turno inexistente o ajeno: 404 sin trazas", estado == 404 and "no_encontrado" in cuerpo and "Exception" not in cuerpo)
 
 with sync_playwright() as p:
-    br = p.chromium.launch(channel="chrome", headless=True)
+    br = p.chromium.launch(channel=os.environ.get("NAVEGADOR", "chrome"), headless=True)
     prof = login(br, PROFESIONAL)
     pac = login(br, PACIENTE)
     adm = login(br, ADMINISTRATIVO, "pagos.xhtml")

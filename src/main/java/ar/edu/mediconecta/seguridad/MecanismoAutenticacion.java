@@ -9,7 +9,6 @@ import jakarta.security.enterprise.AuthenticationStatus;
 import jakarta.security.enterprise.authentication.mechanism.http.HttpAuthenticationMechanism;
 import jakarta.security.enterprise.authentication.mechanism.http.HttpMessageContext;
 import jakarta.security.enterprise.identitystore.CredentialValidationResult;
-import jakarta.security.enterprise.identitystore.IdentityStoreHandler;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -38,7 +37,7 @@ public class MecanismoAutenticacion implements HttpAuthenticationMechanism {
     private static final String ESQUEMA_BEARER = "Bearer ";
 
     @Inject
-    private IdentityStoreHandler identityStoreHandler;
+    private ControlDeIngresos controlDeIngresos;
 
     @Inject
     private ServicioDeUsuarios servicioDeUsuarios;
@@ -55,7 +54,8 @@ public class MecanismoAutenticacion implements HttpAuthenticationMechanism {
         }
 
         if (httpMessageContext.isAuthenticationRequest()) {
-            CredentialValidationResult result = identityStoreHandler.validate(
+            // Con el control de intentos fallidos (SEC-W01): la misma regla que el login de la API.
+            CredentialValidationResult result = controlDeIngresos.validar(
                     httpMessageContext.getAuthParameters().getCredential());
             if (result.getStatus() == CredentialValidationResult.Status.VALID) {
                 httpMessageContext.getMessageInfo().getMap()

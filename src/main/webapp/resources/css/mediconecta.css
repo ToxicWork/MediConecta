@@ -384,6 +384,8 @@ a.user-chip:hover { background: var(--color-sidebar-chip); text-decoration: none
 .grid-usuarios { grid-template-columns: minmax(300px, 1fr) 1.6fr; align-items: start; }
 .grid-usuarios > * { min-width: 0; } /* la tabla scrollea dentro de su tarjeta en vez de ensanchar la página */
 .email-usuario { overflow-wrap: anywhere; font-size: 12px; }
+.bloqueo-usuario { margin-top: 6px; }
+.bloqueo-usuario .ui-button { display: block; margin-top: 6px; }
 
 @media (max-width: 900px) {
   .grid-2, .grid-3, .grid-usuarios { grid-template-columns: 1fr; }

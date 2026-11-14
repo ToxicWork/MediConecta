@@ -23,6 +23,9 @@ public interface ServicioDeUsuarios {
 
     List<Usuario> listarUsuarios();
 
+    /** Levanta antes de tiempo el bloqueo por intentos fallidos (sólo un administrativo). */
+    void desbloquear(Long usuarioId);
+
     Optional<Usuario> buscarPorEmail(String email);
 
     List<Profesional> listarProfesionales();

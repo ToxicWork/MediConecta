@@ -13,6 +13,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Named;
 
 import java.io.Serializable;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -55,6 +56,21 @@ public class UsuariosBean implements Serializable {
         } catch (EmailYaRegistradoException | ErrorDeNegocioException e) {
             Mensajes.error(e.getMessage());
         }
+    }
+
+    public void desbloquear(Usuario usuario) {
+        try {
+            servicioDeUsuarios.desbloquear(usuario.getId());
+            Mensajes.info("Desbloqueaste la cuenta de " + usuario.getNombreCompleto() + ". Ya puede volver a ingresar.");
+        } catch (ErrorDeNegocioException e) {
+            Mensajes.error(e.getMessage());
+        }
+        usuarios = null;
+    }
+
+    /** Bloqueada por intentos fallidos (SEC-W01) y todavía sin vencer. */
+    public boolean bloqueado(Usuario usuario) {
+        return usuario.estaBloqueado(LocalDateTime.now());
     }
 
     private void limpiar() {

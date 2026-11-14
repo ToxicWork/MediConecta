@@ -96,6 +96,17 @@ public class ServicioDeUsuariosBean implements ServicioDeUsuarios {
     }
 
     @Override
+    @RolesAllowed("ADMINISTRATIVO")
+    public void desbloquear(Long usuarioId) {
+        Usuario usuario = usuarioDAO.buscarPorId(usuarioId);
+        if (usuario == null) {
+            throw new DatosDeUsuarioInvalidosException("El usuario no existe.");
+        }
+        usuario.desbloquear();
+        LOG.info("Cuenta del usuario " + usuarioId + " desbloqueada por un administrativo.");
+    }
+
+    @Override
     @PermitAll
     public Optional<Usuario> buscarPorEmail(String email) {
         return usuarioDAO.buscarPorEmail(email);

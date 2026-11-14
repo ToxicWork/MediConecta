@@ -7,6 +7,7 @@
 Tarda entre 5 y 7 minutos porque espera el vencimiento real. Requisitos: los de prueba_entrega4.py.
 Uso:  python pruebas/prueba_hold_vence.py
 """
+import os
 import json, random, sys, time, urllib.request
 from playwright.sync_api import sync_playwright
 
@@ -52,7 +53,7 @@ def ofrecido():
 
 
 with sync_playwright() as p:
-    br = p.chromium.launch(channel="chrome", headless=True)
+    br = p.chromium.launch(channel=os.environ.get("NAVEGADOR", "chrome"), headless=True)
     prof = login(br, PROFESIONAL)
     prof.fill("#formPublicar\\:fecha_input", fecha)
     prof.keyboard.press("Escape")

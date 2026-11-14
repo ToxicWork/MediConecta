@@ -13,6 +13,7 @@ Uso:
 Usa los usuarios de demo (ver SETUP.md). Cada corrida publica un horario nuevo el 26/11/2026,
 lo confirma y lo cancela: el turno queda DISPONIBLE y las notificaciones quedan en las bandejas.
 """
+import os
 import time, re
 from playwright.sync_api import sync_playwright
 import sys
@@ -35,7 +36,7 @@ ok=True
 def check(nombre, cond):
     global ok; ok &= bool(cond); print(("OK   " if cond else "FALLA"), nombre)
 with sync_playwright() as p:
-    br=p.chromium.launch(channel="chrome", headless=True)
+    br=p.chromium.launch(channel=os.environ.get("NAVEGADOR", "chrome"), headless=True)
     # login inválido
     pg=br.new_context().new_page(); pg.goto(B+"login.xhtml"); pg.fill("#formLogin\\:email","juan.perez@mediconecta.test"); pg.fill("#formLogin\\:password","mala")
     pg.click("#formLogin button:has-text('Ingresar')"); pg.wait_for_load_state(); check("login con contraseña incorrecta rechazado", "Credenciales inválidas" in pg.content())

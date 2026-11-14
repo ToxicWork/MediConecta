@@ -29,6 +29,8 @@
             <p:commandButton value="Ingresar" action="#{loginBean.login}" ajax="false" styleClass="btn btn-primary btn-block"/>
         </h:form>
 
+        <p class="auth-nota">Por seguridad, después de 5 intentos fallidos la cuenta se bloquea 15 minutos.</p>
+
         <p class="auth-alternativa">
             ¿No tenés cuenta?&#160;<h:link id="linkRegistro" outcome="/registro.xhtml" value="Registrate"/>
         </p>

@@ -84,6 +84,7 @@
                         <div class="subtle">#{usuariosBean.usuarios.size()} usuario(s)</div>
                     </div>
                 </div>
+                <h:form id="formUsuarios">
                 <h:panelGroup layout="block" styleClass="table-wrap">
                     <p:dataTable id="tablaUsuarios" value="#{usuariosBean.usuarios}" var="u">
                         <p:column headerText="Nombre">
@@ -97,9 +98,17 @@
                         <p:column headerText="Contraseña">
                             <h:outputText rendered="#{u.debeCambiarPassword}" value="Temporal" styleClass="tag tag-warning"/>
                             <h:outputText rendered="#{not u.debeCambiarPassword}" value="Propia" styleClass="tag tag-success"/>
+                            <h:panelGroup layout="block" styleClass="bloqueo-usuario" rendered="#{usuariosBean.bloqueado(u)}">
+                                <span class="tag tag-danger">Bloqueada hasta&#160;
+                                    <h:outputText value="#{u.bloqueadoHasta}"><f:convertDateTime type="localDateTime" pattern="HH:mm"/></h:outputText>
+                                </span>
+                                <p:commandButton value="Desbloquear" action="#{usuariosBean.desbloquear(u)}" ajax="false"
+                                                 styleClass="btn btn-secondary btn-sm"/>
+                            </h:panelGroup>
                         </p:column>
                     </p:dataTable>
                 </h:panelGroup>
+                </h:form>
             </div>
         </div>
     </ui:define>

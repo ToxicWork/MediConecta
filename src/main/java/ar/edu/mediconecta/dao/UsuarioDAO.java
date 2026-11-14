@@ -5,6 +5,7 @@ import ar.edu.mediconecta.modelo.Profesional;
 import ar.edu.mediconecta.modelo.Usuario;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
 import jakarta.persistence.PersistenceContext;
 
 import java.util.List;
@@ -25,6 +26,22 @@ public class UsuarioDAO {
                 .setParameter("email", email)
                 .getResultStream()
                 .findFirst();
+    }
+
+    /**
+     * Como {@link #buscarPorEmail}, pero bloquea la fila hasta el fin de la transacción: dos intentos de ingreso
+     * simultáneos no pueden leer el mismo contador y perder uno de los fallos.
+     */
+    public Optional<Usuario> buscarPorEmailParaActualizar(String email) {
+        return em.createQuery("SELECT u FROM Usuario u WHERE u.email = :email", Usuario.class)
+                .setParameter("email", email)
+                .setLockMode(LockModeType.PESSIMISTIC_WRITE)
+                .getResultStream()
+                .findFirst();
+    }
+
+    public Usuario buscarPorId(Long id) {
+        return em.find(Usuario.class, id);
     }
 
     public boolean existeEmail(String email) {
