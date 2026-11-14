@@ -8,14 +8,19 @@
   W06. Login resistente a inyección SQL: los ataques típicos en el email y la contraseña (web y API) reciben el
        rechazo genérico, sin error 500 ni detalles de la base; en el registro, un nombre "peligroso" se guarda
        como texto literal; la base sigue intacta.
+  I02. Dead Letter Channel: con la pasarela de pagos caída, Facturación no puede reintegrar una cancelación; el
+       broker reintenta 3 veces y deja el mensaje en jms.queue.DLQ (no se pierde). Con la pasarela de nuevo en
+       línea, se reenvían los mensajes de la DLQ y el reintegro se hace.
 
-Requisitos: WildFly levantado (perfil standalone-full) con mediconecta.war desplegado, Google Chrome (o Edge con
-NAVEGADOR=msedge) y  pip install playwright
+Requisitos: WildFly levantado (perfil standalone-full) con mediconecta.war y externos.war desplegados, Google
+Chrome (o Edge con NAVEGADOR=msedge),  pip install playwright  y la variable WILDFLY_HOME apuntando a la
+instalación de WildFly (I02 consulta la DLQ con jboss-cli).
 Uso:  python pruebas/prueba_seguridad.py
-Deja en la base un paciente de prueba por corrida (seguridad.NNNNN@mediconecta.test). No toca los usuarios de demo.
+Deja en la base dos pacientes de prueba por corrida (seguridad.NNNNN y seguridad.sql.NNNNN@mediconecta.test) y un
+turno cancelado de la Dra. Ana Lopez. No toca los usuarios de demo.
 """
 import http.client as cliente_http
-import json, os, random, re, sys, urllib.error, urllib.request
+import json, os, random, re, subprocess, sys, time, urllib.error, urllib.request
 from playwright.sync_api import sync_playwright
 import ssl
 # MediConecta corre por HTTPS con el certificado autofirmado que WildFly genera para localhost (SEC-W04):
@@ -29,9 +34,34 @@ except AttributeError:
     pass
 
 B = "https://localhost:8443/mediconecta/"
+EXT = "http://localhost:8080/externos/"
 ADMINISTRATIVO = "carla.admin@mediconecta.test"
+PROFESIONAL = "ana.lopez@mediconecta.test"
 NAVEGADOR = os.environ.get("NAVEGADOR", "chrome")
+WILDFLY_HOME = os.environ.get("WILDFLY_HOME")
+DLQ = "/subsystem=messaging-activemq/server=default/jms-queue=DLQ"
 ok = True
+
+
+def jboss_cli(comando):
+    """Ejecuta una operación de administración de WildFly y devuelve su salida."""
+    script = os.path.join(WILDFLY_HOME, "bin", "jboss-cli.bat" if os.name == "nt" else "jboss-cli.sh")
+    r = subprocess.run([script, "--connect", "--command=" + comando], capture_output=True, text=True, timeout=90,
+                       stdin=subprocess.DEVNULL, env={**os.environ, "NOPAUSE": "true"})
+    return r.stdout
+
+
+def mensajes_en_dlq():
+    m = re.search(r'"result" => (\d+)L', jboss_cli(DLQ + ":count-messages"))
+    return int(m.group(1)) if m else -1
+
+
+def consola(**modos):
+    """Cambia el estado de los sistemas externos simulados (EN_LINEA, CAIDO...)."""
+    pedido = urllib.request.Request(EXT + "api/consola/estado", method="PUT", data=json.dumps(modos).encode(),
+                                    headers={"Content-Type": "application/json"})
+    with urllib.request.urlopen(pedido, timeout=10) as r:
+        return r.status
 
 
 def check(nombre, condicion):
@@ -221,6 +251,92 @@ with sync_playwright() as p:
     check("W04. y el navegador la guarda como HttpOnly, Secure y Lax",
           cookie["httpOnly"] and cookie["secure"] and cookie["sameSite"] == "Lax")
     pac.context.close()
+
+    # ---- I02. Dead Letter Channel ------------------------------------------------------------
+    print("-- I02. Un mensaje que falla va a la DLQ")
+    if not WILDFLY_HOME:
+        check("I02. definí WILDFLY_HOME para consultar la DLQ con jboss-cli", False)
+    else:
+        log = os.path.join(WILDFLY_HOME, "standalone", "log", "server.log")
+        inicio_log = os.path.getsize(log)
+        consola(pasarela="EN_LINEA", obraSocial="EN_LINEA", autorizaciones="APROBAR")
+        en_dlq_antes = mensajes_en_dlq()
+        fecha = "%02d/12/2026 %02d:%02d" % (random.randint(20, 28), random.randint(7, 19), random.choice(range(5, 60, 10)))
+        dia, hora = fecha.split(" ")
+
+        prof, _ = login_web(br, PROFESIONAL, "demo1234")
+        prof.goto(B + "agenda.xhtml")
+        prof.fill("#formPublicar\\:fecha_input", fecha)
+        prof.keyboard.press("Escape")
+        with prof.expect_navigation():
+            prof.locator("#formPublicar button:has-text('Publicar')").evaluate("boton => boton.click()")
+        prof.context.close()
+
+        pac, _ = login_web(br, email, clave)
+        sel = pac.locator("#formAgenda\\:profesional")
+        sel.select_option(sel.locator("option", has_text="Ana Lopez").first.get_attribute("value"))
+        with pac.expect_navigation():
+            pac.click("button:has-text('Ver turnos disponibles')")
+        with pac.expect_navigation():
+            pac.locator("#formAgenda\\:tablaTurnos tr", has_text=dia + " · " + hora).locator(
+                "button:has-text('Reservar')").first.click()
+        pac.fill("#formConfirmacion\\:titular", "Paciente Seguridad")
+        pac.fill("#formConfirmacion\\:numeroTarjeta", "4111 1111 1111 1111")
+        pac.fill("#formConfirmacion\\:vencimiento", "12/29")
+        pac.fill("#formConfirmacion\\:codigoSeguridad", "123")
+        with pac.expect_navigation():
+            pac.click("#formConfirmacion\\:btnConfirmar")
+        check("I02. el paciente confirma y paga un turno (%s)" % fecha, "Turno confirmado" in pac.content())
+
+        origen = None
+        try:
+            consola(pasarela="CAIDO")
+            with pac.expect_navigation():
+                pac.locator("#formAgenda\\:tablaMisTurnos tr", has_text=dia + " · " + hora).locator(
+                    "button:has-text('Cancelar')").first.click()
+            check("I02. con la pasarela caída, la cancelación igual se acepta (el reintegro es asincrónico)",
+                  "Turno cancelado" in pac.content())
+
+            fin = time.time() + 60
+            while time.time() < fin and mensajes_en_dlq() <= en_dlq_antes:
+                time.sleep(3)
+            en_dlq = mensajes_en_dlq()
+            with open(log, encoding="utf-8", errors="replace") as f:
+                f.seek(inicio_log)
+                intentos = re.findall(r"Pasarela no disponible para el reintegro del turno (\d+) \(intento (\d)\)", f.read())
+            check("I02. Facturación lo intentó 3 veces (log: intentos %s)" % [n for _, n in intentos],
+                  [n for _, n in intentos] == ["1", "2", "3"])
+            check("I02. después del tercer fallo el mensaje quedó en jms.queue.DLQ (%d -> %d)" % (en_dlq_antes, en_dlq),
+                  en_dlq == en_dlq_antes + 1)
+            listado = jboss_cli(DLQ + ":list-messages")
+            check("I02. el mensaje de la DLQ es la cancelación (tipoEvento TURNO_CANCELADO, del tópico de turnos)",
+                  "TURNO_CANCELADO" in listado and "turnos" in listado)
+            # La DLQ guarda de qué cola vino cada mensaje: la suscripción durable de Facturación.
+            origen = re.search(r'"_AMQ_ORIG_QUEUE" => "([^"]+)"', listado)
+            check("I02. y guarda de qué suscripción vino (%s)" % (origen.group(1) if origen else "?"),
+                  origen is not None and "facturacion" in origen.group(1))
+            pac.goto(B + "pagos.xhtml")
+            check("I02. mientras está en la DLQ el pago no figura reembolsado (nada se perdió ni se hizo a medias)",
+                  "Reembolsado" not in pac.content())
+        finally:
+            consola(pasarela="EN_LINEA")
+
+        # Reproceso: WildFly no tiene "retry" en sus colas; se mueve el mensaje de vuelta a la cola de origen.
+        # Antes hay que esperar que el Circuit Breaker de la pasarela se cierre: tras 3 fallas deja de llamarla
+        # 30 segundos aunque ya esté en línea, y el mensaje volvería a la DLQ.
+        time.sleep(35)
+        if origen:
+            jboss_cli('/subsystem=messaging-activemq/server=default/runtime-queue=jms.queue.DLQ:move-messages('
+                      'other-queue-name=%s)' % origen.group(1))  # sin comillas: el .bat de Windows las rompe
+        fin = time.time() + 30
+        reembolsado = False
+        while time.time() < fin and not reembolsado:
+            time.sleep(3)
+            pac.goto(B + "pagos.xhtml")
+            reembolsado = "Reembolsado" in pac.content()
+        check("I02. con la pasarela en línea, el mensaje vuelve a Facturación y el pago queda Reembolsado", reembolsado)
+        check("I02. la DLQ quedó vacía de nuevo", mensajes_en_dlq() == 0)
+        pac.context.close()
 
     br.close()
 
