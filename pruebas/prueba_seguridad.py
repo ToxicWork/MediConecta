@@ -5,6 +5,9 @@
        administrativo la desbloquea desde Usuarios.
   W04. Cookie de sesión con HttpOnly, Secure y SameSite=Lax; toda la app por HTTPS (http redirige a https, también
        la API) y la cookie no es legible desde JavaScript.
+  W06. Login resistente a inyección SQL: los ataques típicos en el email y la contraseña (web y API) reciben el
+       rechazo genérico, sin error 500 ni detalles de la base; en el registro, un nombre "peligroso" se guarda
+       como texto literal; la base sigue intacta.
 
 Requisitos: WildFly levantado (perfil standalone-full) con mediconecta.war desplegado, Google Chrome (o Edge con
 NAVEGADOR=msedge) y  pip install playwright
@@ -93,10 +96,10 @@ def login_web(br, email, clave):
     return pg, "login.xhtml" not in pg.url
 
 
-def registrar_paciente(br, email, clave):
+def registrar_paciente(br, email, clave, nombre="Paciente Seguridad"):
     pg = pagina(br)
     pg.goto(B + "registro.xhtml")
-    pg.fill("#formRegistro\\:nombre", "Paciente Seguridad")
+    pg.fill("#formRegistro\\:nombre", nombre)
     pg.fill("#formRegistro\\:email", email)
     pg.fill("#formRegistro\\:password", clave)
     pg.fill("#formRegistro\\:repeticion", clave)
@@ -150,6 +153,53 @@ with sync_playwright() as p:
     web, ingreso = login_web(br, email, clave)
     check("W01. y por la web", ingreso)
     web.context.close()
+
+    # ---- W06. Inyección SQL en el login -------------------------------------------------------
+    print("-- W06. Login resistente a inyección SQL")
+    ataques = ["' OR '1'='1", "' OR 1=1 --", "\" OR \"\"=\"", "'; DROP TABLE usuario; --",
+               "juan.perez@mediconecta.test'--", "juan.perez@mediconecta.test' OR '1'='1",
+               "' UNION SELECT password FROM usuario --"]
+    generico = sin_fecha(login_api("no.existe.%d@mediconecta.test" % sufijo, "incorrecta"))
+    rastros = ("sql", "syntax", "postgres", "exception", "org.", "hibernate", "jdbc", "psql")
+    # Contra la cuenta real, sólo 4 contraseñas: con 5 fallos se bloquearía (W01) y el resto de la prueba no
+    # podría ingresar. El ingreso correcto de más abajo pone el contador en cero.
+    respuestas = [login_api(a, a) for a in ataques] + [login_api(email, a) for a in ataques[:4]]
+    check("W06. API: los %d ataques (en el email y en la contraseña) reciben el 401 genérico" % len(respuestas),
+          all(sin_fecha(r) == generico for r in respuestas))
+    check("W06. API: ninguna respuesta tiene rastros de la base (SQL, excepciones, nombres internos)",
+          not any(t in r[1].lower() for r in respuestas for t in rastros))
+    resultados_web = []
+    for ataque in ataques[:4]:
+        web, ingreso = login_web(br, ataque, ataque)
+        texto = web.content().lower()
+        resultados_web.append(not ingreso and "credenciales inválidas" in texto and not any(t in texto for t in rastros[:4]))
+        web.context.close()
+    check("W06. web: los ataques no entran y muestran el mensaje genérico, sin errores de la base", all(resultados_web))
+    pg = pagina(br)
+    pg.goto(B + "registro.xhtml")
+    pg.fill("#formRegistro\\:nombre", "Prueba")
+    # El campo es type="email" y el navegador no dejaría enviarlo: se lo pasa a texto para que el ataque
+    # llegue al servidor, como lo mandaría alguien que arma el pedido a mano.
+    pg.locator("#formRegistro\\:email").evaluate("campo => campo.type = 'text'")
+    pg.fill("#formRegistro\\:email", "x' OR '1'='1")
+    pg.fill("#formRegistro\\:password", clave)
+    pg.fill("#formRegistro\\:repeticion", clave)
+    with pg.expect_navigation():
+        pg.click("#formRegistro button:has-text('Registrarme')")
+    check("W06. registro: un email con SQL llega al servidor y se rechaza por formato, sin error de la base",
+          "registro.xhtml" in pg.url and "email válido" in pg.content()
+          and not any(t in pg.content().lower() for t in rastros[:4]))
+    pg.context.close()
+    nombre_raro = "Robert'); DROP TABLE usuario; --"
+    email_raro = "seguridad.sql.%d@mediconecta.test" % sufijo
+    registrar_paciente(br, email_raro, clave, nombre_raro)
+    raro, ingreso = login_web(br, email_raro, clave)
+    raro.goto(B + "perfil.xhtml")
+    check("W06. registro: un nombre con SQL se guarda como texto literal (se ve igual en Mi perfil)",
+          ingreso and nombre_raro in raro.inner_text("dl.datos-perfil"))
+    raro.context.close()
+    check("W06. la base sigue intacta: la tabla de usuarios responde y el paciente de prueba entra",
+          login_api(email, clave)[0] == 200)
 
     # ---- W04. Cookie de sesión y HTTPS --------------------------------------------------------
     print("-- W04. Cookie de sesión y HTTPS")
