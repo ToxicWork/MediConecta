@@ -11,6 +11,14 @@
     <welcome-file>login.xhtml</welcome-file>
   </welcome-file-list>
 
+  <!-- La cookie de sesión no es legible desde JavaScript y el id de sesión nunca viaja en la URL. -->
+  <session-config>
+    <cookie-config>
+      <http-only>true</http-only>
+    </cookie-config>
+    <tracking-mode>COOKIE</tracking-mode>
+  </session-config>
+
   <error-page>
     <error-code>500</error-code>
     <location>/error.xhtml</location>

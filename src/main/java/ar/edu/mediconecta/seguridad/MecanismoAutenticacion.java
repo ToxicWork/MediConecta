@@ -8,14 +8,11 @@ import jakarta.security.enterprise.AuthenticationException;
 import jakarta.security.enterprise.AuthenticationStatus;
 import jakarta.security.enterprise.authentication.mechanism.http.HttpAuthenticationMechanism;
 import jakarta.security.enterprise.authentication.mechanism.http.HttpMessageContext;
-import jakarta.security.enterprise.credential.UsernamePasswordCredential;
 import jakarta.security.enterprise.identitystore.CredentialValidationResult;
 import jakarta.security.enterprise.identitystore.IdentityStoreHandler;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 import java.util.Optional;
 import java.util.Set;
 
@@ -27,19 +24,27 @@ import java.util.Set;
  *   <li>Aplicación web (JSF): "custom form". login.xhtml llama a {@code SecurityContext.authenticate()} y se
  *       abre una sesión. En cada request ya autenticado se vuelve a notificar el login con el rol vigente para
  *       que {@code @RolesAllowed} y las vistas vean el principal.</li>
- *   <li>API REST ({@code /api/*}): HTTP Basic, sin sesión. Cada request trae sus credenciales; si son
- *       inválidas se responde 401 con {@code WWW-Authenticate}. Sin credenciales, la llamada sigue como
- *       anónima y los EJB deciden con {@code @RolesAllowed}/{@code @PermitAll}.</li>
+ *   <li>API REST ({@code /api/*}): JWT, sin sesión. El cliente obtiene el token en
+ *       {@code POST /api/v1/auth/login} y lo envía en {@code Authorization: Bearer}; si es inválido o venció
+ *       se responde 401 con {@code WWW-Authenticate}. Sin token, la llamada sigue como anónima y los EJB
+ *       deciden con {@code @RolesAllowed}/{@code @PermitAll}.</li>
  * </ul>
  */
 @ApplicationScoped
 public class MecanismoAutenticacion implements HttpAuthenticationMechanism {
+
+    public static final String DESAFIO_BEARER = "Bearer realm=\"MediConecta API\"";
+    public static final String TOKEN_INVALIDO = "mediconecta.tokenInvalido";
+    private static final String ESQUEMA_BEARER = "Bearer ";
 
     @Inject
     private IdentityStoreHandler identityStoreHandler;
 
     @Inject
     private ServicioDeUsuarios servicioDeUsuarios;
+
+    @Inject
+    private ServicioDeTokens tokens;
 
     @Override
     public AuthenticationStatus validateRequest(HttpServletRequest request, HttpServletResponse response,
@@ -83,33 +88,29 @@ public class MecanismoAutenticacion implements HttpAuthenticationMechanism {
         return httpMessageContext.doNothing();
     }
 
+    /**
+     * API REST: sin sesión ni cookies. Cada pedido trae su JWT en {@code Authorization: Bearer}; la identidad
+     * y el rol salen del token firmado, sin ir a la base. Sin cabecera, la llamada sigue como anónima y los
+     * EJB deciden con {@code @RolesAllowed}/{@code @PermitAll}; con un token inválido o vencido, 401
+     * (lo responde {@code FiltroTokenInvalido}), también en los recursos públicos.
+     */
     private AuthenticationStatus autenticarApi(HttpServletRequest request, HttpServletResponse response,
                                                HttpMessageContext httpMessageContext) {
         String cabecera = request.getHeader("Authorization");
-        if (cabecera == null || !cabecera.regionMatches(true, 0, "Basic ", 0, 6)) {
+        if (cabecera == null) {
             return httpMessageContext.doNothing();
         }
-        String[] partes;
-        try {
-            partes = new String(Base64.getDecoder().decode(cabecera.substring(6).trim()), StandardCharsets.UTF_8)
-                    .split(":", 2);
-        } catch (IllegalArgumentException mal) {
-            partes = new String[0];
-        }
-        if (partes.length == 2) {
-            CredentialValidationResult result = identityStoreHandler.validate(
-                    new UsernamePasswordCredential(partes[0], partes[1]));
-            // Una contraseña temporal no sirve para la API: primero hay que cambiarla desde "Mi perfil".
-            if (result.getStatus() == CredentialValidationResult.Status.VALID && !tieneContrasenaTemporal(partes[0])) {
-                return httpMessageContext.notifyContainerAboutLogin(result);
+        if (cabecera.regionMatches(true, 0, ESQUEMA_BEARER, 0, ESQUEMA_BEARER.length())) {
+            Optional<IdentidadJwt> identidad = tokens.validar(cabecera.substring(ESQUEMA_BEARER.length()));
+            if (identidad.isPresent()) {
+                return httpMessageContext.notifyContainerAboutLogin(
+                        identidad.get().email(), Set.of(identidad.get().rol()));
             }
         }
-        response.setHeader("WWW-Authenticate", "Basic realm=\"MediConecta API\"");
-        return httpMessageContext.responseUnauthorized();
-    }
-
-    private boolean tieneContrasenaTemporal(String email) {
-        return servicioDeUsuarios.buscarPorEmail(email).map(Usuario::isDebeCambiarPassword).orElse(false);
+        // El 401 no se responde acá: el contenedor lo devolvería con su página HTML. Se marca el pedido y lo
+        // rechaza FiltroTokenInvalido (JAX-RS) con el mismo JSON de error que usa el resto de la API.
+        request.setAttribute(TOKEN_INVALIDO, Boolean.TRUE);
+        return httpMessageContext.doNothing();
     }
 
     private static boolean esApi(HttpServletRequest request) {
