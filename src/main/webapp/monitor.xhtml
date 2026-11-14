@@ -1,0 +1,71 @@
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:p="http://primefaces.org/ui"
+                template="/WEB-INF/templates/layout.xhtml">
+
+    <ui:param name="pageTitle" value="Monitor de eventos"/>
+    <ui:param name="activePage" value="monitor"/>
+
+    <f:metadata>
+        <f:viewAction action="#{monitorBean.verificarAcceso}"/>
+    </f:metadata>
+
+    <ui:define name="content">
+        <p class="page-subtitle">
+            Cada vez que se confirma, autoriza o cancela uno de tus turnos, el sistema genera un aviso que procesan por
+            separado Notificaciones, Auditoría y Facturación. Acá ves si ya lo procesaron y cuánto tardaron. Se
+            actualiza solo.
+        </p>
+
+        <h:form id="formMonitor">
+            <p:poll interval="5" update="panelMonitor"/>
+
+            <h:panelGroup id="panelMonitor" layout="block" styleClass="card">
+                <div class="card-header">
+                    <div>
+                        <h3>Avisos de tus turnos</h3>
+                        <div class="subtle">
+                            ✓ = procesado, con el tiempo desde que se generó el aviso · «no aplica» = ese tipo de aviso
+                            no le corresponde a Facturación
+                        </div>
+                    </div>
+                </div>
+
+                <h:panelGroup layout="block" styleClass="table-wrap">
+                    <!-- Carga de a tandas: lazy + paginador, la base devuelve sólo la página visible. -->
+                    <p:dataTable id="tablaEventos" value="#{monitorBean.eventos}" var="fila" lazy="true"
+                                 paginator="true" rows="#{monitorBean.tamanoPagina}" paginatorPosition="bottom"
+                                 paginatorAlwaysVisible="false"
+                                 paginatorTemplate="{PreviousPageLink} {CurrentPageReport} {NextPageLink}"
+                                 currentPageReportTemplate="{startRecord}–{endRecord} de {totalRecords}"
+                                 emptyMessage="Todavía no hay avisos de tus turnos. Aparecen cuando confirmás, te autorizan o cancelás un turno.">
+                        <p:column headerText="Generado">
+                            <h:outputText value="#{fila.publicadoEn}">
+                                <f:convertDateTime pattern="dd/MM HH:mm:ss" type="localDateTime"/>
+                            </h:outputText>
+                        </p:column>
+                        <p:column headerText="Aviso">
+                            <span class="tag #{fila.estilo}">#{fila.etiqueta}</span>
+                        </p:column>
+                        <p:column headerText="Turno">
+                            <h:outputText value="#{fila.fechaHoraTurno}">
+                                <f:convertDateTime pattern="dd/MM/yyyy HH:mm" type="localDateTime"/>
+                            </h:outputText>
+                        </p:column>
+                        <p:column headerText="Notificaciones">
+                            <ui:include src="/WEB-INF/includes/estado-suscriptor.xhtml"><ui:param name="s" value="#{fila.suscriptores[0]}"/></ui:include>
+                        </p:column>
+                        <p:column headerText="Auditoría">
+                            <ui:include src="/WEB-INF/includes/estado-suscriptor.xhtml"><ui:param name="s" value="#{fila.suscriptores[1]}"/></ui:include>
+                        </p:column>
+                        <p:column headerText="Facturación">
+                            <ui:include src="/WEB-INF/includes/estado-suscriptor.xhtml"><ui:param name="s" value="#{fila.suscriptores[2]}"/></ui:include>
+                        </p:column>
+                    </p:dataTable>
+                </h:panelGroup>
+            </h:panelGroup>
+        </h:form>
+    </ui:define>
+</ui:composition>

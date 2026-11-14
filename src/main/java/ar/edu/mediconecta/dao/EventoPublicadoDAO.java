@@ -17,13 +17,25 @@ public class EventoPublicadoDAO {
         em.persist(evento);
     }
 
-    /** Eventos de los turnos en los que participa el usuario, como paciente o como profesional. */
-    public List<EventoPublicado> buscarRecientesDeUsuario(Long usuarioId, int maximo) {
+    /**
+     * Una página de los eventos de los turnos en los que participa el usuario (como paciente o como profesional),
+     * del más nuevo al más viejo. La base devuelve sólo esa página: la consulta no crece con el historial.
+     */
+    public List<EventoPublicado> buscarPaginaDeUsuario(Long usuarioId, int desde, int cantidad) {
         return em.createQuery(
                         "SELECT e FROM EventoPublicado e WHERE e.pacienteId = :usuarioId "
-                                + "OR e.profesionalId = :usuarioId ORDER BY e.publicadoEn DESC", EventoPublicado.class)
+                                + "OR e.profesionalId = :usuarioId ORDER BY e.publicadoEn DESC, e.idEvento", EventoPublicado.class)
                 .setParameter("usuarioId", usuarioId)
-                .setMaxResults(maximo)
+                .setFirstResult(desde)
+                .setMaxResults(cantidad)
                 .getResultList();
+    }
+
+    public int contarDeUsuario(Long usuarioId) {
+        return em.createQuery(
+                        "SELECT COUNT(e) FROM EventoPublicado e WHERE e.pacienteId = :usuarioId OR e.profesionalId = :usuarioId",
+                        Long.class)
+                .setParameter("usuarioId", usuarioId)
+                .getSingleResult().intValue();
     }
 }

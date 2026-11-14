@@ -75,12 +75,20 @@ public class ServicioDeMonitoreoBean implements ServicioDeMonitoreo {
     private VideoconsultaGateway videoconsulta;
 
     @Override
-    public List<FilaMonitorDTO> eventosRecientesDelUsuarioActual() {
+    public int contarEventosDelUsuarioActual() {
+        Usuario usuario = usuarioActual();
+        return usuario == null ? 0 : eventoPublicadoDAO.contarDeUsuario(usuario.getId());
+    }
+
+    @Override
+    public List<FilaMonitorDTO> eventosDelUsuarioActual(int desde, int cantidad) {
         Usuario usuario = usuarioActual();
         if (usuario == null) {
             return List.of();
         }
-        List<EventoPublicado> eventos = eventoPublicadoDAO.buscarRecientesDeUsuario(usuario.getId(), MAXIMO_EVENTOS);
+        // Tope por página: aunque la pantalla pida más, nunca se traen más de MAXIMO_EVENTOS de una vez.
+        List<EventoPublicado> eventos = eventoPublicadoDAO.buscarPaginaDeUsuario(usuario.getId(), Math.max(desde, 0),
+                Math.min(Math.max(cantidad, 1), MAXIMO_EVENTOS));
 
         List<String> claves = eventos.stream()
                 .flatMap(e -> Suscripciones.DEL_TOPICO.stream().map(s -> EventoProcesado.clave(s, e.getIdEvento())))

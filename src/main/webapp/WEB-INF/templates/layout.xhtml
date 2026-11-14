@@ -67,6 +67,12 @@
                                   rendered="#{notificacionesBean.noLeidas > 0}"/>
                 </h:link>
             </li>
+            <li>
+                <h:link outcome="/monitor.xhtml" styleClass="nav-item #{activePage == 'monitor' ? 'active' : ''}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>
+                    Monitor de eventos
+                </h:link>
+            </li>
             </ui:fragment>
             <ui:fragment rendered="#{loginBean.administrativo}">
             <li>
