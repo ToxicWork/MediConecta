@@ -8,7 +8,7 @@ Muestra, pedido por pedido, lo que hay que defender en vivo:
   4. Control de acceso por rol: el administrativo tiene token válido pero recibe 403.
   5. Patrón State: cancelar un turno confirmado da 200 y cancelarlo otra vez da 409.
 
-Requisitos: la app desplegada en localhost:8080 y los usuarios de demo (ver SETUP.md). Sólo usa la
+Requisitos: la app desplegada en https://localhost:8443 y los usuarios de demo (ver SETUP.md). Sólo usa la
 biblioteca estándar de Python.
 
 Uso:  python pruebas/demo_api_jwt_409.py            cancela el turno confirmado más lejano del paciente de demo
@@ -18,13 +18,18 @@ Uso:  python pruebas/demo_api_jwt_409.py            cancela el turno confirmado 
 Atención: el paso 5 cancela de verdad un turno del paciente de demo.
 """
 import base64, json, sys, urllib.error, urllib.request
+import ssl
+# MediConecta corre por HTTPS con el certificado autofirmado que WildFly genera para localhost (SEC-W04):
+# las pruebas lo aceptan sin validarlo. Sólo sirve para el entorno local.
+urllib.request.install_opener(urllib.request.build_opener(
+    urllib.request.HTTPSHandler(context=ssl._create_unverified_context())))
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except AttributeError:
     pass
 
-API = "http://localhost:8080/mediconecta/api/v1"
+API = "https://localhost:8443/mediconecta/api/v1"
 PACIENTE, ADMINISTRATIVO, CLAVE = "juan.perez@mediconecta.test", "carla.admin@mediconecta.test", "demo1234"
 ok = True
 

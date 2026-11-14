@@ -3,21 +3,29 @@
   W01. Bloqueo tras 5 intentos fallidos: la cuenta rechaza incluso la contraseña correcta, con la misma respuesta
        que ante una contraseña incorrecta (web y API); un ingreso correcto pone el contador en cero; el
        administrativo la desbloquea desde Usuarios.
+  W04. Cookie de sesión con HttpOnly, Secure y SameSite=Lax; toda la app por HTTPS (http redirige a https, también
+       la API) y la cookie no es legible desde JavaScript.
 
 Requisitos: WildFly levantado (perfil standalone-full) con mediconecta.war desplegado, Google Chrome (o Edge con
 NAVEGADOR=msedge) y  pip install playwright
 Uso:  python pruebas/prueba_seguridad.py
 Deja en la base un paciente de prueba por corrida (seguridad.NNNNN@mediconecta.test). No toca los usuarios de demo.
 """
+import http.client as cliente_http
 import json, os, random, re, sys, urllib.error, urllib.request
 from playwright.sync_api import sync_playwright
+import ssl
+# MediConecta corre por HTTPS con el certificado autofirmado que WildFly genera para localhost (SEC-W04):
+# las pruebas lo aceptan sin validarlo. Sólo sirve para el entorno local.
+urllib.request.install_opener(urllib.request.build_opener(
+    urllib.request.HTTPSHandler(context=ssl._create_unverified_context())))
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except AttributeError:
     pass
 
-B = "http://localhost:8080/mediconecta/"
+B = "https://localhost:8443/mediconecta/"
 ADMINISTRATIVO = "carla.admin@mediconecta.test"
 NAVEGADOR = os.environ.get("NAVEGADOR", "chrome")
 ok = True
@@ -40,6 +48,24 @@ def http(url, metodo="GET", cuerpo=None):
         return e.code, e.read().decode("utf-8")
 
 
+def sin_seguir(metodo, url_http, cuerpo=None):
+    """Pedido por http:// sin seguir redirecciones: (estado, Location)."""
+    ruta = url_http.split("localhost:8080", 1)[1]
+    conexion = cliente_http.HTTPConnection("localhost", 8080, timeout=10)
+    conexion.request(metodo, ruta, body=None if cuerpo is None else json.dumps(cuerpo),
+                     headers={"Content-Type": "application/json"} if cuerpo is not None else {})
+    r = conexion.getresponse()
+    return r.status, r.getheader("Location") or ""
+
+
+def cookie_de_sesion():
+    """Cabecera Set-Cookie de JSESSIONID al abrir el login por HTTPS."""
+    conexion = cliente_http.HTTPSConnection("localhost", 8443, timeout=10, context=ssl._create_unverified_context())
+    conexion.request("GET", "/mediconecta/login.xhtml")
+    r = conexion.getresponse()
+    return next((v for k, v in r.getheaders() if k.lower() == "set-cookie" and v.startswith("JSESSIONID")), "")
+
+
 def login_api(email, clave):
     return http(B + "api/v1/auth/login", "POST", {"email": email, "password": clave})
 
@@ -53,7 +79,7 @@ def sin_fecha(respuesta):
 
 
 def pagina(br):
-    return br.new_context(viewport={"width": 1366, "height": 900}).new_page()
+    return br.new_context(ignore_https_errors=True, viewport={"width": 1366, "height": 900}).new_page()
 
 
 def login_web(br, email, clave):
@@ -124,6 +150,27 @@ with sync_playwright() as p:
     web, ingreso = login_web(br, email, clave)
     check("W01. y por la web", ingreso)
     web.context.close()
+
+    # ---- W04. Cookie de sesión y HTTPS --------------------------------------------------------
+    print("-- W04. Cookie de sesión y HTTPS")
+    estado, destino = sin_seguir("GET", "http://localhost:8080/mediconecta/login.xhtml")
+    check("W04. una página pedida por http:// redirige a https:// (%d)" % estado,
+          estado in (301, 302, 307, 308) and destino.startswith("https://localhost:8443/mediconecta/"))
+    estado, destino = sin_seguir("POST", "http://localhost:8080/mediconecta/api/v1/auth/login",
+                                 {"email": email, "password": clave})
+    check("W04. la API tampoco atiende por http:// (redirige, no devuelve un token en claro)",
+          estado in (301, 302, 307, 308) and destino.startswith("https://"))
+    atributos = [a.strip().lower() for a in cookie_de_sesion().split(";")]
+    check("W04. la cookie de sesión lleva HttpOnly", "httponly" in atributos)
+    check("W04. la cookie de sesión lleva Secure", "secure" in atributos)
+    check("W04. la cookie de sesión lleva SameSite=Lax", "samesite=lax" in atributos)
+    pac, ingreso = login_web(br, email, clave)
+    check("W04. con la sesión iniciada, JavaScript no puede leer la cookie de sesión",
+          ingreso and "JSESSIONID" not in pac.evaluate("document.cookie"))
+    cookie = next(c for c in pac.context.cookies() if c["name"] == "JSESSIONID")
+    check("W04. y el navegador la guarda como HttpOnly, Secure y Lax",
+          cookie["httpOnly"] and cookie["secure"] and cookie["sameSite"] == "Lax")
+    pac.context.close()
 
     br.close()
 

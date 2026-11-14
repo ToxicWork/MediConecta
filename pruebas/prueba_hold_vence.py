@@ -10,13 +10,18 @@ Uso:  python pruebas/prueba_hold_vence.py
 import os
 import json, random, sys, time, urllib.request
 from playwright.sync_api import sync_playwright
+import ssl
+# MediConecta corre por HTTPS con el certificado autofirmado que WildFly genera para localhost (SEC-W04):
+# las pruebas lo aceptan sin validarlo. Sólo sirve para el entorno local.
+urllib.request.install_opener(urllib.request.build_opener(
+    urllib.request.HTTPSHandler(context=ssl._create_unverified_context())))
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except AttributeError:
     pass
 
-B = "http://localhost:8080/mediconecta/"
+B = "https://localhost:8443/mediconecta/"
 PACIENTE, PROFESIONAL = "juan.perez@mediconecta.test", "ana.lopez@mediconecta.test"
 ok = True
 
@@ -33,7 +38,7 @@ def api(ruta):
 
 
 def login(br, email):
-    pg = br.new_context(viewport={"width": 1366, "height": 900}).new_page()
+    pg = br.new_context(ignore_https_errors=True, viewport={"width": 1366, "height": 900}).new_page()
     pg.goto(B + "login.xhtml")
     pg.fill("#formLogin\\:email", email)
     pg.fill("#formLogin\\:password", "demo1234")

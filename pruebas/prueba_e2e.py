@@ -21,9 +21,9 @@ try:
     sys.stdout.reconfigure(encoding="utf-8")  # consola de Windows
 except AttributeError:
     pass
-B="http://localhost:8080/mediconecta/"
+B="https://localhost:8443/mediconecta/"
 def login(br, email):
-    pg=br.new_context().new_page(); pg.goto(B+"login.xhtml")
+    pg=br.new_context(ignore_https_errors=True).new_page(); pg.goto(B+"login.xhtml")
     pg.fill("#formLogin\\:email", email); pg.fill("#formLogin\\:password", "demo1234")
     pg.click("#formLogin button:has-text('Ingresar')"); pg.wait_for_url("**/agenda.xhtml*"); return pg
 def mis(pg):
@@ -38,10 +38,10 @@ def check(nombre, cond):
 with sync_playwright() as p:
     br=p.chromium.launch(channel=os.environ.get("NAVEGADOR", "chrome"), headless=True)
     # login inválido
-    pg=br.new_context().new_page(); pg.goto(B+"login.xhtml"); pg.fill("#formLogin\\:email","juan.perez@mediconecta.test"); pg.fill("#formLogin\\:password","mala")
+    pg=br.new_context(ignore_https_errors=True).new_page(); pg.goto(B+"login.xhtml"); pg.fill("#formLogin\\:email","juan.perez@mediconecta.test"); pg.fill("#formLogin\\:password","mala")
     pg.click("#formLogin button:has-text('Ingresar')"); pg.wait_for_load_state(); check("login con contraseña incorrecta rechazado", "Credenciales inválidas" in pg.content())
     # sin sesión -> redirige
-    pg=br.new_context().new_page(); pg.goto(B+"agenda.xhtml"); check("agenda sin sesión redirige al login", "login.xhtml" in pg.url)
+    pg=br.new_context(ignore_https_errors=True).new_page(); pg.goto(B+"agenda.xhtml"); check("agenda sin sesión redirige al login", "login.xhtml" in pg.url)
     prof=login(br,"ana.lopez@mediconecta.test")
     check("profesional ve su nombre en el layout", "Dra. Ana Lopez" in prof.content())
     check("CSS cargado (recursos estáticos)", prof.evaluate("getComputedStyle(document.querySelector('.sidebar')).backgroundImage").startswith("linear-gradient"))

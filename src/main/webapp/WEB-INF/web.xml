@@ -11,13 +11,39 @@
     <welcome-file>login.xhtml</welcome-file>
   </welcome-file-list>
 
-  <!-- La cookie de sesión no es legible desde JavaScript y el id de sesión nunca viaja en la URL. -->
+  <!--
+    Cookie de sesión (prueba de seguridad SEC-W04):
+    - HttpOnly: no es legible desde JavaScript (un XSS no la puede robar).
+    - Secure: el navegador sólo la envía por HTTPS (no viaja en claro por la red).
+    - SameSite=Lax: no se envía en pedidos que otro sitio dispara por detrás (formularios o imágenes de
+      otro dominio), lo que corta los ataques CSRF; sí se envía al llegar a MediConecta desde un enlace.
+      Strict obligaría a volver a iniciar sesión cada vez que se entra desde un enlace externo.
+      Lo agrega WEB-INF/undertow-handlers.conf: Undertow (el servidor web de WildFly) no aplica el elemento
+      <attribute> de cookie-config a la cookie de sesión.
+    - El id de sesión nunca viaja en la URL (sólo cookie).
+  -->
   <session-config>
     <cookie-config>
       <http-only>true</http-only>
+      <secure>true</secure>
     </cookie-config>
     <tracking-mode>COOKIE</tracking-mode>
   </session-config>
+
+  <!--
+    Toda la aplicación por HTTPS: un pedido por http:// se redirige al puerto seguro (8443 en WildFly, con el
+    certificado autofirmado que el servidor genera solo para localhost). Sin esto la cookie Secure no se
+    enviaría y la sesión se perdería. No exige autenticación: eso lo decide MecanismoAutenticacion.
+  -->
+  <security-constraint>
+    <web-resource-collection>
+      <web-resource-name>Toda la aplicación por HTTPS</web-resource-name>
+      <url-pattern>/*</url-pattern>
+    </web-resource-collection>
+    <user-data-constraint>
+      <transport-guarantee>CONFIDENTIAL</transport-guarantee>
+    </user-data-constraint>
+  </security-constraint>
 
   <error-page>
     <error-code>500</error-code>

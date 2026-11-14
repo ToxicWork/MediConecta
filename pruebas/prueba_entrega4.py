@@ -27,13 +27,18 @@ esas pantallas.
 import os
 import base64, json, random, sys, time, urllib.error, urllib.request
 from playwright.sync_api import sync_playwright
+import ssl
+# MediConecta corre por HTTPS con el certificado autofirmado que WildFly genera para localhost (SEC-W04):
+# las pruebas lo aceptan sin validarlo. Sólo sirve para el entorno local.
+urllib.request.install_opener(urllib.request.build_opener(
+    urllib.request.HTTPSHandler(context=ssl._create_unverified_context())))
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except AttributeError:
     pass
 
-B = "http://localhost:8080/mediconecta/"
+B = "https://localhost:8443/mediconecta/"
 EXT = "http://localhost:8080/externos/"
 PACIENTE, PROFESIONAL = "juan.perez@mediconecta.test", "ana.lopez@mediconecta.test"
 ADMINISTRATIVO = "carla.admin@mediconecta.test"
@@ -93,7 +98,7 @@ def consola(**cambios):
 
 
 def login(br, email, inicio="agenda.xhtml", clave="demo1234"):
-    pg = br.new_context(viewport={"width": 1366, "height": 900}).new_page()
+    pg = br.new_context(ignore_https_errors=True, viewport={"width": 1366, "height": 900}).new_page()
     pg.goto(B + "login.xhtml")
     pg.fill("#formLogin\\:email", email)
     pg.fill("#formLogin\\:password", clave)
@@ -318,7 +323,7 @@ with sync_playwright() as p:
 
     # ---- M. Registro sólo de pacientes, alta por el administrativo y contraseña temporal ------
     sufijo = random.randint(10000, 99999)
-    nuevo = br.new_context(viewport={"width": 1366, "height": 900}).new_page()
+    nuevo = br.new_context(ignore_https_errors=True, viewport={"width": 1366, "height": 900}).new_page()
     nuevo.goto(B + "login.xhtml")
     nuevo.click("text=Registrate")
     nuevo.wait_for_url("**/registro.xhtml*")
