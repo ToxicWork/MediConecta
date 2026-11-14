@@ -61,7 +61,7 @@ package "Mensajería (JMS)" {
 
 package "Transversal" {
   [AuditoriaInterceptor\n@Auditado] as INT
-  [MecanismoAutenticacion\n(form + HTTP Basic)] as SEC
+  [MecanismoAutenticacion\n(form web + JWT en la API)] as SEC
 }
 
 ST -up- I_ST

@@ -4,7 +4,7 @@ title REST en los dos sentidos: API pública de MediConecta (servidor) y videoco
 autonumber
 
 actor "Partner externo" as EXT
-participant "MecanismoAutenticacion\n(HTTP Basic en /api/*)" as SEC
+participant "MecanismoAutenticacion\n(JWT en /api/*)" as SEC
 participant "TurnosResource\n<<Stateless>> @RolesAllowed" as TR
 participant "ServicioDeAgendaBean" as SA
 participant "MapeadorDeExcepciones" as MAP
@@ -14,14 +14,14 @@ participant "VideoconsultaRestAdapter\n(JAX-RS Client)" as VA
 participant "Proveedor de video\nREST" as VID
 
 == MediConecta como servidor REST (API de consumo externo) ==
-EXT -> SEC : GET /api/v1/turnos\nAuthorization: Basic …
-SEC -> SEC : IdentityStore (PBKDF2), sin sesión
-alt credenciales válidas
+EXT -> SEC : GET /api/v1/turnos\nAuthorization: Bearer <JWT>
+SEC -> SEC : valida firma y vencimiento del JWT,\nsin sesión ni consulta a la base (diagrama 19)
+alt token válido
   SEC -> TR : principal + rol
   TR -> SA : turnosDelUsuarioActual()
   SA --> TR : turnos del caller (titularidad)
   TR --> EXT : 200 [TurnoApi…] (DTO, sin datos clínicos)
-else sin credenciales
+else sin token
   TR -> MAP : EJBAccessException
   MAP --> EXT : 401 + WWW-Authenticate (JSON uniforme)
 end

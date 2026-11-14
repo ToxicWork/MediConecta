@@ -1,0 +1,58 @@
+@startuml 19-secuencia-autenticacion-jwt
+!include _estilo.iuml
+title Autenticación de la API REST con JWT (HS256): login, pedido con Bearer y rechazos
+autonumber
+
+actor "Cliente de la API\n(partner, app, curl)" as CLI
+participant "MecanismoAutenticacion\n<<HttpAuthenticationMechanism>>" as SEC
+participant "FiltroTokenInvalido\n<<ContainerRequestFilter>>" as FIL
+participant "AuthResource\nPOST /api/v1/auth/login" as AUTH
+participant "IdentityStore\n(PBKDF2, tabla usuario)" as IDS
+participant "ServicioDeTokens\n→ CodificadorJwt" as TOK
+participant "TurnosResource\n<<Stateless>> @RolesAllowed" as TR
+participant "MapeadorDeExcepciones" as MAP
+
+== 1. Login: se cambia la contraseña por un token ==
+CLI -> AUTH : POST /auth/login {email, password}
+AUTH -> IDS : validate(email, password)
+alt credenciales válidas y contraseña definitiva
+  AUTH -> TOK : emitir(email, rol)
+  TOK -> TOK : cabecera {alg: HS256}\ncontenido {iss, sub, rol, iat, exp = +30 min, jti}\nfirma = HMAC-SHA256(secreto del servidor)
+  AUTH --> CLI : 200 {token, tipo: Bearer, expiraEnSegundos: 1800, rol}
+else email o contraseña incorrectos
+  AUTH --> CLI : 401 credenciales_invalidas\n(misma respuesta exista o no la cuenta)
+else contraseña temporal sin cambiar
+  AUTH --> CLI : 403 password_temporal
+end
+
+== 2. Pedido autenticado: sin sesión ni consulta a la base ==
+CLI -> SEC : GET /turnos\nAuthorization: Bearer <token>
+SEC -> TOK : validar(token)
+TOK -> TOK : alg == HS256, firma (tiempo constante),\nemisor y vencimiento
+TOK --> SEC : IdentidadJwt(email, rol)
+SEC -> TR : notifyContainerAboutLogin(email, {rol})
+TR -> TR : @RolesAllowed({PACIENTE, PROFESIONAL})
+TR --> CLI : 200 [TurnoApi…]
+
+== 3. Rechazos ==
+CLI -> SEC : GET /turnos (sin cabecera Authorization)
+SEC -> TR : sigue como anónimo
+TR -> MAP : EJBAccessException
+MAP --> CLI : 401 no_autenticado\nWWW-Authenticate: Bearer
+
+CLI -> SEC : GET /turnos\nBearer <token vencido, adulterado o alg none>
+SEC -> TOK : validar(token)
+TOK --> SEC : vacío
+SEC -> FIL : marca el pedido (token inválido)
+FIL --> CLI : 401 token_invalido\nWWW-Authenticate: Bearer error="invalid_token"
+
+CLI -> SEC : GET /turnos\nBearer <token válido de ADMINISTRATIVO>
+SEC -> TR : principal + rol ADMINISTRATIVO
+TR -> MAP : EJBAccessException (rol no permitido)
+MAP --> CLI : 403 prohibido
+
+note over SEC, TOK
+  La web (JSF) sigue usando sesión del contenedor con formulario propio: el mismo mecanismo
+  atiende los dos caminos y los dos validan contra el mismo IdentityStore (ADR-0017).
+end note
+@enduml

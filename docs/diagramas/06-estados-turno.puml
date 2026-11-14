@@ -21,12 +21,15 @@ note right of CANCELADO
   Estado final: conserva paciente, pago,
   autorización y auditoría como historial.
   Cualquier transición desde acá lanza
-  TransicionInvalidaException.
+  TransicionInvalidaException: por la API,
+  POST /turnos/{id}/cancelacion → 409 Conflict.
 end note
 note left of DISPONIBLE
   Una transición no admitida por el estado
   (p. ej. cancelar un turno disponible) es
   imposible por diseño: el método por defecto
-  de EstadoDeTurno lanza la excepción.
+  de EstadoDeTurno lanza la excepción, la
+  transacción se revierte y la API REST
+  responde 409 (transicion_invalida).
 end note
 @enduml

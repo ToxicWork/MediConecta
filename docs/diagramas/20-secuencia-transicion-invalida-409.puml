@@ -1,0 +1,48 @@
+@startuml 20-secuencia-transicion-invalida-409
+!include _estilo.iuml
+title Patrón State de punta a punta: una transición inválida del turno devuelve 409 Conflict
+autonumber
+
+actor "Paciente\n(cliente de la API con JWT)" as CLI
+participant "TurnosResource\nPOST /turnos/{id}/cancelacion\n@RolesAllowed(PACIENTE)" as TR
+participant "ServicioDeAgendaBean\n(titularidad)" as SA
+participant "ProcesoCancelacionTurno\n<<Stateless>> REQUIRED" as PC
+participant "Turno\n(entidad, contexto del State)" as T
+participant "EstadoDeTurno\n(TurnoConfirmado / TurnoCancelado / TurnoEnHold)" as E
+participant "PublicadorEventosTurno\n(topico.turnos)" as PUB
+participant "MapeadorDeExcepciones\n<<ExceptionMapper>>" as MAP
+
+== Primera cancelación: transición válida (CONFIRMADO → CANCELADO) ==
+CLI -> TR : POST /turnos/57/cancelacion\nAuthorization: Bearer …
+TR -> SA : turnoDelUsuarioActual(57)
+SA --> TR : turno propio (si fuera ajeno o no existiera: 404)
+TR -> PC : cancelar(57, pacienteId)
+activate PC #EEF3FF
+PC -> T : cancelar()
+T -> E : estado.comportamiento().cancelar(turno)
+E --> T : CANCELADO (TurnoConfirmado lo admite)
+PC -> PUB : publicar(TURNO_CANCELADO)\n(sale con el commit: Transactional Client)
+PC --> TR : turno cancelado
+deactivate PC
+TR --> CLI : 200 {id: 57, estado: "CANCELADO", …}
+
+== Segunda cancelación: transición inválida (CANCELADO no admite cancelar) ==
+CLI -> TR : POST /turnos/57/cancelacion
+TR -> SA : turnoDelUsuarioActual(57)
+TR -> PC : cancelar(57, pacienteId)
+activate PC #FFECEC
+PC -> T : cancelar()
+T -> E : estado.comportamiento().cancelar(turno)
+E --> T : lanza TransicionInvalidaException\n(método por defecto de EstadoDeTurno)
+T --> PC : TransicionInvalidaException\n(@ApplicationException rollback = true)
+PC --> TR : la transacción se revierte:\nno se publica ningún evento
+deactivate PC
+TR -> MAP : TransicionInvalidaException
+MAP --> CLI : 409 Conflict\n{estado: 409, error: "transicion_invalida",\nmensaje: "No se puede cancelar un turno cancelado."}
+
+note over T, E
+  El servicio no pregunta por el estado: sólo verifica la titularidad y llama a turno.cancelar().
+  Qué operación vale en cada estado lo decide el State. Lo mismo ocurre con un turno en espera
+  (HOLD): "No se puede cancelar un turno en espera." → 409.
+end note
+@enduml

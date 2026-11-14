@@ -22,6 +22,11 @@ Fuente en PlantUML (`.puml`) y exportado a PNG. Todos reflejan el código **tal 
 | 16 | `16-secuencia-api-rest-telemedicina` | **Secuencias REST**: API propia (servidor) y videoconsulta (cliente) | Obligatoria 2 |
 | 17 | `17-clases-patrones-entrega4` | UML de clases de los patrones incorporados (Adapter, Circuit Breaker, Strategy, Chain, State, Intercepting Filter, Singleton, compensación) | Obligatoria 2 |
 | 18 | `18-clases-usuarios-y-roles` | UML de clases de los ajustes: Factory con el rol Administrativo, seguridad declarativa por operación, contraseña temporal, timers de vencimiento y administrador por defecto | **Nuevo: noviembre 2026** |
+| 19 | `19-secuencia-autenticacion-jwt` | **Secuencia de autenticación de la API con JWT**: login, pedido con Bearer y rechazos (401 y 403) | **Nuevo: entrega del 16/11** |
+| 20 | `20-secuencia-transicion-invalida-409` | **Secuencia del patrón State de punta a punta**: cancelación válida y transición inválida con 409 | **Nuevo: entrega del 16/11** |
+
+Los diagramas 01, 02, 06 y 16 se actualizaron para la entrega del 16/11 (JWT en la API y 409 ante una
+transición inválida).
 
 El diagrama 10 muestra todas las clases de las entregas anteriores en un solo dibujo, con la notación
 UML completa (leyenda incluida en el diagrama). El 17 complementa al 10 con los patrones de la

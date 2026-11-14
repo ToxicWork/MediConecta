@@ -8,7 +8,7 @@ actor "Partner / app externa" as EXTAPP
 
 rectangle "MediConecta (WildFly 41 · Jakarta EE 10 · perfil standalone-full)" #F7F9FE {
   component "Presentación\nJSF + PrimeFaces\n(temas estándar / claro / oscuro)" as WEB
-  component "API REST pública\n/api/v1 (JAX-RS)\nHTTP Basic" as API
+  component "API REST pública\n/api/v1 (JAX-RS)\nJWT (Bearer)" as API
   component "ServicioDeUsuarios\n<<Stateless>>" as SU
   component "ServicioDeTurnos\n<<Stateful>>" as ST
   component "ProcesoConfirmacionTurno\n<<Stateless>> CMT REQUIRED" as PCT
