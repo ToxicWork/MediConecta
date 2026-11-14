@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="UTF-8">
+<title>MediConecta — Guion de la presentación del 16/11</title>
+<style>
+  @page { size: A4; margin: 1.6cm 1.7cm; }
+  html { font-family: "Segoe UI", Arial, sans-serif; font-size: 10pt; color: #1b2330; }
+  body { margin: 0; }
+  h1 { font-size: 19pt; margin: 0 0 2pt 0; color: #16308c; }
+  .sub { color: #55607a; margin-bottom: 10pt; }
+  h2 { font-size: 12.5pt; margin: 14pt 0 5pt 0; color: #16308c; border-bottom: 1.2pt solid #c9d1e3; padding-bottom: 2pt; page-break-after: avoid; }
+  p { margin: 3pt 0 5pt 0; line-height: 1.4; }
+  ul, ol { margin: 2pt 0 5pt 0; padding-left: 15pt; }
+  li { line-height: 1.38; margin-bottom: 1.5pt; }
+  table { width: 100%; border-collapse: collapse; margin: 5pt 0 8pt 0; }
+  th { text-align: left; background: #eef3ff; border-bottom: 1.2pt solid #2f5fe0; padding: 4pt 5pt; font-size: 9pt; }
+  td { padding: 4pt 5pt; border-bottom: 0.5pt solid #d5dbe8; vertical-align: top; line-height: 1.32; }
+  code { font-family: Consolas, "Courier New", monospace; font-size: 8.8pt; background: #f1f3f8; padding: 0 2pt; border-radius: 2pt; }
+  .bloque { border: 0.8pt solid #c9d1e3; border-left: 4pt solid #2f5fe0; border-radius: 4pt; padding: 7pt 10pt 5pt 10pt; margin: 8pt 0; page-break-inside: avoid; }
+  .bloque .cab { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 3pt; }
+  .bloque .tit { font-weight: 700; font-size: 11.5pt; color: #16308c; }
+  .bloque .t { font-weight: 700; color: #b3541e; white-space: nowrap; }
+  .quien { display: inline-block; font-size: 8.5pt; font-weight: 700; padding: 1pt 6pt; border-radius: 8pt; color: #fff; margin-right: 4pt; }
+  .S { background: #1f6fd6; } .A { background: #24324f; } .M { background: #1e8e5a; } .T { background: #777; }
+  .k { font-weight: 700; color: #16308c; }
+  .decir { background: #fff8e1; border-left: 3pt solid #e0b84c; padding: 4pt 8pt; margin: 4pt 0; font-style: italic; }
+  .ojo { background: #fdecec; border-left: 3pt solid #c0392b; padding: 4pt 8pt; margin: 5pt 0; }
+  .dos { display: flex; gap: 12pt; } .dos > div { flex: 1; }
+  .salto { page-break-before: always; }
+  .chk li { list-style: "☐  "; }
+</style>
+</head>
+<body>
+
+<h1>MediConecta — Guion de la presentación</h1>
+<div class="sub">2.ª Entrega Parcial del TPO · lunes 16/11 · Grupo 4 · pensado para 20 minutos, con recorte a 15</div>
+
+<p><b>Idea central para repetir:</b> «No venimos a contar el sistema: lo corremos, y por cada cosa que funciona mostramos las líneas de código que la hacen funcionar y la prueba que lo verifica». El profesor pidió tres cosas en cada tema: <b>teoría</b> (por qué), <b>demostración</b> (funciona en vivo) y <b>código</b> (cómo está hecho). Cada bloque de abajo tiene esas tres partes, en ese orden.</p>
+
+<h2>La presentación de un vistazo</h2>
+<table>
+  <tr><th style="width:6%">#</th><th style="width:13%">Tiempo</th><th style="width:31%">Bloque</th><th style="width:17%">Quién</th><th>Qué se ve en pantalla</th></tr>
+  <tr><td>1</td><td>0:00 – 1:30</td><td>Apertura y arquitectura en capas</td><td><span class="quien M">Máximo</span></td><td>Diagrama de componentes</td></tr>
+  <tr><td>2</td><td>1:30 – 5:30</td><td>Flujo de punta a punta en vivo, con mensajería</td><td><span class="quien S">Sergio</span><span class="quien A">Agustín</span></td><td>La web, la consola de externos, <code>ProcesoConfirmacionTurno</code></td></tr>
+  <tr><td>3</td><td>5:30 – 9:30</td><td>Seguridad: JWT y control por rol</td><td><span class="quien S">Sergio</span></td><td>Terminal con el guion, <code>CodificadorJwt</code></td></tr>
+  <tr><td>4</td><td>9:30 – 13:00</td><td>Patrón State y respuesta 409</td><td><span class="quien A">Agustín</span></td><td>Terminal (paso 5), <code>EstadoDeTurno</code>, <code>ProcesoCancelacionTurno</code></td></tr>
+  <tr><td>5</td><td>13:00 – 15:30</td><td>Datos, patrones y ADR</td><td><span class="quien M">Máximo</span></td><td><code>TurnoDAO</code>, Supabase, un ADR abierto</td></tr>
+  <tr><td>6</td><td>15:30 – 17:30</td><td>Pruebas: una por integrante</td><td><span class="quien T">Los tres</span></td><td>Tres tests y el resultado de <code>mvn test</code></td></tr>
+  <tr><td>7</td><td>17:30 – 19:00</td><td>Estado: tablero, defectos conocidos e IA</td><td><span class="quien M">Máximo</span></td><td>Trello y la Tabla 9 del informe</td></tr>
+  <tr><td>8</td><td>19:00 – 20:00</td><td>Cierre y preguntas</td><td><span class="quien T">Los tres</span></td><td>—</td></tr>
+</table>
+<p><b>Si sólo hay 15 minutos:</b> el bloque 2 baja a 3 minutos (sin mostrar el pago rechazado ni el código), el bloque 5 a 1 minuto (sólo el ADR), el bloque 6 a 1 minuto (un solo test: el de la matriz del State) y el bloque 7 a 30 segundos. Los bloques 3 y 4 no se recortan: son lo que pide esta entrega.</p>
+
+<h2>Antes de entrar (15 minutos antes)</h2>
+<div class="dos">
+<div>
+<ul class="chk">
+  <li>Supabase activo (si el log dice <code>tenant/user … not found</code>, reanudarlo desde el panel).</li>
+  <li>WildFly levantado con <code>wildfly\iniciar-servidor.bat</code> y los dos WAR desplegados.</li>
+  <li>Consola de externos (<code>localhost:8080/externos</code>) con todo <b>En línea</b> y autorizaciones en <b>Aprobar</b>.</li>
+  <li>Correr <code>python pruebas/demo_api_jwt_409.py --sin-cancelar</code>: tiene que terminar en TODO OK.</li>
+</ul>
+</div>
+<div>
+<ul class="chk">
+  <li>La profesional (Ana) tiene <b>un horario futuro publicado</b> para reservar en el bloque 2.</li>
+  <li>El paciente (Juan) tiene <b>al menos un turno confirmado</b> para cancelar en el bloque 4.</li>
+  <li>Abiertos y con letra grande: navegador (paciente y consola de externos), una terminal en la carpeta del proyecto y el editor con los archivos de la lista de la última página.</li>
+  <li>Trello y el PDF del informe abiertos en pestañas.</li>
+</ul>
+</div>
+</div>
+<p>Usuarios de demostración, los tres con la clave de <code>SETUP.md</code>: <code>juan.perez@mediconecta.test</code> (paciente), <code>ana.lopez@mediconecta.test</code> (profesional), <code>carla.admin@mediconecta.test</code> (administrativo).</p>
+
+<h2>Bloque por bloque</h2>
+
+<div class="bloque">
+  <div class="cab"><span class="tit">1 · Apertura y arquitectura en capas</span><span class="t">0:00 – 1:30 · <span class="quien M">Máximo</span></span></div>
+  <p><span class="k">Mostrar:</span> <code>docs/diagramas/02-componentes.png</code>.</p>
+  <p><span class="k">Teoría (30 s):</span> ocho componentes de negocio, cada uno en tres capas. Presentación (JSF y una API REST) → negocio (EJB con transacciones y seguridad declarativas) → datos (DAO sobre JPA, PostgreSQL). Una capa sólo conoce a la de abajo.</p>
+  <div class="decir">«Nos repartimos el trabajo por capa: Sergio presentación, Agustín negocio y yo datos. Hoy mostramos el núcleo funcionando: un flujo completo, la seguridad con JWT, el patrón State devolviendo 409, y las pruebas. Todo lo que afirmemos lo vamos a correr.»</div>
+</div>
+
+<div class="bloque">
+  <div class="cab"><span class="tit">2 · Flujo de punta a punta, con mensajería</span><span class="t">1:30 – 5:30 · <span class="quien S">Sergio</span><span class="quien A">Agustín</span></span></div>
+  <p><span class="k">Demostración (Sergio maneja, 2:30):</span></p>
+  <ol>
+    <li>Paciente → Agenda → elegir a la Dra. Ana López → <b>Reservar</b>. Aparece la cotización: «consultada en línea al sistema de la obra social (SOAP)», $32.000, a cargo del paciente $9.600.</li>
+    <li>Pagar con <code>4000 0000 0000 0002</code> → «Pago rechazado»: el turno sigue en espera.</li>
+    <li>Pagar con <code>4111 1111 1111 1111</code> → «Turno confirmado».</li>
+    <li>En Mis turnos: «Autorización en trámite» y a los segundos «Autorizada». En Notificaciones: los avisos.</li>
+  </ol>
+  <p><span class="k">Teoría (Agustín, mientras Sergio hace clic):</span> el paciente necesita el precio para decidir, por eso la cobertura es sincrónica; la autorización puede tardar, por eso va por una <b>cola</b>; a la confirmación le interesa a varios (notificaciones, auditoría, facturación), por eso es un <b>tópico</b>.</p>
+  <p><span class="k">Código (Agustín, 1 min):</span> <code>negocio/ProcesoConfirmacionTurno.java</code>, método <code>confirmar</code> (línea 103). Leerlo de arriba abajo: valida, consulta cobertura, cobra, confirma, encola, publica. Una sola transacción.</p>
+  <div class="decir">«Si cualquier paso falla, la base y los mensajes se revierten solos porque están en la misma transacción. Lo acaban de ver con el pago rechazado: el turno no quedó confirmado.»</div>
+</div>
+
+<div class="bloque">
+  <div class="cab"><span class="tit">3 · Seguridad: JWT y control por rol</span><span class="t">5:30 – 9:30 · <span class="quien S">Sergio</span></span></div>
+  <p><span class="k">Teoría (40 s):</span> la API no guarda sesión. El cliente cambia su contraseña por un token una sola vez y después manda el token. El token tiene tres partes: cabecera, contenido (usuario, rol, vencimiento) y firma. La firma es un HMAC con un secreto que sólo tiene el servidor: cualquiera puede leer el token, nadie puede modificarlo.</p>
+  <p><span class="k">Demostración (1:40):</span> <code>python pruebas/demo_api_jwt_409.py --sin-cancelar</code> y recorrer la salida:</p>
+  <ol>
+    <li><b>Sin token → 401.</b></li>
+    <li><b>Login → 200 con el token.</b> Señalar el contenido decodificado: <code>sub</code>, <code>rol</code>, <code>exp</code>.</li>
+    <li><b>Con el token → 200.</b> Con el <b>rol cambiado a mano → 401</b>: la firma ya no coincide.</li>
+    <li><b>Token válido de administrativo → 403.</b> Autenticado, pero sin permiso.</li>
+  </ol>
+  <p><span class="k">Código (1:30):</span></p>
+  <ul>
+    <li><code>seguridad/CodificadorJwt.java</code>: <code>emitir</code> (línea 56) arma el contenido y firma; <code>validar</code> (línea 69) exige HS256, compara la firma y revisa el vencimiento.</li>
+    <li><code>seguridad/MecanismoAutenticacion.java</code>, <code>autenticarApi</code> (línea 97): lee <code>Authorization: Bearer</code>, valida y le pasa usuario y rol al contenedor.</li>
+    <li><code>api/TurnosResource.java</code> (línea 74): <code>@RolesAllowed("PACIENTE")</code>. El 403 no lo decide nuestro código: lo decide el contenedor con esa anotación.</li>
+  </ul>
+  <div class="decir">«401 es "no sé quién sos"; 403 es "sé quién sos y no podés". El rol viaja firmado en el token, por eso no hace falta ir a la base en cada pedido.»</div>
+</div>
+
+<div class="bloque">
+  <div class="cab"><span class="tit">4 · Patrón State y respuesta 409</span><span class="t">9:30 – 13:00 · <span class="quien A">Agustín</span></span></div>
+  <p><span class="k">Teoría (40 s):</span> mostrar <code>docs/diagramas/06-estados-turno.png</code>. El turno tiene cuatro estados y no toda operación vale en todos. En vez de un <code>if</code> en cada servicio, cada estado es una clase que sabe qué admite.</p>
+  <p><span class="k">Código (1:30), en este orden:</span></p>
+  <ul>
+    <li><code>modelo/EstadoDeTurno.java</code> (línea 21): por defecto <b>toda transición lanza</b> <code>TransicionInvalidaException</code>.</li>
+    <li><code>modelo/TurnoConfirmado.java</code> (línea 12): redefine sólo <code>cancelar</code>. <code>TurnoCancelado</code> no redefine nada: es final.</li>
+    <li><code>negocio/ProcesoCancelacionTurno.java</code> (línea 45): <b>no hay ningún <code>if</code> sobre el estado</b>; verifica que el turno sea del paciente y llama a <code>turno.cancelar()</code>.</li>
+    <li><code>api/MapeadorDeExcepciones.java</code> (línea 73): <code>TransicionInvalidaException</code> → 409.</li>
+  </ul>
+  <p><span class="k">Demostración (1 min):</span> <code>python pruebas/demo_api_jwt_409.py</code> y mirar el paso 5: primera cancelación <b>200</b>, estado CANCELADO; segunda cancelación <b>409</b>, «No se puede cancelar un turno cancelado».</p>
+  <div class="decir">«Elegimos 409 y no 400 porque el pedido está bien formado: lo que pasa es que choca con el estado actual del turno. Y como la excepción revierte la transacción, la segunda cancelación no deja ningún efecto.»</div>
+  <div class="ojo"><b>Ojo:</b> el paso 5 cancela de verdad un turno confirmado de Juan. Si no tiene ninguno, el guion lo avisa: reservar y confirmar uno antes (por eso está en la lista previa).</div>
+</div>
+
+<div class="bloque">
+  <div class="cab"><span class="tit">5 · Datos, patrones y ADR</span><span class="t">13:00 – 15:30 · <span class="quien M">Máximo</span></span></div>
+  <p><span class="k">Código (1 min):</span> <code>dao/TurnoDAO.java</code>, <code>buscarDisponibles</code> (línea 32): la consulta está en un solo lugar, con parámetros (no se concatena texto). <code>modelo/Turno.java</code> (línea 104): <code>@Version</code>, para que dos pacientes no tomen el mismo turno a la vez.</p>
+  <p><span class="k">Demostración (45 s):</span> el panel de Supabase con las tablas y Row Level Security habilitado en todas. Contar el hallazgo: las tablas que crea Hibernate nacen sin RLS y se podían leer con la clave pública del proyecto; lo corregimos con <code>sql/02-habilitar-rls.sql</code>.</p>
+  <p><span class="k">ADR (45 s):</span> abrir <code>docs/adr/README.md</code> (los 18) y un ADR entero, por ejemplo <code>0008-circuit-breaker-propio.md</code>. Mostrar las secciones: contexto, decisión, alternativas descartadas, consecuencias, código y prueba.</p>
+  <div class="decir">«Cada patrón tiene su ADR. Lo importante no es el nombre del patrón sino qué alternativa descartamos y qué nos cuesta la que elegimos.»</div>
+</div>
+
+<div class="bloque">
+  <div class="cab"><span class="tit">6 · Pruebas: una por integrante</span><span class="t">15:30 – 17:30 · <span class="quien T">Los tres</span></span></div>
+  <p>Correr <code>mvn test</code> al empezar el bloque (tarda unos 20 segundos) y, mientras corre, cada uno explica un test en 30 segundos:</p>
+  <ul>
+    <li><span class="quien S">Sergio</span> <code>CodificadorJwtTest</code>, <code>cambiarElRolDelContenidoInvalidaLaFirma</code> (línea 51): emite un token de paciente, cambia el rol a administrativo y verifica que se rechace.</li>
+    <li><span class="quien A">Agustín</span> <code>TurnoEstadoTest</code>, <code>cadaEstadoRechazaTodasLasOperacionesQueNoAdmite</code> (línea 54): las doce transiciones inválidas, cada una con su mensaje.</li>
+    <li><span class="quien M">Máximo</span> <code>MapeadorDeExcepcionesTest</code>, <code>unaTransicionInvalidaDelTurnoEs409</code> (línea 21): une los dos anteriores con HTTP.</li>
+  </ul>
+  <p>Mostrar el resultado: <b>47 pruebas, 0 fallas</b>. Mencionar las de punta a punta: 53 verificaciones con navegador real (<code>pruebas/prueba_entrega4.py</code>), corridas el 14/11; el resultado está en el informe.</p>
+</div>
+
+<div class="bloque">
+  <div class="cab"><span class="tit">7 · Estado del proyecto</span><span class="t">17:30 – 19:00 · <span class="quien M">Máximo</span></span></div>
+  <ul>
+    <li><b>Tablero:</b> mostrar Trello (por hacer, en revisión, terminado, con responsables).</li>
+    <li><b>Defectos que conocemos</b> (Tabla 9 del informe). Decir los tres más importantes sin que los pregunten: la historia del monitor de eventos (HU-09) no está disponible porque retiramos esa pantalla; no hay bloqueo tras varios intentos fallidos de ingreso; un JWT no se puede revocar antes de los 30 minutos.</li>
+    <li><b>Diseño:</b> no recibimos devolución escrita; comparamos el diseño con lo construido y registramos once diferencias (Tabla 10).</li>
+    <li><b>IA:</b> usamos Claude para implementar el JWT y el 409, redactar los ADR y armar el informe; cada resultado sale de una prueba corrida, con fecha.</li>
+  </ul>
+</div>
+
+<div class="bloque">
+  <div class="cab"><span class="tit">8 · Cierre</span><span class="t">19:00 – 20:00 · <span class="quien T">Los tres</span></span></div>
+  <div class="decir">«El núcleo está funcionando: capas, un flujo completo con mensajería, seguridad con JWT y roles, State con 409, un ADR por patrón y 47 pruebas. Para la entrega final nos queda lo de la lista de defectos.»</div>
+</div>
+
+<h2 class="salto">Si algo falla en vivo</h2>
+<table>
+  <tr><th style="width:36%">Qué pasa</th><th>Qué hacer</th></tr>
+  <tr><td>La aplicación no despliega y el log dice <code>tenant/user … not found</code></td><td>Supabase está pausado: reanudarlo desde el panel y volver a copiar el WAR. Mientras tanto, adelantar los bloques de código (3 y 4) y las pruebas unitarias, que no necesitan la base.</td></tr>
+  <tr><td>No hay un horario para reservar</td><td>Entrar como Ana y publicar uno. Si el calendario tapa el botón Publicar, hacer clic fuera del calendario (defecto conocido D-08).</td></tr>
+  <tr><td>Juan no tiene turnos confirmados para el paso 5</td><td>Usar el que se acaba de confirmar en el bloque 2.</td></tr>
+  <tr><td>La autorización no pasa a «Autorizada»</td><td>Revisar que la consola de externos tenga la obra social En línea. Si quedó caída, es una buena demostración: ponerla En línea y mostrar que se resuelve sola.</td></tr>
+  <tr><td>No anda la red del aula</td><td>La base es remota: sin red no hay demostración web. Mostrar el Apéndice B del informe (salida real del guion) y correr <code>mvn test</code>, que funciona sin red.</td></tr>
+</table>
+
+<h2 class="salto">Preguntas probables, por integrante</h2>
+<div class="dos">
+<div>
+<p><span class="quien S">Sergio</span></p>
+<ul>
+  <li><b>¿Dónde se guarda la sesión del JWT?</b> En ningún lado: el token lleva todo y la firma lo garantiza.</li>
+  <li><b>¿Y si me roban el token?</b> Sirve hasta que vence (30 minutos). No se puede revocar antes: es la limitación declarada.</li>
+  <li><b>¿Por qué la web no usa JWT?</b> JSF guarda el estado de las vistas en el servidor: la sesión existe igual. El JWT está en la API, que es sin estado.</li>
+  <li><b>¿Por qué lo hicieron a mano?</b> HS256 son pocas líneas con <code>javax.crypto</code>; las podemos explicar y probar.</li>
+  <li><b>¿Qué es <code>alg: none</code>?</b> Un token que dice no tener firma. Lo rechazamos y hay un test.</li>
+</ul>
+<p><span class="quien M">Máximo</span></p>
+<ul>
+  <li><b>¿Por qué DAO?</b> Para que cambiar una consulta no toque la lógica de negocio.</li>
+  <li><b>¿Qué hace <code>@Version</code>?</b> Bloqueo optimista: si dos transacciones modifican el mismo turno, la segunda falla.</li>
+  <li><b>¿Por qué RLS si la aplicación ya tiene roles?</b> Porque Supabase publica las tablas por su propia API: sin RLS había otra puerta a los datos.</li>
+  <li><b>¿Dónde están las credenciales de la base?</b> En la configuración de WildFly, no en el repositorio.</li>
+</ul>
+</div>
+<div>
+<p><span class="quien A">Agustín</span></p>
+<ul>
+  <li><b>¿Por qué State y no un <code>switch</code>?</b> Con el <code>switch</code> la regla queda repartida y un servicio nuevo puede olvidarla. Acá es imposible saltearla.</li>
+  <li><b>¿Por qué 409 y no 400 o 422?</b> El pedido está bien formado y los datos son válidos; choca con el estado del recurso.</li>
+  <li><b>¿Qué pasa en la base con el 409?</b> Nada: la excepción revierte la transacción y no se publica el evento.</li>
+  <li><b>¿Por qué la cancelación es un servicio aparte?</b> El de turnos tiene estado (el hold) y la API es sin estado. <code>ProcesoCancelacionTurno</code> lo usan la web y la API.</li>
+  <li><b>¿Cola o tópico?</b> Cola cuando lo procesa uno solo (la autorización); tópico cuando interesa a varios (el turno confirmado).</li>
+  <li><b>¿Y si un mensaje llega dos veces?</b> Cada suscriptor registra el evento procesado y descarta el repetido.</li>
+</ul>
+<p><span class="quien T">Cualquiera</span></p>
+<ul>
+  <li><b>¿Qué cambiarían?</b> Restituir el monitor de eventos y agregar el bloqueo de intentos de ingreso.</li>
+  <li><b>¿Qué hizo la IA y qué ustedes?</b> Lo declarado en el informe; por eso cada uno explica su código y su test.</li>
+</ul>
+</div>
+</div>
+
+<div style="page-break-inside:avoid">
+<h2>Archivos para tener abiertos en el editor</h2>
+<table>
+  <tr><th style="width:9%">Bloque</th><th>Archivo (desde <code>src/main/java/ar/edu/mediconecta/</code>)</th><th style="width:13%">Línea</th><th style="width:16%">Quién</th></tr>
+  <tr><td>2</td><td><code>negocio/ProcesoConfirmacionTurno.java</code> — <code>confirmar</code></td><td>103</td><td>Agustín</td></tr>
+  <tr><td>3</td><td><code>seguridad/CodificadorJwt.java</code> — <code>emitir</code> y <code>validar</code></td><td>56 y 69</td><td>Sergio</td></tr>
+  <tr><td>3</td><td><code>seguridad/MecanismoAutenticacion.java</code> — <code>autenticarApi</code></td><td>97</td><td>Sergio</td></tr>
+  <tr><td>3 y 4</td><td><code>api/TurnosResource.java</code> — <code>cancelar</code> con <code>@RolesAllowed</code></td><td>74</td><td>Sergio</td></tr>
+  <tr><td>4</td><td><code>modelo/EstadoDeTurno.java</code> y <code>modelo/TurnoConfirmado.java</code></td><td>21 y 12</td><td>Agustín</td></tr>
+  <tr><td>4</td><td><code>negocio/ProcesoCancelacionTurno.java</code> — <code>cancelar</code></td><td>40</td><td>Agustín</td></tr>
+  <tr><td>4</td><td><code>api/MapeadorDeExcepciones.java</code> — <code>clasificar</code></td><td>61</td><td>Agustín</td></tr>
+  <tr><td>5</td><td><code>dao/TurnoDAO.java</code> y <code>modelo/Turno.java</code></td><td>32 y 104</td><td>Máximo</td></tr>
+  <tr><td>5</td><td><code>docs/adr/README.md</code> y <code>docs/adr/0008-circuit-breaker-propio.md</code></td><td>—</td><td>Máximo</td></tr>
+  <tr><td>6</td><td>Tests en <code>src/test/java/…</code>: <code>CodificadorJwtTest</code>, <code>TurnoEstadoTest</code>, <code>MapeadorDeExcepcionesTest</code></td><td>51, 54, 21</td><td>Uno cada uno</td></tr>
+</table>
+</div>
+
+</body>
+</html>
