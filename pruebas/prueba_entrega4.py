@@ -248,8 +248,8 @@ with sync_playwright() as p:
     id3 = turno_id(f3)
     estado, cuerpo, _ = http(B + "api/v1/turnos/%s/cancelacion" % id3, metodo="POST")
     check("N. cancelar por la API sin token: 401", estado == 401)
-    estado, cuerpo, _ = http(B + "api/v1/turnos/%s/cancelacion" % id3, metodo="POST", token=token_de(PROFESIONAL))
-    check("N. cancelar con token de profesional: 403 (sólo el paciente cancela)", estado == 403)
+    # Desde el 14/11 el profesional (turnos de su agenda) y el administrativo (cualquiera) también cancelan: esa
+    # matriz, el 404 para un paciente ajeno y que el horario no se vuelva a ofrecer los prueba prueba_cancelacion.py.
     estado, cuerpo, _ = http(B + "api/v1/turnos/%s/cancelacion" % id3, metodo="POST", token=TOKEN)
     check("N. el paciente cancela su turno confirmado por la API: 200 y estado CANCELADO",
           estado == 200 and json.loads(cuerpo)["estado"] == "CANCELADO")
