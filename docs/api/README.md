@@ -6,29 +6,81 @@ prueba.
 
 ## 1. API REST de MediConecta (servidor)
 
-Base: `http://localhost:8080/mediconecta/api/v1` · JSON · autenticación HTTP Basic con el email y la
-contraseña del usuario (sin sesión). Errores siempre como `{"estado", "error", "mensaje", "fecha"}`.
+Base: `http://localhost:8080/mediconecta/api/v1` · JSON · autenticación con **JWT** (sin sesión). Errores
+siempre como `{"estado", "error", "mensaje", "fecha"}`, sin trazas ni nombres internos.
 
 | Método y ruta | Acceso | Respuesta |
 |---|---|---|
+| `POST /auth/login` `{email, password}` | pública | `200 {token, tipo: "Bearer", expiraEnSegundos: 1800, rol}` · 401 credenciales inválidas · 403 contraseña temporal sin cambiar |
 | `GET /profesionales` | pública | `[{id, nombre, especialidad, matricula}]` |
 | `GET /profesionales/{id}/disponibilidad` | pública | `[{id, fechaHora, modalidad, codigoPrestacion, precioLista}]` |
 | `GET /turnos` | PACIENTE o PROFESIONAL | turnos del usuario autenticado (`TurnoApi`, sin datos clínicos) |
 | `GET /turnos/{id}` | PACIENTE o PROFESIONAL | el turno si es del usuario; 404 si no existe **o es ajeno** |
+| `POST /turnos/{id}/cancelacion` | PACIENTE (titular) | `200` con el turno cancelado · 404 si no existe o es ajeno · **409** si el estado del turno no admite cancelarlo |
+
+### Autenticación
+
+1. El cliente cambia email y contraseña por un token en `POST /auth/login`. Es el único pedido donde viaja
+   la contraseña.
+2. En los demás pedidos envía `Authorization: Bearer <token>`.
+3. El token es un JWT firmado con HS256 que lleva el usuario (`sub`), el rol (`rol`), el emisor y el
+   vencimiento (30 minutos). El servidor no guarda sesión: valida la firma y el vencimiento en cada pedido.
+
+| Situación | Respuesta |
+|---|---|
+| Sin cabecera `Authorization` en un recurso protegido | 401 `no_autenticado` + `WWW-Authenticate: Bearer` |
+| Token vencido, adulterado, con `alg: none` u otro esquema (por ejemplo Basic) | 401 `token_invalido` + `WWW-Authenticate: Bearer error="invalid_token"` |
+| Token válido pero el rol no alcanza | 403 `prohibido` |
+
+### Códigos de error
+
+| HTTP | `error` | Cuándo |
+|---|---|---|
+| 400 | `pedido_invalido` | el login no trae email y password |
+| 401 | `credenciales_invalidas`, `no_autenticado`, `token_invalido` | ver arriba |
+| 403 | `prohibido`, `password_temporal` | rol insuficiente; contraseña temporal sin cambiar |
+| 404 | `no_encontrado` | el recurso no existe o no es del usuario |
+| **409** | **`transicion_invalida`** | **la operación no vale en el estado actual del turno (patrón State)** |
+| 409 | `regla_de_negocio` | otra regla de negocio |
+| 500 | `error_interno` | error inesperado (el detalle queda en el log del servidor) |
+
+### Probarlo
+
+La forma más rápida es el guion `pruebas/demo_api_jwt_409.py`, que muestra cada pedido y cada respuesta:
 
 ```bash
-curl http://localhost:8080/mediconecta/api/v1/profesionales
-curl http://localhost:8080/mediconecta/api/v1/profesionales/20/disponibilidad
-curl -i http://localhost:8080/mediconecta/api/v1/turnos                                   # 401 + WWW-Authenticate
-curl -u juan.perez@mediconecta.test:demo1234 http://localhost:8080/mediconecta/api/v1/turnos
-curl -u juan.perez@mediconecta.test:demo1234 http://localhost:8080/mediconecta/api/v1/turnos/999999   # 404
-curl -i -u carla.admin@mediconecta.test:demo1234 http://localhost:8080/mediconecta/api/v1/turnos      # 403: el rol ADMINISTRATIVO no usa la API
+python pruebas/demo_api_jwt_409.py --sin-cancelar   # login, token, 401 y 403 (no modifica datos)
+python pruebas/demo_api_jwt_409.py                  # además cancela un turno y muestra el 409
 ```
 
-Implementación: `ar.edu.mediconecta.api` (`ProfesionalesResource`, `TurnosResource`: EJB `@Stateless`
-con `@PermitAll` / `@RolesAllowed`; `EnsambladorApi`; `MapeadorDeExcepciones`). La autenticación Basic
-está en `seguridad.MecanismoAutenticacion`. Un usuario con **contraseña temporal** (creado por un
-administrativo y que todavía no la cambió en "Mi perfil") recibe 401 aunque la contraseña sea correcta.
+A mano, con curl (Git Bash):
+
+```bash
+API=http://localhost:8080/mediconecta/api/v1
+curl $API/profesionales
+curl -i $API/turnos                                               # 401 + WWW-Authenticate: Bearer
+
+# Login: guarda el token en una variable
+TOKEN=$(curl -s -X POST $API/auth/login -H "Content-Type: application/json" \
+  -d '{"email":"juan.perez@mediconecta.test","password":"demo1234"}' | python -c "import json,sys; print(json.load(sys.stdin)['token'])")
+
+curl -H "Authorization: Bearer $TOKEN" $API/turnos                # 200
+curl -i -H "Authorization: Bearer ${TOKEN}x" $API/turnos          # 401 token_invalido
+curl -i -H "Authorization: Bearer $TOKEN" $API/turnos/999999      # 404
+
+# Patrón State: reemplazar 57 por el id de un turno CONFIRMADO del paciente
+curl -i -X POST -H "Authorization: Bearer $TOKEN" $API/turnos/57/cancelacion   # 200, estado CANCELADO
+curl -i -X POST -H "Authorization: Bearer $TOKEN" $API/turnos/57/cancelacion   # 409 transicion_invalida
+```
+
+El contenido de un token se puede ver en <https://jwt.io> (está codificado, no cifrado: por eso no lleva
+datos sensibles).
+
+Implementación: `ar.edu.mediconecta.api` (`AuthResource`, `ProfesionalesResource`, `TurnosResource`: EJB
+`@Stateless` con `@PermitAll` / `@RolesAllowed`; `EnsambladorApi`; `MapeadorDeExcepciones`;
+`FiltroTokenInvalido`) y `ar.edu.mediconecta.seguridad` (`CodificadorJwt`, `ServicioDeTokens`,
+`MecanismoAutenticacion`). Decisiones: `docs/adr/0017-jwt-en-la-api.md` y
+`docs/adr/0004-state-del-turno-y-409.md`.
 
 ## 2. Obra social — sistema legado SOAP (MediConecta es cliente)
 

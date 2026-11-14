@@ -258,7 +258,8 @@ ad-hoc a partir del `CallerPrincipalCallback`/`GroupPrincipalCallback` que emite
 ```bash
 mvn package                        # 34 pruebas unitarias
 pip install playwright             # una sola vez; usa el Google Chrome instalado
-python pruebas/prueba_entrega4.py  # 40 verificaciones de la Entrega Obligatoria N.º 2
+python pruebas/prueba_entrega4.py  # verificaciones de punta a punta (integraciones, JWT, 409, roles)
+python pruebas/demo_api_jwt_409.py --sin-cancelar   # guion del login con JWT (no modifica datos)
 python pruebas/prueba_e2e.py       # 13 verificaciones del recorrido básico
 ```
 
@@ -273,3 +274,22 @@ Los PDF de `docs/` se regeneran con `python docs/generar_pdf.py <html> <pdf>` (C
 - Entrega Obligatoria N.º 2 (09/11): cola punto a punto `autorizaciones`, SOAP a la obra social (con
   WSDL), REST a pagos y telemedicina más la API `/api/v1`, transacción declarativa de varios pasos con
   compensación, Facturación con selector y temas visuales.
+
+## Entrega del 16/11: JWT y Row Level Security
+
+**Secreto del JWT (opcional).** La API firma los tokens con un secreto que se lee de la propiedad de sistema
+`mediconecta.jwt.secreto` o de la variable de entorno `MEDICONECTA_JWT_SECRETO` (32 caracteres o más). Si no
+está, el servidor genera uno al azar en cada arranque y lo avisa en el log: todo funciona, pero los tokens
+emitidos dejan de valer al reiniciar. Para fijarlo, antes de levantar WildFly:
+
+```bat
+set MEDICONECTA_JWT_SECRETO=una-frase-larga-de-al-menos-32-caracteres
+```
+
+El secreto no va en el repositorio.
+
+**Row Level Security (una vez, y cada vez que se agreguen entidades).** Supabase publica el esquema `public`
+por su propia API; sin RLS, las tablas se pueden leer con la clave anónima del proyecto. Correr
+`sql/02-habilitar-rls.sql` en el editor SQL de Supabase. La aplicación no cambia: se conecta con el rol dueño
+de las tablas. Hibernate crea las tablas nuevas sin RLS, así que hay que repetirlo si una versión agrega
+entidades (el asesor de seguridad de Supabase lo avisa como "RLS Disabled in Public").

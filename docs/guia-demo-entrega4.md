@@ -30,7 +30,8 @@ lo que hay que decir y lo que se espera ver.
       (`carla.admin@mediconecta.test`), los tres con `demo1234`, y la consola de externos.
 - [ ] La profesional publicó dos horarios futuros con el calendario: uno **Presencial** y uno **Telemedicina**.
 - [ ] El log del servidor a la vista (ahí se ven los consumidores de la cola y los timers).
-- [ ] Opcional: correr `python pruebas/prueba_entrega4.py` (40 verificaciones) como prueba de humo.
+- [ ] Opcional: correr `python pruebas/prueba_entrega4.py` como prueba de humo (unos 3 minutos).
+- [ ] Para el bloque 8: el paciente de demo tiene al menos un turno **confirmado**.
 
 ## Bloque 1 · Arquitectura y clasificación (3 min)
 
@@ -109,10 +110,7 @@ autorización no se pierde: el consumidor hace `setRollbackOnly` y el broker rei
 - Teleconsulta: la profesional entra a **Telemedicina → Iniciar videoconsulta** (POST REST al proveedor);
   el paciente ve **Unirme a la consulta** sin recargar. En la sala, **Activar cámara / Desactivar cámara**
   (al desactivarla se libera la cámara y vuelve el avatar).
-- API: en una terminal,
-  `curl -i http://localhost:8080/mediconecta/api/v1/turnos` → 401;
-  `curl -u juan.perez@mediconecta.test:demo1234 http://localhost:8080/mediconecta/api/v1/turnos` → JSON;
-  `curl -i -u carla.admin@mediconecta.test:demo1234 http://localhost:8080/mediconecta/api/v1/turnos` → 403.
+- API: ver el bloque 8 (JWT y 409). Desde el 16/11 la API ya no acepta HTTP Basic.
 
 ## Bloque 6 · Temas (30 s)
 
@@ -137,7 +135,58 @@ Decir: la seguridad declarativa está en el servicio, operación por operación 
 contraseña); las pantallas sólo acompañan. El primer administrador (`admin@mediconecta.test`) lo crea un
 `@Singleton @Startup` con una contraseña inicial documentada que hay que cambiar en el primer ingreso.
 
+## Bloque 8 · Entrega del 16/11: JWT, roles y State con 409 (4 min)
+
+En una terminal, con la aplicación levantada:
+
+```bash
+python pruebas/demo_api_jwt_409.py
+```
+
+El guion muestra cada pedido y cada respuesta. Qué decir en cada paso:
+
+1. **Sin token → 401.** La API no tiene sesión: si no hay token, no hay usuario.
+2. **Login → JWT.** Es el único pedido donde viaja la contraseña. El guion muestra el token decodificado:
+   cabecera (`alg: HS256`), contenido (usuario, rol, emisor, vencimiento a 30 minutos) y firma. Está
+   codificado, no cifrado: cualquiera lo puede leer, nadie lo puede modificar sin el secreto.
+3. **Con el token → 200.** El servidor recalcula la firma; no consulta la base ni guarda sesión.
+   **Token con el rol cambiado a mano → 401**: la firma ya no coincide.
+4. **Token válido de administrativo → 403.** Autenticado pero sin permiso: lo decide `@RolesAllowed` en el
+   EJB, igual que para la web.
+5. **State.** Cancelar un turno confirmado → 200 y queda CANCELADO. **Cancelarlo otra vez → 409**
+   `transicion_invalida`, "No se puede cancelar un turno cancelado". Mostrar `ProcesoCancelacionTurno`: no
+   tiene ningún `if` sobre el estado; llama a `turno.cancelar()` y el estado decide.
+
+Si piden ver el código: `seguridad/CodificadorJwt` (emitir y validar, unas 100 líneas), `modelo/EstadoDeTurno`
+(toda transición es inválida por defecto) y `api/MapeadorDeExcepciones.clasificar` (la tabla de códigos HTTP).
+Las pruebas: `CodificadorJwtTest`, `TurnoEstadoTest` y `MapeadorDeExcepcionesTest`.
+
 ## Preguntas probables y respuestas cortas
+
+**¿Por qué 409 y no 400 o 422?** El pedido está bien formado (no es 400) y sus datos son válidos (no es
+422): lo que falla es que choca con el estado actual del recurso, que es la definición de 409 Conflict.
+
+**¿Dónde se guarda la sesión del JWT?** En ningún lado: el token lleva el usuario, el rol y el vencimiento,
+y la firma garantiza que lo emitimos nosotros. Por eso no se puede revocar antes de que venza, y por eso
+dura 30 minutos.
+
+**¿Qué pasa si alguien cambia el rol dentro del token?** La firma se calcula sobre la cabecera y el
+contenido con un secreto que sólo tiene el servidor; al cambiar el contenido, la firma deja de coincidir y
+la API responde 401. Está probado en `CodificadorJwtTest` y en la demo.
+
+**¿Por qué rechazan `alg: none`?** Es un ataque conocido: un token que declara que no tiene firma. El
+validador exige exactamente HS256.
+
+**¿Por qué la web no usa JWT?** JSF guarda el estado de las vistas en el servidor, así que necesita sesión
+de todos modos. El JWT está donde aporta: en la API, que es sin estado. Los dos caminos validan contra el
+mismo identity store y terminan en los mismos `@RolesAllowed` (ADR-0017).
+
+**¿Por qué escribieron el JWT a mano?** HS256 es un HMAC sobre dos cadenas en Base64: son pocas líneas con
+`javax.crypto`, las podemos explicar y probar, y evitamos sumar una biblioteca al servidor. En producción
+con varios servicios usaríamos RS256 con una biblioteca estándar (ADR-0017).
+
+**¿Dónde están justificados los patrones?** Un ADR por patrón en `docs/adr/`: problema, decisión,
+alternativas descartadas, consecuencias, código y prueba.
 
 **¿Por qué la cobertura es sincrónica y la autorización asincrónica, si son del mismo sistema?**
 La cobertura cambia lo que el paciente paga ahora: necesitamos la respuesta (y si no llega, tenemos un
@@ -190,7 +239,7 @@ identidad técnica para llamar a servicios protegidos (`autorizar`, `procesarEve
 contenedor invoca `onMessage` sin usuario y era rechazado (lo encontramos en las pruebas).
 
 **¿Cómo se controla quién ve qué pantalla?** Dos capas: `@RolesAllowed` en los EJB (la barrera real, también
-para la API) y, en las vistas, `LoginBean.exigirRol` en el `f:viewAction`, que devuelve a cada uno a su
+para la API, donde el rol llega en el JWT) y, en las vistas, `LoginBean.exigirRol` en el `f:viewAction`, que devuelve a cada uno a su
 página de inicio (o a Mi perfil si tiene contraseña temporal).
 
 **¿Por qué no se puede registrar un profesional desde la web?** Porque el registro público sólo crea
