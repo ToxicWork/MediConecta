@@ -2,9 +2,6 @@ package ar.edu.mediconecta.negocio;
 
 import ar.edu.mediconecta.dao.TurnoDAO;
 import ar.edu.mediconecta.dao.UsuarioDAO;
-import ar.edu.mediconecta.mensajeria.EventoTurno;
-import ar.edu.mediconecta.mensajeria.PublicadorEventosTurno;
-import ar.edu.mediconecta.mensajeria.TipoEventoTurno;
 import ar.edu.mediconecta.modelo.EstadoTurno;
 import ar.edu.mediconecta.modelo.Modalidad;
 import ar.edu.mediconecta.modelo.Turno;
@@ -61,10 +58,10 @@ public class ServicioDeTurnosBean implements ServicioDeTurnos {
     private UsuarioDAO usuarioDAO;
 
     @Inject
-    private PublicadorEventosTurno publicadorEventos;
+    private ProcesoConfirmacionTurno procesoConfirmacion;
 
     @Inject
-    private ProcesoConfirmacionTurno procesoConfirmacion;
+    private ProcesoCancelacionTurno procesoCancelacion;
 
     @Inject
     private CadenaDeValidacion validaciones;
@@ -171,28 +168,11 @@ public class ServicioDeTurnosBean implements ServicioDeTurnos {
         return turnoDAO.buscarConfirmadosDeProfesional(profesionalId);
     }
 
-    /**
-     * El turno cancelado queda como historial (con su pago y autorización) y el horario se vuelve a ofrecer
-     * como un turno nuevo. El reembolso, si hubo cobro, lo hace Facturación al consumir TURNO_CANCELADO:
-     * recién después del commit, así nunca se devuelve dinero de una cancelación que no se concretó.
-     */
+    /** Delega en {@link ProcesoCancelacionTurno}, que es sin estado y también atiende a la API REST. */
     @Override
     @RolesAllowed("PACIENTE")
     public Turno cancelar(Long turnoId, Long pacienteId) {
-        Turno turno = turnoDAO.buscarPorId(turnoId);
-        if (turno == null || turno.getEstado() != EstadoTurno.CONFIRMADO || !turno.perteneceAPaciente(pacienteId)) {
-            throw new TurnoNoDisponibleException("El turno no existe, no está confirmado o no te pertenece.");
-        }
-        turno.cancelar(); // State: CONFIRMADO -> CANCELADO
-        turnoDAO.actualizar(turno);
-        if (turno.getFechaHora().isAfter(LocalDateTime.now())) {
-            turnoDAO.guardar(turno.horarioLiberado());
-        }
-        publicadorEventos.publicar(EventoTurno.builder()
-                .tipo(TipoEventoTurno.TURNO_CANCELADO)
-                .turno(turno)
-                .build());
-        return turno;
+        return procesoCancelacion.cancelar(turnoId, pacienteId);
     }
 
     private void exigirHold() {

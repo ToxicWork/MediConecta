@@ -2,6 +2,8 @@ package ar.edu.mediconecta.api;
 
 import ar.edu.mediconecta.api.dto.ErrorApi;
 import ar.edu.mediconecta.modelo.ErrorDeNegocioException;
+import ar.edu.mediconecta.modelo.TransicionInvalidaException;
+import ar.edu.mediconecta.seguridad.MecanismoAutenticacion;
 import jakarta.ejb.EJBAccessException;
 import jakarta.ejb.EJBException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -32,25 +34,49 @@ public class MapeadorDeExcepciones implements ExceptionMapper<Exception> {
         Throwable causa = excepcion instanceof EJBException ejb && !(excepcion instanceof EJBAccessException)
                 && ejb.getCause() != null ? ejb.getCause() : excepcion;
 
+        boolean autenticado = pedido != null && pedido.getUserPrincipal() != null;
+        ErrorApi error = clasificar(causa, autenticado);
+        Response.ResponseBuilder constructor = Response.status(error.estado());
+        if (error.estado() == 401) {
+            constructor.header("WWW-Authenticate", MecanismoAutenticacion.DESAFIO_BEARER);
+        }
+        if (error.estado() == 500) {
+            LOG.log(Level.SEVERE, "Error no controlado en la API REST", excepcion);
+        }
+        return respuesta(constructor, error);
+    }
+
+    /**
+     * Decide el código HTTP de cada error. No usa el runtime de JAX-RS salvo para leer el estado de una
+     * {@code WebApplicationException}, así que se prueba con JUnit sin contenedor.
+     *
+     * <ul>
+     *   <li>{@link TransicionInvalidaException} (patrón State: la operación no vale en el estado actual del
+     *       turno): <b>409 Conflict</b>, código {@code transicion_invalida}. El pedido está bien formado, pero
+     *       choca con el estado del recurso.</li>
+     *   <li>Otras reglas de negocio: 409, código {@code regla_de_negocio}.</li>
+     *   <li>Sin permiso: 401 si no hay token, 403 si el rol no alcanza.</li>
+     * </ul>
+     */
+    static ErrorApi clasificar(Throwable causa, boolean autenticado) {
         if (causa instanceof EJBAccessException) {
-            if (pedido == null || pedido.getUserPrincipal() == null) {
-                return respuesta(Response.status(Response.Status.UNAUTHORIZED)
-                        .header("WWW-Authenticate", "Basic realm=\"MediConecta API\""),
-                        ErrorApi.de(401, "no_autenticado", "Necesitás autenticarte (HTTP Basic con tu email y contraseña)."));
-            }
-            return respuesta(Response.status(Response.Status.FORBIDDEN),
-                    ErrorApi.de(403, "prohibido", "Tu rol no tiene permiso para esta operación."));
+            return autenticado
+                    ? ErrorApi.de(403, "prohibido", "Tu rol no tiene permiso para esta operación.")
+                    : ErrorApi.de(401, "no_autenticado",
+                            "Necesitás autenticarte: pedí un token en POST /api/v1/auth/login y envialo como Bearer.");
         }
         if (causa instanceof WebApplicationException web) {
             int estado = web.getResponse().getStatus();
-            return respuesta(Response.status(estado), ErrorApi.de(estado,
-                    estado == 404 ? "no_encontrado" : "error_http", estado == 404 ? "El recurso no existe." : web.getMessage()));
+            return ErrorApi.de(estado, estado == 404 ? "no_encontrado" : "error_http",
+                    estado == 404 ? "El recurso no existe." : web.getMessage());
+        }
+        if (causa instanceof TransicionInvalidaException transicion) {
+            return ErrorApi.de(409, "transicion_invalida", transicion.getMessage());
         }
         if (causa instanceof ErrorDeNegocioException negocio) {
-            return respuesta(Response.status(Response.Status.CONFLICT), ErrorApi.de(409, "regla_de_negocio", negocio.getMessage()));
+            return ErrorApi.de(409, "regla_de_negocio", negocio.getMessage());
         }
-        LOG.log(Level.SEVERE, "Error no controlado en la API REST", excepcion);
-        return respuesta(Response.serverError(), ErrorApi.de(500, "error_interno", "Ocurrió un error inesperado."));
+        return ErrorApi.de(500, "error_interno", "Ocurrió un error inesperado.");
     }
 
     private static Response respuesta(Response.ResponseBuilder constructor, ErrorApi cuerpo) {

@@ -49,6 +49,40 @@ class TurnoEstadoTest {
         assertNull(turno.getPaciente());
     }
 
+    /** La matriz completa: las doce combinaciones de estado y operación que el State no admite. */
+    @Test
+    void cadaEstadoRechazaTodasLasOperacionesQueNoAdmite() {
+        Paciente otro = Fixtures.paciente(8, null);
+
+        Turno disponible = Fixtures.turno(MANANA);
+        assertInvalida(() -> disponible.confirmar(confirmacion()), "No se puede confirmar un turno disponible.");
+        assertInvalida(disponible::liberar, "No se puede liberar un turno disponible.");
+        assertInvalida(disponible::cancelar, "No se puede cancelar un turno disponible.");
+
+        Turno enHold = Fixtures.turno(MANANA);
+        enHold.reservar(Fixtures.paciente(7, null), MANANA);
+        assertInvalida(() -> enHold.reservar(otro, MANANA), "No se puede reservar un turno en espera.");
+        assertInvalida(enHold::cancelar, "No se puede cancelar un turno en espera.");
+
+        Turno confirmado = Fixtures.turno(MANANA);
+        confirmado.reservar(Fixtures.paciente(7, null), MANANA);
+        confirmado.confirmar(confirmacion());
+        assertInvalida(() -> confirmado.reservar(otro, MANANA), "No se puede reservar un turno confirmado.");
+        assertInvalida(() -> confirmado.confirmar(confirmacion()), "No se puede confirmar un turno confirmado.");
+        assertInvalida(confirmado::liberar, "No se puede liberar un turno confirmado.");
+
+        confirmado.cancelar();
+        assertInvalida(() -> confirmado.reservar(otro, MANANA), "No se puede reservar un turno cancelado.");
+        assertInvalida(() -> confirmado.confirmar(confirmacion()), "No se puede confirmar un turno cancelado.");
+        assertInvalida(confirmado::liberar, "No se puede liberar un turno cancelado.");
+        assertInvalida(confirmado::cancelar, "No se puede cancelar un turno cancelado.");
+        assertEquals(EstadoTurno.CANCELADO, confirmado.getEstado(), "una transición inválida no cambia el estado");
+    }
+
+    private static void assertInvalida(org.junit.jupiter.api.function.Executable operacion, String mensaje) {
+        assertEquals(mensaje, assertThrows(TransicionInvalidaException.class, operacion).getMessage());
+    }
+
     @Test
     void transicionesInvalidasSonImposibles() {
         Turno disponible = Fixtures.turno(MANANA);
