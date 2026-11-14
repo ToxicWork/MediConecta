@@ -13,7 +13,10 @@
        en pantalla, el servidor rechaza la nueva entrada.
   I02. Dead Letter Channel: con la pasarela de pagos caída, Facturación no puede reintegrar una cancelación; el
        broker reintenta 3 veces y deja el mensaje en jms.queue.DLQ (no se pierde). Con la pasarela de nuevo en
-       línea, se reenvían los mensajes de la DLQ y el reintegro se hace.
+       línea, se mueve el mensaje de vuelta a Facturación y el reintegro se hace.
+  D02. Logs sin datos sensibles: en todo lo que esta corrida escribió en el log del servidor no aparece el email
+       completo, el nombre, la contraseña ni el diagnóstico de los usuarios de prueba; los emails se ven
+       enmascarados (se***@mediconecta.test), también en el alta de un usuario por el administrativo.
 
 Requisitos: WildFly levantado (perfil standalone-full) con mediconecta.war y externos.war desplegados, Google
 Chrome (o Edge con NAVEGADOR=msedge),  pip install playwright  y la variable WILDFLY_HOME apuntando a la
@@ -197,6 +200,8 @@ def pacientes_en_historia(prof):
 
 with sync_playwright() as p:
     br = p.chromium.launch(channel=NAVEGADOR, headless=True)
+    LOG_SERVIDOR = os.path.join(WILDFLY_HOME, "standalone", "log", "server.log") if WILDFLY_HOME else None
+    inicio_corrida = os.path.getsize(LOG_SERVIDOR) if LOG_SERVIDOR else 0
     sufijo = random.randint(10000, 99999)
     email, clave = "seguridad.%d@mediconecta.test" % sufijo, "demo1234"
     nombre = "Paciente Seguridad %d" % sufijo
@@ -412,6 +417,42 @@ with sync_playwright() as p:
         check("I02. con la pasarela en línea, el mensaje vuelve a Facturación y el pago queda Reembolsado", reembolsado)
         check("I02. la DLQ quedó vacía de nuevo", mensajes_en_dlq() == 0)
         pac.context.close()
+
+    # ---- D02. Logs sin datos sensibles ---------------------------------------------------------
+    print("-- D02. Logs sin datos sensibles y email enmascarado")
+    if not LOG_SERVIDOR:
+        check("D02. definí WILDFLY_HOME para leer el log del servidor", False)
+    else:
+        email_alta = "seguridad.alta.%d@mediconecta.test" % sufijo
+        adm, _ = login_web(br, ADMINISTRATIVO, "demo1234")
+        adm.goto(B + "usuarios.xhtml")
+        adm.select_option("#formAlta\\:rol", "PACIENTE")
+        adm.wait_for_selector("#formAlta\\:obraSocial")
+        adm.fill("#formAlta\\:nombre", "Alta Seguridad %d" % sufijo)
+        adm.fill("#formAlta\\:email", email_alta)
+        adm.fill("#formAlta\\:passwordTemporal", "Temporal.2026")
+        with adm.expect_navigation():
+            adm.click("#formAlta button:has-text('Crear usuario')")
+        check("D02. el administrativo da de alta un paciente", "Creaste a" in adm.content())
+        adm.context.close()
+        time.sleep(2)  # que terminen de escribirse las últimas líneas (los avisos son asincrónicos)
+
+        with open(LOG_SERVIDOR, encoding="utf-8", errors="replace") as archivo:
+            archivo.seek(inicio_corrida)
+            escrito = archivo.read()
+        lineas = len(escrito.splitlines())
+        sensibles = {"email del paciente de prueba": email, "email del paciente con nombre raro": email_raro,
+                     "email dado de alta": email_alta, "email del administrativo": ADMINISTRATIVO,
+                     "email de la profesional": PROFESIONAL, "nombre del paciente": nombre,
+                     "contraseña": clave, "contraseña temporal": "Temporal.2026", "diagnóstico": diagnostico}
+        presentes = [que for que, valor in sensibles.items() if valor in escrito]
+        check("D02. en las %d líneas de log de esta corrida no hay emails completos, nombres, contraseñas ni "
+              "diagnósticos%s" % (lineas, "" if not presentes else " (aparecen: " + ", ".join(presentes) + ")"),
+              lineas > 0 and not presentes)
+        check("D02. los avisos por email muestran el destinatario enmascarado ([SMTP simulado] Para: se***@...)",
+              "[SMTP simulado] Para: se***@mediconecta.test" in escrito)
+        check("D02. el alta de usuario muestra los emails enmascarados (el nuevo y el del administrativo)",
+              "Alta de usuario PACIENTE (se***@mediconecta.test) por el administrativo ca***@mediconecta.test" in escrito)
 
     br.close()
 

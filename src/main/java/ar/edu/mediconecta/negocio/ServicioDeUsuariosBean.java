@@ -8,6 +8,7 @@ import ar.edu.mediconecta.negocio.excepciones.DatosDeUsuarioInvalidosException;
 import ar.edu.mediconecta.negocio.excepciones.EmailYaRegistradoException;
 import ar.edu.mediconecta.negocio.factory.DatosRegistro;
 import ar.edu.mediconecta.negocio.factory.UsuarioFactory;
+import ar.edu.mediconecta.seguridad.Enmascarador;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
 import jakarta.annotation.security.DeclareRoles;
@@ -72,8 +73,8 @@ public class ServicioDeUsuariosBean implements ServicioDeUsuarios {
         }
         Usuario usuario = alta(rol, datos, passwordTemporal);
         usuario.exigirCambioDePassword();
-        LOG.info("Alta de usuario " + rol + " (" + usuario.getEmail() + ") por el administrativo "
-                + contexto.getCallerPrincipal().getName() + ".");
+        LOG.info("Alta de usuario " + rol + " (" + Enmascarador.email(usuario.getEmail()) + ") por el administrativo "
+                + Enmascarador.email(contexto.getCallerPrincipal().getName()) + ".");
         return usuario;
     }
 

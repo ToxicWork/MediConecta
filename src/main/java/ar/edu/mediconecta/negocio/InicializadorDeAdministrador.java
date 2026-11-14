@@ -5,6 +5,7 @@ import ar.edu.mediconecta.modelo.Rol;
 import ar.edu.mediconecta.modelo.Usuario;
 import ar.edu.mediconecta.negocio.factory.DatosRegistro;
 import ar.edu.mediconecta.negocio.factory.UsuarioFactory;
+import ar.edu.mediconecta.seguridad.Enmascarador;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
 import jakarta.ejb.Singleton;
@@ -65,7 +66,8 @@ public class InicializadorDeAdministrador {
                         passwordHash.generate(password.toCharArray()));
                 admin.exigirCambioDePassword();
                 usuarioDAO.guardar(admin);
-                LOG.info("Se creó el administrador por defecto " + EMAIL + " (debe cambiar la contraseña al ingresar).");
+                LOG.info("Se creó el administrador por defecto " + Enmascarador.email(EMAIL)
+                        + " (debe cambiar la contraseña al ingresar).");
             }
             transaccion.commit();
         } catch (Exception e) {

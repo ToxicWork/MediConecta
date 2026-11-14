@@ -3,6 +3,7 @@ package ar.edu.mediconecta.notificaciones;
 import ar.edu.mediconecta.mensajeria.EventoTurno;
 import ar.edu.mediconecta.modelo.CanalNotificacion;
 import ar.edu.mediconecta.modelo.Notificacion;
+import ar.edu.mediconecta.seguridad.Enmascarador;
 import jakarta.enterprise.context.Dependent;
 
 import java.util.logging.Logger;
@@ -52,6 +53,8 @@ public class ProcesadorEmail extends ProcesadorNotificacion {
 
     @Override
     protected void enviar(Notificacion notificacion) {
-        LOG.info("[SMTP simulado] Para: " + notificacion.getDestino() + " | Asunto: " + notificacion.getAsunto());
+        // Destinatario enmascarado (SEC-D02); el asunto es un texto fijo, sin datos del paciente.
+        LOG.info("[SMTP simulado] Para: " + Enmascarador.email(notificacion.getDestino())
+                + " | Asunto: " + notificacion.getAsunto());
     }
 }
