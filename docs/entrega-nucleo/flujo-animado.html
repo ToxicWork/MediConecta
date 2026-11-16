@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MediConecta — El recorrido de un turno</title>
+<style>
+  :root {
+    --azul: #16308c; --acento: #2f5fe0; --texto: #1b2330; --tenue: #55607a; --fondo: #f3f5fa; --tarjeta: #ffffff;
+    --borde: #d5dbe8; --verde: #1e8e5a; --verde-f: #e8f6ee; --rojo: #c0392b; --rojo-f: #fdecea;
+    --naranja: #b3541e; --naranja-f: #fff3e6; --celeste: #eef3ff;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { font-family: "Segoe UI", Arial, sans-serif; color: var(--texto); background: var(--fondo); display: flex; flex-direction: column; }
+  header { background: var(--azul); color: #fff; padding: 10px 22px; display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+  header h1 { font-size: 21px; margin: 0; font-weight: 700; }
+  header .sub { color: #dce6ff; font-size: 14px; }
+  .escenarios { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+  .escenarios button { border: 1.5px solid #6f86d6; background: transparent; color: #fff; padding: 7px 14px; border-radius: 18px; font: inherit; font-size: 14px; cursor: pointer; }
+  .escenarios button.activo { background: #fff; color: var(--azul); font-weight: 700; border-color: #fff; }
+  main { flex: 1; display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(320px, 1fr); gap: 14px; padding: 14px 18px; min-height: 0; }
+  .lienzo { background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 12px; padding: 6px; min-height: 0; display: flex; }
+  svg { width: 100%; height: 100%; }
+  .panel { display: flex; flex-direction: column; gap: 10px; min-height: 0; overflow: auto; }
+  .tarjeta { background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 12px; padding: 11px 16px; }
+  .paso-n { color: var(--acento); font-weight: 700; font-size: 13px; letter-spacing: .04em; text-transform: uppercase; }
+  .paso-t { font-size: 23px; font-weight: 700; margin: 2px 0 8px; line-height: 1.2; }
+  .paso-x { font-size: 16px; line-height: 1.4; margin: 0; }
+  .paso-x b { color: var(--azul); }
+  .patron { border-left: 5px solid var(--acento); background: var(--celeste); border-radius: 8px; padding: 7px 12px; margin-top: 7px; }
+  .patron .nom { font-weight: 700; font-size: 16px; color: var(--azul); }
+  .patron .que { font-size: 14px; line-height: 1.35; margin-top: 1px; }
+  .patron .cla { font-family: Consolas, monospace; font-size: 12.5px; color: var(--tenue); margin-top: 3px; }
+  .rotulo { font-size: 12.5px; font-weight: 700; color: var(--tenue); text-transform: uppercase; letter-spacing: .05em; }
+  .estados { display: flex; gap: 4px; margin-top: 7px; flex-wrap: wrap; align-items: center; }
+  .estado { padding: 4px 8px; border-radius: 14px; background: #eceff5; color: #8a93a6; font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .estado.actual { background: var(--azul); color: #fff; }
+  .tx { margin-top: 8px; padding: 7px 11px; border-radius: 8px; font-size: 14.5px; font-weight: 600; background: #eceff5; color: var(--tenue); }
+  .tx.abierta { background: var(--celeste); color: var(--azul); }
+  .tx.commit { background: var(--verde-f); color: var(--verde); }
+  .tx.rollback { background: var(--rojo-f); color: var(--rojo); }
+  footer { display: flex; align-items: center; gap: 10px; padding: 9px 18px 12px; }
+  footer button { font: inherit; font-size: 15px; padding: 8px 16px; border-radius: 8px; border: 1px solid var(--borde); background: #fff; cursor: pointer; }
+  footer button.principal { background: var(--acento); color: #fff; border-color: var(--acento); font-weight: 700; }
+  footer button:disabled { opacity: .4; cursor: default; }
+  .puntos { display: flex; gap: 5px; flex: 1; justify-content: center; flex-wrap: wrap; }
+  .puntos span { width: 11px; height: 11px; border-radius: 50%; background: #cfd6e6; cursor: pointer; }
+  .puntos span.hecho { background: #8fa6ea; }
+  .puntos span.actual { background: var(--acento); transform: scale(1.35); }
+  .ayuda { color: var(--tenue); font-size: 13px; }
+
+  /* Diagrama */
+  .nodo rect { fill: #f6f7fa; stroke: #c9d1e3; stroke-width: 1.5; transition: fill .35s, stroke .35s, stroke-width .35s; }
+  .nodo text { font-size: 14px; fill: var(--texto); pointer-events: none; }
+  .nodo text.t { font-weight: 700; font-size: 15px; }
+  .nodo text.d { fill: var(--tenue); font-size: 12px; }
+  .nodo.externo rect { stroke-dasharray: 6 4; fill: #fffaf3; stroke: #e0b98f; }
+  .nodo.activo rect { fill: #dfe8ff; stroke: var(--acento); stroke-width: 3.5; }
+  .nodo.ok rect { fill: var(--verde-f); stroke: var(--verde); stroke-width: 3; }
+  .nodo.falla rect { fill: var(--rojo-f); stroke: var(--rojo); stroke-width: 3.5; }
+  .nodo.deshecho rect { fill: var(--naranja-f); stroke: var(--naranja); stroke-width: 3; stroke-dasharray: 7 4; }
+  .nodo.apagado { opacity: .38; }
+  .zona { fill: none; stroke: #9db1ea; stroke-width: 2; stroke-dasharray: 9 6; rx: 14; transition: stroke .35s, fill .35s; }
+  .zona.abierta { stroke: var(--acento); fill: rgba(47, 95, 224, .045); }
+  .zona.commit { stroke: var(--verde); fill: rgba(30, 142, 90, .06); stroke-dasharray: none; }
+  .zona.rollback { stroke: var(--rojo); fill: rgba(192, 57, 43, .06); }
+  .zona-t { font-size: 13px; font-weight: 700; fill: #6f86d6; }
+  .zona-t.abierta { fill: var(--acento); } .zona-t.commit { fill: var(--verde); } .zona-t.rollback { fill: var(--rojo); }
+  .grupo-t { font-size: 12.5px; font-weight: 700; fill: var(--tenue); letter-spacing: .06em; }
+  .flecha { fill: none; stroke: var(--acento); stroke-width: 4; stroke-linecap: round; marker-end: url(#punta); }
+  .flecha.roja { stroke: var(--rojo); marker-end: url(#punta-roja); }
+  .flecha.naranja { stroke: var(--naranja); marker-end: url(#punta-naranja); }
+  .flecha.anim { stroke-dasharray: var(--largo); stroke-dashoffset: var(--largo); animation: trazar .75s ease-out forwards; }
+  @keyframes trazar { to { stroke-dashoffset: 0; } }
+  .globo rect { fill: var(--azul); } .globo text { fill: #fff; font-size: 13.5px; font-weight: 600; }
+  .globo.roja rect { fill: var(--rojo); } .globo.naranja rect { fill: var(--naranja); } .globo.verde rect { fill: var(--verde); }
+  .globo { opacity: 0; animation: aparecer .4s .45s forwards; }
+  @keyframes aparecer { to { opacity: 1; } }
+  /* En pantallas bajas (notebook a 768 px) se oculta el nombre de la clase para que entre todo sin desplazar. */
+  @media (max-height: 800px) { .patron .cla { display: none; } }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } .lienzo { min-height: 300px; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>El recorrido de un turno</h1>
+  <span class="sub">Qué pasa por dentro, paso a paso, y qué patrón actúa en cada uno</span>
+  <div class="escenarios" id="escenarios"></div>
+</header>
+<main>
+  <div class="lienzo">
+    <svg id="svg" viewBox="0 8 1000 632" preserveAspectRatio="xMidYMid meet" aria-label="Diagrama del recorrido">
+      <defs>
+        <marker id="punta" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#2f5fe0"/></marker>
+        <marker id="punta-roja" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#c0392b"/></marker>
+        <marker id="punta-naranja" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#b3541e"/></marker>
+      </defs>
+      <text class="grupo-t" x="20" y="24">MEDICONECTA</text>
+      <text class="grupo-t" x="800" y="24">SISTEMAS EXTERNOS</text>
+      <text class="grupo-t" x="20" y="478">DESPUÉS, SIN QUE EL PACIENTE ESPERE</text>
+      <rect id="zona" class="zona" x="200" y="38" width="560" height="402"/>
+      <text id="zona-t" class="zona-t" x="214" y="58">UNA TRANSACCIÓN: TODO O NADA</text>
+      <g id="nodos"></g>
+      <g id="flechas"></g>
+    </svg>
+  </div>
+  <div class="panel">
+    <div class="tarjeta">
+      <div class="paso-n" id="paso-n"></div>
+      <div class="paso-t" id="paso-t"></div>
+      <p class="paso-x" id="paso-x"></p>
+    </div>
+    <div class="tarjeta" id="caja-patrones">
+      <div class="rotulo">Patrón en acción</div>
+      <div id="patrones"></div>
+    </div>
+    <div class="tarjeta">
+      <div class="rotulo">Estado del turno</div>
+      <div class="estados" id="estados"></div>
+      <div class="tx" id="tx"></div>
+    </div>
+  </div>
+</main>
+<footer>
+  <button id="atras">← Atrás</button>
+  <button id="sig" class="principal">Siguiente →</button>
+  <button id="auto">▶ Solo</button>
+  <div class="puntos" id="puntos"></div>
+  <span class="ayuda">Teclas: ← → para avanzar · 1, 2, 3 para cambiar de caso · Inicio para volver a empezar</span>
+</footer>
+
+<script>
+// ---------------------------------------------------------------------------------------------------
+// Diagrama: cada nodo es un componente real del código.
+// ---------------------------------------------------------------------------------------------------
+const NODOS = {
+  paciente:  { x: 20,  y: 96,  w: 150, h: 62, t: "Paciente", d: "pantalla web" },
+  turnos:    { x: 20,  y: 222, w: 150, h: 62, t: "ServicioDeTurnos", d: "guarda la reserva" },
+  proceso:   { x: 214, y: 76,  w: 212, h: 62, t: "ProcesoConfirmacionTurno", d: "dirige los 7 pasos" },
+  cadena:    { x: 222, y: 180, w: 196, h: 56, t: "Cadena de validación", d: "5 reglas, una tras otra" },
+  copago:    { x: 222, y: 268, w: 196, h: 56, t: "Cálculo del copago", d: "una fórmula por caso" },
+  turno:     { x: 222, y: 358, w: 196, h: 62, t: "Turno", d: "sabe qué admite su estado" },
+  adObra:    { x: 546, y: 76,  w: 196, h: 62, t: "Adaptador obra social", d: "traduce a SOAP" },
+  adPagos:   { x: 546, y: 180, w: 196, h: 62, t: "Adaptador de pagos", d: "traduce a REST" },
+  base:      { x: 546, y: 286, w: 196, h: 56, t: "Base de datos", d: "a través de los DAO" },
+  broker:    { x: 546, y: 368, w: 196, h: 56, t: "Mensajes por salir", d: "cola y tópico" },
+  obra:      { x: 800, y: 76,  w: 180, h: 62, t: "Obra social", d: "sistema viejo · SOAP", ext: true },
+  pasarela:  { x: 800, y: 180, w: 180, h: 62, t: "Pasarela de pagos", d: "servicio moderno · REST", ext: true },
+  cola:      { x: 20,  y: 498, w: 180, h: 56, t: "cola.autorizaciones", d: "lo procesa uno solo" },
+  consumer:  { x: 20,  y: 572, w: 180, h: 56, t: "AutorizacionConsumer", d: "2 en competencia" },
+  topico:    { x: 300, y: 498, w: 180, h: 56, t: "topico.turnos", d: "les llega a todos" },
+  notif:     { x: 546, y: 478, w: 196, h: 46, t: "Notificaciones", d: "email y aviso" },
+  audit:     { x: 546, y: 532, w: 196, h: 46, t: "Auditoría", d: "registra el cambio" },
+  fact:      { x: 546, y: 586, w: 196, h: 46, t: "Facturación", d: "reclamo a la obra social" },
+};
+
+const P = {
+  fachada:  { n: "Session Facade (con estado)", q: "Una sola puerta de entrada que recuerda qué turno reservó el paciente durante 5 minutos.", c: "negocio/ServicioDeTurnosBean" },
+  state:    { n: "State", q: "Cada estado del turno es una clase que sabe qué operaciones admite. Lo que no admite, lo rechaza.", c: "modelo/EstadoDeTurno, TurnoEnHold, TurnoConfirmado…" },
+  cadena:   { n: "Chain of Responsibility", q: "Cada regla es un eslabón: valida lo suyo y le pasa al siguiente. La primera que falla corta.", c: "negocio/validacion/CadenaDeValidacion" },
+  adapter:  { n: "Adapter + Gateway", q: "El negocio habla con una interfaz propia. El adaptador es el único que conoce el protocolo del otro sistema.", c: "integracion/…/CoberturaSoapAdapter, PasarelaPagosRestAdapter" },
+  circuito: { n: "Circuit Breaker + Retry + Fallback", q: "Corta a los 3 segundos, reintenta una vez y, tras 3 fallas, deja de llamar 30 segundos. Mientras tanto usa un plan B.", c: "integracion/resiliencia/CircuitBreaker, Reintento" },
+  strategy: { n: "Strategy", q: "Hay cinco formas de calcular lo que paga el paciente. Se elige una según lo que respondió la obra social.", c: "negocio/copago/CalculoCopago" },
+  compens:  { n: "Transacción compensatoria", q: "Lo que no se puede deshacer solo (un cobro en otro sistema) se deshace con la operación contraria: un reembolso.", c: "negocio/CompensacionDePago" },
+  dao:      { n: "DAO", q: "Las clases que hablan con la base. El negocio no escribe consultas.", c: "dao/TurnoDAO, PagoDAO…" },
+  txclient: { n: "Transactional Client", q: "El mensaje se anota dentro de la transacción y recién sale cuando todo terminó bien.", c: "mensajeria/ProductorSolicitudesAutorizacion" },
+  builder:  { n: "Builder", q: "Arma el evento paso a paso y no deja publicarlo si le falta un dato.", c: "mensajeria/EventoTurno.builder()" },
+  p2p:      { n: "Cola punto a punto + consumidores en competencia", q: "Cada pedido lo toma un solo consumidor. Si hay muchos pedidos, se los reparten.", c: "mensajeria/AutorizacionConsumer" },
+  idem:     { n: "Idempotent Receiver", q: "Si un mensaje llega dos veces, la segunda se descarta: cada uno anota lo que ya procesó.", c: "tabla evento_procesado" },
+  pubsub:   { n: "Publish-Subscribe + suscriptores durables", q: "Quien publica no conoce a quienes escuchan. Si uno estaba caído, recibe el mensaje al volver.", c: "mensajeria/PublicadorEventosTurno" },
+  selector: { n: "Selective Consumer", q: "Facturación le pide al broker sólo los eventos que le sirven. El resto ni le llega.", c: "mensajeria/FacturacionSubscriber" },
+  template: { n: "Template Method", q: "Los pasos para avisar son siempre los mismos; cada canal sólo cambia el contenido.", c: "notificaciones/ProcesadorNotificacion" },
+  dlq:      { n: "Reintentos y Dead Letter Channel", q: "El broker vuelve a entregar el mensaje con esperas cada vez más largas. Si nunca se puede, lo aparta sin trabar a los demás.", c: "wildfly/configurar-mensajeria.cli" },
+};
+
+// Pasos comunes a los tres casos (el inicio del recorrido).
+const reservar = { t: "El paciente reserva un horario", x: "Elige un turno de la Dra. López. El sistema se lo <b>guarda 5 minutos</b> para que nadie más lo tome mientras decide y paga.",
+  act: ["paciente", "turnos", "turno"], fl: [["paciente", "turnos", "Reservar"]], pat: ["fachada", "state"], est: "EN ESPERA", tx: null };
+const empezar = { t: "Toca «Confirmar»: empieza la transacción", x: "Desde acá, los siete pasos son <b>una sola operación</b>. O terminan todos bien, o no queda nada a medias.",
+  act: ["turnos", "proceso"], fl: [["turnos", "proceso", "confirmar()"]], pat: [], est: "EN ESPERA", tx: "abierta" };
+const validar = { t: "1 · ¿Se puede confirmar?", x: "Cinco reglas en fila: el turno existe, <b>es tu reserva</b>, no se venció, es a futuro y no tenés otro turno a esa hora.",
+  act: ["proceso", "cadena"], fl: [["proceso", "cadena", "5 reglas"]], ok: ["cadena"], pat: ["cadena"], est: "EN ESPERA", tx: "abierta" };
+const cobertura = { t: "2 · ¿Cuánto cubre la obra social?", x: "Se lo preguntamos <b>y esperamos la respuesta</b>, porque sin eso no sabemos cuánto cobrar. Responde: OSDE cubre el 70 %.",
+  act: ["proceso", "adObra", "obra"], fl: [["proceso", "adObra", "validarCobertura"], ["adObra", "obra", "SOAP"]], ok: ["obra"], pat: ["adapter"], est: "EN ESPERA", tx: "abierta" };
+const copago = { t: "3 · ¿Cuánto paga el paciente?", x: "La consulta vale $32.000. Con el 70 % cubierto, al paciente le toca <b>$9.600</b>. Con otra respuesta se usaría otra fórmula.",
+  act: ["proceso", "copago"], fl: [["proceso", "copago", "$32.000 → $9.600"]], ok: ["copago"], pat: ["strategy"], est: "EN ESPERA", tx: "abierta" };
+const cobrar = { t: "4 · Se cobra con la tarjeta", x: "La pasarela aprueba los $9.600. Ojo: <b>la plata ya se movió en otro sistema</b>. Por si algo falla después, dejamos anotado cómo devolverla.",
+  act: ["proceso", "adPagos", "pasarela"], fl: [["proceso", "adPagos", "cobrar"], ["adPagos", "pasarela", "REST · POST /pagos"]], ok: ["pasarela"], pat: ["adapter", "compens"], est: "EN ESPERA", tx: "abierta" };
+const confirmar = { t: "5 · El turno pasa a confirmado", x: "El turno estaba en espera y <b>ese estado sí admite confirmar</b>. Se guarda en la base junto con el pago.",
+  act: ["proceso", "turno", "base"], fl: [["proceso", "turno", "confirmar()"], ["turno", "base", "guardar"]], ok: ["turno", "base"], pat: ["state", "dao"], est: "CONFIRMADO", tx: "abierta" };
+const encolar = { t: "6 · Se pide la autorización, sin esperarla", x: "La obra social tiene que autorizar la consulta, pero <b>eso puede tardar</b>. Dejamos el pedido en una cola y seguimos.",
+  act: ["proceso", "broker"], fl: [["proceso", "broker", "pedido de autorización"]], ok: ["broker"], pat: ["txclient"], est: "CONFIRMADO", tx: "abierta" };
+const publicar = { t: "7 · Se avisa que hay un turno confirmado", x: "Se arma el aviso y se deja listo para salir. Todavía <b>nadie lo recibió</b>: sale cuando la transacción termine bien.",
+  act: ["proceso", "broker"], fl: [["proceso", "broker", "evento TURNO_CONFIRMADO"]], ok: ["broker"], pat: ["builder", "txclient"], est: "CONFIRMADO", tx: "abierta" };
+const commit = { t: "Todo salió bien: se confirma la transacción", x: "Recién ahora <b>queda guardado</b> en la base y <b>salen los mensajes</b>. El paciente ve «Turno confirmado». Tardó un segundo y medio.",
+  act: ["proceso", "paciente"], ok: ["base", "broker", "turno", "pasarela"], fl: [["broker", "cola", ""], ["broker", "topico", ""]], pat: [], est: "CONFIRMADO", tx: "commit" };
+const autorizar = { t: "Después: la cola resuelve la autorización", x: "Uno de los dos consumidores toma el pedido, le pregunta a la obra social y anota el resultado: <b>autorizada</b>. Publica un nuevo aviso.",
+  act: ["cola", "consumer", "obra"], fl: [["cola", "consumer", ""], ["consumer", "topico", "TURNO_AUTORIZADO"]], ok: ["obra"], pat: ["p2p", "idem"], est: "CONFIRMADO · AUTORIZADO", tx: "commit" };
+const avisar = { t: "Después: el tópico reparte los avisos", x: "Tres componentes que no se conocen reciben el mismo aviso. Notificaciones manda el email, Auditoría registra y <b>Facturación le reclama $22.400 a la obra social</b>.",
+  act: ["topico", "notif", "audit", "fact"], fl: [["topico", "notif", ""], ["topico", "audit", ""], ["topico", "fact", ""]], ok: ["notif", "audit", "fact"], pat: ["pubsub", "selector", "template"], est: "CONFIRMADO · AUTORIZADO", tx: "commit" };
+
+const CASOS = [
+  { nombre: "1 · Todo sale bien",
+    pasos: [reservar, empezar, validar, cobertura, copago, cobrar, confirmar, encolar, publicar, commit, autorizar, avisar] },
+
+  { nombre: "2 · Falla después de cobrar",
+    pasos: [reservar, empezar, validar, cobertura, copago, cobrar, confirmar, encolar, publicar,
+      { t: "Algo falla justo antes de terminar", x: "Ya se cobró, el turno figura confirmado y hay dos mensajes por salir. Pero la transacción <b>no llegó a confirmarse</b>.",
+        act: ["proceso"], falla: ["proceso"], pat: [], est: "CONFIRMADO (sin guardar)", tx: "rollback" },
+      { t: "Lo de adentro se deshace solo", x: "La base vuelve a como estaba y los mensajes <b>se tiran sin haber salido</b>. Nadie recibe un aviso de algo que no pasó. No escribimos código para esto: lo hace el servidor.",
+        act: ["proceso"], des: ["base", "broker", "turno"], fl: [["proceso", "base", "deshacer", "naranja"], ["proceso", "broker", "descartar", "naranja"]], pat: ["txclient"], est: "EN ESPERA", tx: "rollback" },
+      { t: "El cobro no se deshace solo: se devuelve", x: "La pasarela es otro sistema y no forma parte de la transacción. Para eso habíamos dejado la nota: <b>se pide el reembolso</b> de los $9.600.",
+        act: ["adPagos", "pasarela"], des: ["pasarela", "base", "broker", "turno"], fl: [["proceso", "adPagos", "compensar", "naranja"], ["adPagos", "pasarela", "REST · reembolso", "naranja"]], pat: ["compens"], est: "EN ESPERA", tx: "rollback" },
+      { t: "El paciente no perdió su reserva", x: "Ve el aviso de que la operación se revirtió y que el cobro se devolvió. El turno <b>sigue guardado a su nombre</b> y puede volver a intentar.",
+        act: ["paciente", "turnos"], des: ["pasarela"], fl: [["turnos", "paciente", "«se revirtió todo»", "naranja"]], pat: ["fachada"], est: "EN ESPERA", tx: null },
+    ] },
+
+  { nombre: "3 · La obra social está caída",
+    pasos: [reservar, empezar, validar,
+      { t: "2 · La obra social no responde", x: "Esperamos 3 segundos, reintentamos una vez y nada. Tras tres fallas <b>dejamos de llamarla 30 segundos</b>, para no dejar a todos esperando.",
+        act: ["proceso", "adObra"], falla: ["obra"], fl: [["proceso", "adObra", "validarCobertura"], ["adObra", "obra", "sin respuesta", "roja"]], pat: ["circuito"], est: "EN ESPERA", tx: "abierta" },
+      { t: "2 · Plan B: la última respuesta que nos dio", x: "Usamos la validación que guardamos de ese afiliado (vale 24 horas). Si no hubiera ninguna, la cobertura queda «pendiente». <b>El paciente sigue adelante.</b>",
+        act: ["proceso", "adObra"], falla: ["obra"], ok: ["adObra"], fl: [["adObra", "proceso", "respuesta guardada"]], pat: ["circuito", "adapter"], est: "EN ESPERA", tx: "abierta" },
+      Object.assign({}, copago, { falla: ["obra"] }), Object.assign({}, cobrar, { falla: ["obra"] }),
+      Object.assign({}, confirmar, { falla: ["obra"] }), Object.assign({}, encolar, { falla: ["obra"] }),
+      Object.assign({}, publicar, { falla: ["obra"] }),
+      Object.assign({}, commit, { falla: ["obra"], x: "El turno queda confirmado <b>aunque la obra social esté caída</b>. Una falla ajena no nos frenó la reserva." }),
+      { t: "Después: la autorización no se puede resolver todavía", x: "El consumidor intenta, la obra social sigue caída y <b>devuelve el pedido a la cola</b>. El broker lo vuelve a entregar a los 10, 20, 40 y 60 segundos.",
+        act: ["cola", "consumer"], falla: ["obra"], fl: [["cola", "consumer", ""], ["consumer", "cola", "devolver y reintentar", "roja"]], pat: ["dlq", "p2p"], est: "CONFIRMADO · AUTORIZACIÓN EN TRÁMITE", tx: "commit" },
+      { t: "La obra social vuelve y se resuelve sola", x: "El siguiente intento pasa. La autorización queda registrada <b>sin que nadie haga nada</b> y sin haberse perdido. Después salen los avisos, como siempre.",
+        act: ["cola", "consumer", "obra", "topico"], ok: ["obra", "notif", "audit", "fact"], fl: [["cola", "consumer", ""], ["consumer", "topico", "TURNO_AUTORIZADO"], ["topico", "notif", ""], ["topico", "audit", ""], ["topico", "fact", ""]], pat: ["dlq", "pubsub"], est: "CONFIRMADO · AUTORIZADO", tx: "commit" },
+    ] },
+];
+
+// ---------------------------------------------------------------------------------------------------
+const SVG = "http://www.w3.org/2000/svg";
+const el = (n, a = {}, txt) => { const e = document.createElementNS(SVG, n); for (const k in a) e.setAttribute(k, a[k]); if (txt != null) e.textContent = txt; return e; };
+const $ = id => document.getElementById(id);
+let caso = 0, paso = 0, reloj = null;
+
+function dibujarNodos() {
+  const g = $("nodos");
+  for (const id in NODOS) {
+    const n = NODOS[id], nodo = el("g", { class: "nodo" + (n.ext ? " externo" : ""), id: "n-" + id });
+    nodo.appendChild(el("rect", { x: n.x, y: n.y, width: n.w, height: n.h, rx: 10 }));
+    nodo.appendChild(el("text", { class: "t", x: n.x + n.w / 2, y: n.y + n.h / 2 - 3, "text-anchor": "middle" }, n.t));
+    nodo.appendChild(el("text", { class: "d", x: n.x + n.w / 2, y: n.y + n.h / 2 + 15, "text-anchor": "middle" }, n.d));
+    g.appendChild(nodo);
+  }
+}
+
+// Punto del borde de un nodo en dirección a otro, para que la flecha no pise la caja.
+function borde(a, b) {
+  const ca = { x: a.x + a.w / 2, y: a.y + a.h / 2 }, cb = { x: b.x + b.w / 2, y: b.y + b.h / 2 };
+  const dx = cb.x - ca.x, dy = cb.y - ca.y;
+  const k = Math.min(dx ? (a.w / 2 + 5) / Math.abs(dx) : Infinity, dy ? (a.h / 2 + 5) / Math.abs(dy) : Infinity);
+  return { x: ca.x + dx * k, y: ca.y + dy * k };
+}
+
+function dibujarFlechas(lista, animar) {
+  const g = $("flechas"); g.innerHTML = "";
+  (lista || []).forEach(([de, a, rotulo, color], i) => {
+    const p1 = borde(NODOS[de], NODOS[a]), p2 = borde(NODOS[a], NODOS[de]);
+    const largo = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+    const linea = el("path", { d: `M${p1.x} ${p1.y} L${p2.x} ${p2.y}`, class: "flecha" + (color ? " " + color : "") + (animar ? " anim" : "") });
+    linea.style.setProperty("--largo", largo);
+    linea.style.animationDelay = (i * 0.35) + "s";
+    g.appendChild(linea);
+    if (rotulo) {
+      // En un tramo corto el rótulo taparía los nombres: va arriba de las cajas.
+      const corto = largo < 110, mx = (p1.x + p2.x) / 2, ancho = rotulo.length * 7.4 + 18;
+      const my = corto ? Math.min(NODOS[de].y, NODOS[a].y) - 15 : (p1.y + p2.y) / 2;
+      const globo = el("g", { class: "globo" + (color ? " " + color : "") });
+      globo.style.animationDelay = (i * 0.35 + 0.4) + "s";
+      if (!animar) { globo.style.animation = "none"; globo.style.opacity = 1; }
+      globo.appendChild(el("rect", { x: mx - ancho / 2, y: my - 12, width: ancho, height: 24, rx: 12 }));
+      globo.appendChild(el("text", { x: mx, y: my + 4.5, "text-anchor": "middle" }, rotulo));
+      g.appendChild(globo);
+    }
+  });
+}
+
+function mostrar(animar = true) {
+  const pasos = CASOS[caso].pasos, p = pasos[paso];
+  $("paso-n").textContent = `${CASOS[caso].nombre} — paso ${paso + 1} de ${pasos.length}`;
+  $("paso-t").textContent = p.t;
+  $("paso-x").innerHTML = p.x;
+
+  $("caja-patrones").style.display = p.pat.length ? "" : "none";
+  $("patrones").innerHTML = p.pat.map(k => `<div class="patron"><div class="nom">${P[k].n}</div><div class="que">${P[k].q}</div><div class="cla">${P[k].c}</div></div>`).join("");
+
+  const actual = p.est.split(" ")[0] === "EN" ? "EN ESPERA" : p.est.split(" ")[0];
+  $("estados").innerHTML = ["DISPONIBLE", "EN ESPERA", "CONFIRMADO", "CANCELADO"].map(e =>
+    `<span class="estado${e === actual ? " actual" : ""}">${e}</span>`).join("<span style='color:#aab2c5'>→</span>")
+    + (p.est.includes("·") || p.est.includes("(") ? `<span class="estado actual" style="background:#55607a">${p.est.replace(/^CONFIRMADO\s*[·]?\s*/, "")}</span>` : "");
+  const TX = { abierta: "Transacción abierta: nada es definitivo todavía", commit: "Transacción confirmada: quedó guardado y los mensajes salieron", rollback: "Transacción revertida: se deshace lo que se hizo" };
+  $("tx").className = "tx" + (p.tx ? " " + p.tx : ""); $("tx").textContent = p.tx ? TX[p.tx] : "Sin transacción en curso";
+  $("zona").setAttribute("class", "zona" + (p.tx ? " " + p.tx : "")); $("zona-t").setAttribute("class", "zona-t" + (p.tx ? " " + p.tx : ""));
+
+  const enJuego = new Set([...(p.act || []), ...(p.ok || []), ...(p.falla || []), ...(p.des || []), ...((p.fl || []).flatMap(f => [f[0], f[1]]))]);
+  for (const id in NODOS) {
+    const c = ["nodo"]; if (NODOS[id].ext) c.push("externo");
+    if ((p.falla || []).includes(id)) c.push("falla"); else if ((p.des || []).includes(id)) c.push("deshecho");
+    else if ((p.act || []).includes(id)) c.push("activo"); else if ((p.ok || []).includes(id)) c.push("ok");
+    if (!enJuego.has(id)) c.push("apagado");
+    $("n-" + id).setAttribute("class", c.join(" "));
+  }
+  dibujarFlechas(p.fl, animar);
+
+  $("puntos").innerHTML = pasos.map((_, i) => `<span class="${i === paso ? "actual" : i < paso ? "hecho" : ""}" data-i="${i}" title="Paso ${i + 1}"></span>`).join("");
+  $("atras").disabled = paso === 0; $("sig").disabled = paso === pasos.length - 1;
+  document.querySelectorAll("#escenarios button").forEach((b, i) => b.classList.toggle("activo", i === caso));
+}
+
+function ir(n) { const max = CASOS[caso].pasos.length - 1; paso = Math.max(0, Math.min(max, n)); mostrar(); if (paso === max) parar(); }
+function elegir(c) { parar(); caso = c; paso = 0; mostrar(); }
+function parar() { clearInterval(reloj); reloj = null; $("auto").textContent = "▶ Solo"; }
+
+$("escenarios").innerHTML = CASOS.map((c, i) => `<button data-c="${i}">${c.nombre}</button>`).join("");
+$("escenarios").onclick = e => { if (e.target.dataset.c) elegir(+e.target.dataset.c); };
+$("puntos").onclick = e => { if (e.target.dataset.i) { parar(); ir(+e.target.dataset.i); } };
+$("sig").onclick = () => { parar(); ir(paso + 1); };
+$("atras").onclick = () => { parar(); ir(paso - 1); };
+$("auto").onclick = () => { if (reloj) return parar(); $("auto").textContent = "❚❚ Pausa"; if (paso === CASOS[caso].pasos.length - 1) paso = -1; ir(paso + 1); reloj = setInterval(() => ir(paso + 1), 6000); };
+document.addEventListener("keydown", e => {
+  if (["ArrowRight", " ", "PageDown"].includes(e.key)) { e.preventDefault(); parar(); ir(paso + 1); }
+  else if (["ArrowLeft", "PageUp"].includes(e.key)) { e.preventDefault(); parar(); ir(paso - 1); }
+  else if (e.key === "Home") { parar(); ir(0); }
+  else if (["1", "2", "3"].includes(e.key)) elegir(+e.key - 1);
+});
+
+dibujarNodos();
+mostrar();
+</script>
+</body>
+</html>

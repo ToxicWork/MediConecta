@@ -4,9 +4,12 @@ import ar.edu.mediconecta.modelo.EstadoPago;
 import ar.edu.mediconecta.modelo.EstadoReclamo;
 import ar.edu.mediconecta.modelo.Pago;
 import ar.edu.mediconecta.modelo.ReclamoObraSocial;
+import ar.edu.mediconecta.negocio.ControlDeDemostracion;
 import ar.edu.mediconecta.negocio.ServicioDeFacturacion;
 import ar.edu.mediconecta.negocio.ServicioDePagos;
 import jakarta.enterprise.context.RequestScoped;
+import jakarta.faces.application.FacesMessage;
+import jakarta.faces.context.FacesContext;
 import jakarta.inject.Inject;
 import jakarta.inject.Named;
 
@@ -23,6 +26,9 @@ public class PagosBean {
 
     @Inject
     private ServicioDeFacturacion servicioDeFacturacion;
+
+    @Inject
+    private ControlDeDemostracion demostracion;
 
     @Inject
     private LoginBean loginBean;
@@ -62,5 +68,23 @@ public class PagosBean {
     public BigDecimal getTotalReclamado() {
         return getReclamos().stream().filter(r -> r.getEstado() == EstadoReclamo.PENDIENTE_PRESENTACION)
                 .map(ReclamoObraSocial::getImporte).reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    /**
+     * Falla de demostración del flujo crítico (sólo administrativo; el rol lo exige {@link ControlDeDemostracion}).
+     * Armada, la próxima confirmación de turno falla antes del commit: se ve el rollback y el reembolso del cobro.
+     */
+    public boolean isFallaArmada() {
+        return loginBean.isAdministrativo() && demostracion.isFallaArmada();
+    }
+
+    public void armarFalla() {
+        demostracion.armarFalla();
+        FacesContext.getCurrentInstance().addMessage(null, new FacesMessage(FacesMessage.SEVERITY_WARN,
+                "Falla armada: la próxima confirmación de turno va a revertirse antes del commit.", null));
+    }
+
+    public void desarmarFalla() {
+        demostracion.desarmarFalla();
     }
 }

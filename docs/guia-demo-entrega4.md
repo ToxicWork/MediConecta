@@ -1,6 +1,9 @@
 # Guía de la demo y la defensa · Entrega Obligatoria N.º 2 (09/11)
 
-> **Actualizada en noviembre de 2026.** Se retiraron las pantallas *Monitor de eventos* e *Integraciones*:
+> **Actualizada el 15/11/2026.** El guion vigente de la presentación es
+> `docs/entrega-nucleo/guion-presentacion.html`; esta guía queda como referencia de los bloques de la
+> Obligatoria N.º 2. El *Monitor de eventos* volvió el 14/11 y la falla de demostración se arma desde Pagos del
+> administrativo (bloque 3). Lo que sigue se escribió cuando se retiraron *Monitor de eventos* e *Integraciones*:
 > lo que antes se mostraba ahí ahora se ve en la Agenda ("Autorización en trámite" → "Autorizada"), en las
 > Notificaciones, en Pagos (administrativo), en la consola de sistemas externos y en el log del servidor.
 > Se agregaron el rol Administrativo, el registro aparte, "Mi perfil" y el cambio de contraseña (bloque 7).
@@ -23,6 +26,7 @@ lo que hay que decir y lo que se espera ver.
 - [ ] WildFly levantado con `wildfly/iniciar-servidor.bat` (o `.sh`): perfil `standalone-full`.
 - [ ] Desplegados `mediconecta.war` y `externos.war` (ver `SETUP.md`). En el log: `Deployed "mediconecta.war"`
       y `WSDL published to: .../CoberturaService.wsdl`.
+- [ ] La app va por HTTPS: <https://localhost:8443/mediconecta/> (aceptar una vez el certificado autofirmado).
 - [ ] Consola de sistemas externos (<http://localhost:8080/externos/>) con todo **En línea** y
       autorizaciones en **Aprobar**.
 - [ ] Cuatro pestañas (usar ventanas privadas distintas para no mezclar sesiones): paciente
@@ -72,9 +76,16 @@ Decir: un solo clic del paciente cruzó cuatro componentes internos, un SOAP, un
 
 ## Bloque 3 · Falla a mitad del flujo crítico (5 min) — el corazón de la defensa
 
-La falla de demostración se armaba desde la pantalla Integraciones, que se retiró. Este bloque se explica
-con la Figura del diagrama 13 (`13-secuencia-falla-compensacion.png`) y se muestran en vivo los casos que
-sí se pueden provocar:
+Desde el 15/11 la falla de demostración se arma otra vez en vivo: **Administrativo → Pagos → «Demostración:
+falla a mitad del flujo crítico» → Armar falla antes del commit**. La próxima confirmación (de cualquier
+paciente) falla después de cobrar, encolar y publicar, justo antes del commit, y la falla se desarma sola.
+
+0. **Falla después de cobrar** (el caso que pide la consigna): armar la falla, reservar como paciente y pagar
+   con `4111 1111 1111 1111`. Aparece «Falla simulada… se revirtió todo… y el cobro se reembolsó»; el turno
+   **sigue en espera**; en la consola de externos el último pago de la pasarela figura **REEMBOLSADO** con el
+   motivo «Reversión automática»; en Notificaciones no hay ningún aviso de ese turno. Volver a pagar: confirma.
+
+Los otros dos casos, que no dejan nada que compensar:
 
 1. **Pago rechazado** (bloque 2, paso 3): la transacción no llega a confirmar; el turno **sigue en espera**
    (el bean `@Stateful` no se destruyó) y el paciente puede reintentar.

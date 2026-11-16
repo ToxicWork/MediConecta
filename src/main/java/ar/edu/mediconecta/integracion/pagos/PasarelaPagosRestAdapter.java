@@ -140,6 +140,11 @@ public class PasarelaPagosRestAdapter implements PagosGateway {
             ErrorJson error = respuesta.readEntity(ErrorJson.class);
             return new ResultadoCobro(false, null, "RECHAZADO", error.error(), null, null, null, null);
         }
+        if (estado == 404) {
+            // La pasarela respondió, y lo que dice es que no conoce ese pago: es una respuesta válida, no una caída.
+            // No cuenta para el Circuit Breaker ni tiene sentido reintentarla.
+            return new ResultadoCobro(false, null, ResultadoCobro.INEXISTENTE, "pago_inexistente", null, null, null, null);
+        }
         throw new IntegracionNoDisponibleException("La pasarela respondió HTTP " + estado, estado >= 500);
     }
 

@@ -8,6 +8,8 @@ Recorre con un navegador real (y con llamadas HTTP directas) todo lo que se defi
   N. Patrón State por la API: cancelar un turno ya cancelado o todavía en espera devuelve 409.
   C. Flujo crítico: cotización por SOAP, pago rechazado por la pasarela (el turno sigue en espera) y pago aprobado.
   D. Cola punto a punto: la autorización se resuelve sola, llega la notificación y Facturación genera el reclamo.
+  F. Falla a mitad del flujo crítico (armada por el administrativo): rollback de la base y de los mensajes, y
+     reembolso compensatorio del cobro, visible en la pasarela.
   G. Legado caído: la cotización usa el fallback (caché o cobertura pendiente) y el turno se confirma igual.
   H. Cancelación: Facturación reintegra el pago (REST) y anula el reclamo, de forma asincrónica.
   I. Telemedicina: el profesional crea la sala por REST y el paciente ve el enlace.
@@ -21,8 +23,8 @@ Requisitos: WildFly levantado (perfil standalone-full) con mediconecta.war y ext
 Google Chrome y  pip install playwright
 Uso:  python pruebas/prueba_entrega4.py
 Usa los usuarios de demo (ver SETUP.md). Deja en la base un paciente y un profesional de prueba por corrida.
-Los escenarios E (selector visto en el monitor) y F (falla armada desde Integraciones) se quitaron junto con
-esas pantallas.
+El escenario F volvió el 15/11: la falla se arma desde Pagos del administrativo. El Monitor de eventos tiene su
+propia prueba (prueba_monitor.py).
 """
 import os
 import base64, json, random, sys, time, urllib.error, urllib.request
@@ -231,6 +233,31 @@ with sync_playwright() as p:
           esperar(pac, B + "notificaciones.xhtml", lambda c: "autorizó la prestación" in c, 30))
     check("D. Facturación genera el reclamo a la obra social (TURNO_AUTORIZADO), visible para el administrativo",
           esperar(adm, B + "pagos.xhtml", lambda c: "Pendiente de presentación" in c, 15))
+
+    # ---- F. Falla a mitad del flujo crítico: rollback + compensación -------------------------
+    adm.goto(B + "pagos.xhtml")
+    adm.click("button:has-text('Armar falla antes del commit')")
+    adm.wait_for_selector("text=Falla armada")
+    check("F. el administrativo arma la falla de demostración desde Pagos", "Falla armada" in adm.content())
+    f2 = fecha_al_azar("02")
+    publicar(prof, f2)
+    confirmados = lambda: sum(1 for t in json.loads(http(B + "api/v1/turnos", token=TOKEN)[1]) if t["estado"] == "CONFIRMADO")
+    antes = confirmados()
+    reservar(pac, f2)
+    msg = pagar(pac)
+    check("F. la confirmación falla después de cobrar, antes del commit, y se informa la reversión", "Falla simulada" in msg)
+    check("F. el turno NO quedó confirmado (rollback de la base) y sigue en espera para reintentar",
+          confirmados() == antes and "Turno reservado temporalmente" in pac.content())
+    ultimo = json.loads(http(EXT + "api/consola/pagos")[1])[0]
+    check("F. la pasarela muestra el cobro REEMBOLSADO por la compensación (" + ultimo["id"] + ")",
+          ultimo["estado"] == "REEMBOLSADO" and "Reversión automática" in (ultimo.get("motivoReembolso") or ""))
+    time.sleep(6)
+    pac.goto(B + "notificaciones.xhtml")
+    check("F. no salió ningún aviso de ese turno (el envío JMS se revirtió con la transacción)",
+          f2.replace(" ", " · ") not in pac.content() and f2 not in pac.content())
+    pac.goto(B + "agenda.xhtml")
+    msg = pagar(pac)
+    check("F. al reintentar (la falla se desarma sola) el turno se confirma", "Turno confirmado" in msg)
 
     # ---- G. Legado caído: fallback de cobertura -------------------------------------------
     consola(obraSocial="CAIDO")

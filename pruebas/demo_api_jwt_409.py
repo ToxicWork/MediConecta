@@ -112,8 +112,11 @@ if "--sin-cancelar" not in sys.argv:
         esperado("CONFIRMADO -> CANCELADO: 200", estado == 200 and json.loads(texto)["estado"] == "CANCELADO")
         estado, texto = pedir("POST", "/turnos/%s/cancelacion" % elegido, token)
         esperado("cancelar un turno ya cancelado: 409 transicion_invalida", estado == 409 and "transicion_invalida" in texto)
-        estado, _ = pedir("POST", "/turnos/%s/cancelacion" % elegido, token_admin)
-        esperado("el administrativo no puede cancelar: 403", estado == 403)
+        # El administrativo sí tiene permiso para cancelar (desde el 14/11), así que su pedido pasa el control de
+        # rol y llega al State, que responde lo mismo que al paciente: el turno ya está cancelado.
+        estado, texto = pedir("POST", "/turnos/%s/cancelacion" % elegido, token_admin)
+        esperado("otro rol con permiso (administrativo) recibe el mismo 409: decide el estado, no quién pide",
+                 estado == 409 and "transicion_invalida" in texto)
 
 print("\nRESULTADO:", "TODO OK" if ok else "HAY FALLAS")
 sys.exit(0 if ok else 1)

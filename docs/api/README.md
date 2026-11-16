@@ -6,7 +6,7 @@ prueba.
 
 ## 1. API REST de MediConecta (servidor)
 
-Base: `http://localhost:8080/mediconecta/api/v1` · JSON · autenticación con **JWT** (sin sesión). Errores
+Base: `https://localhost:8443/mediconecta/api/v1` (HTTPS con certificado autofirmado: en curl, `-k`) · JSON · autenticación con **JWT** (sin sesión). Errores
 siempre como `{"estado", "error", "mensaje", "fecha"}`, sin trazas ni nombres internos.
 
 | Método y ruta | Acceso | Respuesta |
@@ -16,7 +16,7 @@ siempre como `{"estado", "error", "mensaje", "fecha"}`, sin trazas ni nombres in
 | `GET /profesionales/{id}/disponibilidad` | pública | `[{id, fechaHora, modalidad, codigoPrestacion, precioLista}]` |
 | `GET /turnos` | PACIENTE o PROFESIONAL | turnos del usuario autenticado (`TurnoApi`, sin datos clínicos) |
 | `GET /turnos/{id}` | PACIENTE o PROFESIONAL | el turno si es del usuario; 404 si no existe **o es ajeno** |
-| `POST /turnos/{id}/cancelacion` | PACIENTE (titular) | `200` con el turno cancelado · 404 si no existe o es ajeno · **409** si el estado del turno no admite cancelarlo |
+| `POST /turnos/{id}/cancelacion` | PACIENTE (sus turnos), PROFESIONAL (los de su agenda), ADMINISTRATIVO (cualquiera) | `200` con el turno cancelado · 404 si no existe o es ajeno · **409** si el estado del turno no admite cancelarlo |
 
 ### Autenticación
 
@@ -56,7 +56,7 @@ python pruebas/demo_api_jwt_409.py                  # además cancela un turno y
 A mano, con curl (Git Bash):
 
 ```bash
-API=http://localhost:8080/mediconecta/api/v1
+API=https://localhost:8443/mediconecta/api/v1   # agregar -k a cada curl: el certificado es autofirmado
 curl $API/profesionales
 curl -i $API/turnos                                               # 401 + WWW-Authenticate: Bearer
 

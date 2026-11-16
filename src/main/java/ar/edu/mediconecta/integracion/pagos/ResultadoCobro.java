@@ -5,6 +5,13 @@ import java.math.BigDecimal;
 public record ResultadoCobro(boolean aprobado, String idPago, String estado, String motivoRechazo,
                              BigDecimal importe, String moneda, String marca, String ultimos4) {
 
+    /** La pasarela respondió que no conoce ese pago (HTTP 404): no hay nada que reembolsar ahí. */
+    public static final String INEXISTENTE = "INEXISTENTE";
+
+    public boolean inexistente() {
+        return INEXISTENTE.equals(estado);
+    }
+
     public String resumen() {
         return estado + (idPago == null ? "" : " " + idPago) + (importe == null ? "" : " $" + importe)
                 + (motivoRechazo == null ? "" : " (" + motivoRechazo + ")");

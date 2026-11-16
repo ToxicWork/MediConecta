@@ -222,8 +222,8 @@
 </section>
 <section class="salto">
   <h1 id="intro">Introducción</h1>
-  <p>Este informe acompaña la 2.ª Entrega Parcial del trabajo práctico (16 de noviembre), cuyo objetivo es mostrar el núcleo del sistema funcionando. MediConecta llega a esta instancia con los ocho componentes del dominio implementados y desplegados, las integraciones SOAP y REST y la mensajería completa, que se presentaron el 9 de noviembre. Para esta entrega agregamos lo que faltaba respecto de la consigna: autenticación con JWT en la API, la respuesta 409 del patrón State por HTTP y un registro de decisión (ADR) por cada patrón.</p>
-  <p>El documento está pensado para leerse junto con la demostración en vivo. Cada afirmación indica con qué prueba se verifica; las pruebas se ejecutaron el 14/11/2026 sobre la aplicación desplegada y sus resultados están en la Parte IV y en el Apéndice B. Lo que no pudimos verificar de forma automática, o lo que no funciona como fue comprometido, está declarado en la Parte V.</p>
+  <p>Este informe acompaña la presentación del 16 de noviembre, cuyo objetivo es mostrar el núcleo del sistema funcionando. MediConecta llega a esta instancia con los ocho componentes del dominio implementados y desplegados, las integraciones SOAP y REST, la mensajería con cola y tópico y la transacción declarativa de la confirmación, que son los requisitos de la Entrega Obligatoria N.º 2 (9 de noviembre). Para el 16 agregamos lo que indicó el profesor: autenticación con JWT en la API, la respuesta 409 del patrón State por HTTP y un registro de decisión (ADR) por cada patrón. Como en la defensa se muestran las dos cosas, el informe indica dónde se cumple cada requisito de las dos listas (Tablas 1 y 2).</p>
+  <p>El documento está pensado para leerse junto con la demostración en vivo. Cada afirmación indica con qué prueba se verifica; las pruebas se ejecutaron el 15/11/2026 sobre la aplicación desplegada y sus resultados están en la Parte IV y en el Apéndice B. Lo que no pudimos verificar de forma automática, o lo que no funciona como fue comprometido, está declarado en la Parte V.</p>
   <h2 id="requisitos">Qué pide la entrega y dónde se cumple</h2>
 
   <div class="tabla" style="page-break-inside:auto">
@@ -232,17 +232,37 @@
     <table class="">
       <thead><tr><th style="width:27%">Requisito</th><th>Dónde se cumple</th><th style="width:27%">Evidencia</th></tr></thead>
       <tbody>
-        <tr><td>Componentes en capas desplegados y un primer flujo de punta a punta</td><td>Ocho componentes sobre WildFly 41 (JSF y API REST, EJB, JPA) con PostgreSQL. Flujo: reservar, cotizar, pagar, confirmar, autorizar y notificar</td><td>Prueba de navegador, escenarios C y D; recorrido básico (13 verificaciones)</td></tr>
-        <tr><td>Patrones implementados, cada uno con su ADR</td><td>18 ADR en <span class="mono">docs/adr/</span>: 16 de patrones y 2 de seguridad (Tabla 5 y Apéndice A)</td><td>Cada ADR indica su código y su prueba</td></tr>
+        <tr><td>Componentes en capas desplegados y un primer flujo de punta a punta</td><td>Diez componentes (los ocho del dominio, agenda y monitoreo) sobre WildFly 41 (JSF y API REST, EJB, JPA) con PostgreSQL. Flujo: reservar, cotizar, pagar, confirmar, autorizar y notificar</td><td>Prueba de navegador, escenarios C y D; recorrido básico (13 verificaciones)</td></tr>
+        <tr><td>Patrones implementados, cada uno con su ADR</td><td>18 ADR en <span class="mono">docs/adr/</span>: 16 de patrones y 2 de seguridad (Tabla 6 y Apéndice A)</td><td>Cada ADR indica su código y su prueba</td></tr>
         <tr><td>Patrón State en la entidad central con 409 ante una transición inválida</td><td><span class="mono">Turno</span> delega en <span class="mono">EstadoDeTurno</span>; <span class="mono">POST /api/v1/turnos/{id}/cancelacion</span> responde 409 (Parte II)</td><td><span class="mono">TurnoEstadoTest</span>, <span class="mono">MapeadorDeExcepcionesTest</span>, escenario N, Apéndice B</td></tr>
         <tr><td>JWT para autenticar</td><td><span class="mono">POST /api/v1/auth/login</span> y <span class="mono">Authorization: Bearer</span> (Parte I)</td><td><span class="mono">CodificadorJwtTest</span> (8), escenario B (9), Apéndice B</td></tr>
-        <tr><td>Acceso controlado por rol</td><td><span class="mono">@RolesAllowed</span> en los EJB; el rol llega en el JWT o en la sesión web</td><td>Escenarios L, M y N (403)</td></tr>
-        <tr><td>Mensajería funcionando en al menos un proceso</td><td>Tópico <span class="mono">topico.turnos</span> (tres suscriptores) y cola <span class="mono">cola.autorizaciones</span></td><td>Escenarios D, G y H</td></tr>
-        <tr><td>Primeros tests unitarios</td><td>47 pruebas JUnit 5 en 11 clases (Tabla 6)</td><td><span class="mono">mvn package</span>: 47 de 47</td></tr>
+        <tr><td>Acceso controlado por rol</td><td><span class="mono">@RolesAllowed</span> en los EJB; el rol llega en el JWT o en la sesión web</td><td>Escenarios L, M y N; <span class="mono">prueba_cancelacion.py</span></td></tr>
+        <tr><td>Mensajería funcionando en al menos un proceso</td><td>Tópico <span class="mono">topico.turnos</span> (tres suscriptores) y cola <span class="mono">cola.autorizaciones</span></td><td>Escenarios D, F, G y H; <span class="mono">prueba_monitor.py</span></td></tr>
+        <tr><td>Primeros tests unitarios</td><td>70 pruebas JUnit 5 en 16 clases (Tabla 8)</td><td><span class="mono">mvn package</span>: 70 de 70</td></tr>
         <tr><td>Tablero al día</td><td>Trello del grupo (herramienta admitida por el anexo)</td><td>Enlace y estado en la Parte V</td></tr>
-        <tr><td>Feedback del diseño incorporado</td><td>No recibimos una devolución escrita del diseño; registramos las diferencias entre el diseño entregado y lo construido</td><td>Tabla 10</td></tr>
+        <tr><td>Feedback del diseño incorporado</td><td>No recibimos una devolución escrita del diseño; registramos las diferencias entre el diseño entregado y lo construido</td><td>Tabla 12</td></tr>
       </tbody>
     </table>
+  </div>
+
+  <div class="tabla" style="page-break-inside:auto">
+    <div class="num">Tabla 2</div>
+    <div class="tit">Requisitos de la Entrega Obligatoria N.º 2, implementación y evidencia</div>
+    <table class="">
+      <thead><tr><th style="width:27%">Requisito de la consigna</th><th>Dónde se cumple</th><th style="width:27%">Evidencia</th></tr></thead>
+      <tbody>
+        <tr><td>Proceso asincrónico con cola punto a punto</td><td><span class="mono">cola.autorizaciones</span>: la autorización de la prestación ante la obra social, con dos consumidores en competencia, reintentos y cola de mensajes muertos (ADR-0012)</td><td>Escenarios D y G</td></tr>
+        <tr><td>Proceso asincrónico con tópico de publicación y suscripción</td><td><span class="mono">topico.turnos</span>: tres suscriptores durables (notificaciones, auditoría y facturación, esta con selector) (ADR-0011)</td><td>Escenarios D y H; <span class="mono">prueba_monitor.py</span></td></tr>
+        <tr><td>Servicio SOAP con su WSDL, justificado como sistema legado</td><td><span class="mono">CoberturaService</span> de la obra social; cliente generado con wsimport detrás de <span class="mono">CoberturaSoapAdapter</span> (ADR-0007 y 0008)</td><td>Escenarios A, C y G</td></tr>
+        <tr><td>Servicio REST, justificado como partner moderno o API externa</td><td>Pasarela de pagos y videoconsulta como cliente; API <span class="mono">/api/v1</span> propia como servidor</td><td>Escenarios B, C, H, I y N</td></tr>
+        <tr><td>Transacciones declarativas en un flujo crítico de varios pasos</td><td><span class="mono">ProcesoConfirmacionTurno.confirmar</span> (<span class="mono">REQUIRED</span>), con <span class="mono">MANDATORY</span> en el cobro y <span class="mono">REQUIRES_NEW</span> en la bitácora (ADR-0013)</td><td>Escenarios C y F</td></tr>
+        <tr><td>Documento técnico con un diagrama de secuencia por integración</td><td><span class="mono">docs/documento-tecnico/MediConecta_Documento_Tecnico_Entrega4.pdf</span> (Figuras 2 a 7)</td><td>Entregado el 9 de noviembre</td></tr>
+        <tr><td>Defender: demostración que cruce componentes, mensajería y servicios web</td><td>La confirmación de un turno: cuatro componentes, un SOAP, un REST, una cola y un tópico</td><td>Escenarios C y D, en vivo</td></tr>
+        <tr><td>Defender: por qué cada integración es sincrónica o asincrónica</td><td>Tabla 7 de este informe</td><td>—</td></tr>
+        <tr><td>Defender: comportamiento transaccional ante una falla a mitad del flujo</td><td>Falla de demostración después del cobro: rollback de la base y de los mensajes y reembolso compensatorio</td><td>Escenario F, en vivo</td></tr>
+      </tbody>
+    </table>
+    <div class="nota"><em class="etq">Nota.</em> Los escenarios son los de <span class="mono">pruebas/prueba_entrega4.py</span> (Tabla 9), corrida el 15/11/2026.</div>
   </div>
   <h2 id="cambios">Qué se agregó desde el 9 de noviembre</h2>
   <p>Entre la entrega del 9 de noviembre y esta se hicieron los siguientes cambios, todos en el repositorio:</p>
@@ -252,7 +272,9 @@
     <li style="line-height:1.5"><b>La decisión de cancelar pasó del servicio al State.</b> Antes el servicio verificaba el estado antes de llamar a la entidad; ahora sólo verifica la titularidad.</li>
     <li style="line-height:1.5"><b>ADR.</b> Dieciocho registros de decisión en <span class="mono">docs/adr/</span>.</li>
     <li style="line-height:1.5"><b>Row Level Security</b> en las trece tablas de Supabase y cookie de sesión <span class="mono">HttpOnly</span>.</li>
-    <li style="line-height:1.5"><b>Pruebas.</b> Las unitarias pasaron de 34 a 47 y las verificaciones de la prueba de navegador, de 40 a 53. Se agregaron una prueba del vencimiento del hold y un guion de demostración por consola.</li>
+    <li style="line-height:1.5"><b>Pruebas.</b> Las unitarias pasaron de 34 a 70 y las verificaciones de la prueba de integración, de 40 a 58. Se agregaron pruebas del vencimiento del hold, de seguridad, del monitor y de la cancelación por rol, y un guion de demostración por consola.</li>
+    <li style="line-height:1.5"><b>Tarjetas de seguridad y cancelación (14/11).</b> Bloqueo de la cuenta tras cinco intentos fallidos, HTTPS con cookie de sesión <span class="mono">Secure</span> y <span class="mono">SameSite</span>, emails enmascarados en el log, Monitor de eventos (HU-09) y cancelación por el profesional y el administrativo.</li>
+    <li style="line-height:1.5"><b>Falla de demostración del flujo crítico (15/11).</b> El administrativo la arma desde Pagos (<span class="mono">ControlDeDemostracion</span>, <span class="mono">@RolesAllowed</span>); volvió el escenario F de la prueba de integración. Además, la pasarela que responde «pago inexistente» ya no cuenta como caída para el Circuit Breaker.</li>
     <li style="line-height:1.5"><b>Diagramas.</b> Dos secuencias nuevas (autenticación con JWT y transición inválida) y cuatro diagramas actualizados.</li>
   </ul>
 </section>
@@ -272,7 +294,7 @@
 </div>
 
   <div class="tabla" style="page-break-inside:auto">
-    <div class="num">Tabla 2</div>
+    <div class="num">Tabla 3</div>
     <div class="tit">Respuestas de la API según la autenticación</div>
     <table class="">
       <thead><tr><th style="width:36%">Situación</th><th>Respuesta</th><th style="width:24%">Verificación</th></tr></thead>
@@ -291,17 +313,17 @@
   </div>
   <p>La aplicación web (JSF) conserva la sesión del contenedor con su formulario de ingreso. JSF guarda el estado de las vistas en el servidor, de modo que la sesión existe de todos modos; el JWT está donde aporta, en la API, que es sin estado. Los dos caminos pasan por el mismo mecanismo de autenticación y terminan en las mismas anotaciones de rol. Las alternativas evaluadas y las limitaciones (un token no se puede revocar antes de su vencimiento) están en el ADR-0017.</p>
   <h2 id="roles">Control de acceso por rol</h2>
-  <p>El sistema tiene tres roles de usuario (paciente, profesional y administrativo) y uno técnico para los consumidores de mensajes. La barrera real está en los componentes de negocio, operación por operación, con <span class="mono">@RolesAllowed</span>; las vistas sólo acompañan ocultando lo que el rol no puede usar. Donde el rol no alcanza para decidir, el servicio verifica además la titularidad: pedir o cancelar un turno ajeno responde 404, igual que uno inexistente, para no revelar que existe.</p>
+  <p>El sistema tiene tres roles de usuario (paciente, profesional y administrativo) y uno técnico para los consumidores de mensajes. La barrera real está en los componentes de negocio, operación por operación, con <span class="mono">@RolesAllowed</span>; las vistas sólo acompañan ocultando lo que el rol no puede usar. Donde el rol no alcanza para decidir, el servicio verifica además la titularidad: pedir o cancelar un turno ajeno responde 404, igual que uno inexistente, para no revelar que existe. Cinco contraseñas incorrectas seguidas bloquean la cuenta 15 minutos, en la web y en la API, con el mismo mensaje genérico (<span class="mono">ControlDeIngresos</span>, <span class="mono">BloqueoPorIntentosTest</span>).</p>
 
   <div class="tabla" style="page-break-inside:auto">
-    <div class="num">Tabla 3</div>
+    <div class="num">Tabla 4</div>
     <div class="tit">Permisos por rol en las operaciones que se muestran en la demostración</div>
     <table class="">
       <thead><tr><th style="width:40%">Operación</th><th>Paciente</th><th>Profesional</th><th>Administrativo</th></tr></thead>
       <tbody>
         <tr><td>Ver la cartilla y la disponibilidad (API pública)</td><td>Sí</td><td>Sí</td><td>Sí</td></tr>
         <tr><td>Reservar, pagar y confirmar un turno</td><td>Sí</td><td>No</td><td>No</td></tr>
-        <tr><td>Cancelar un turno (<span class="mono">POST /turnos/{id}/cancelacion</span>)</td><td>El propio</td><td>No (403)</td><td>No (403)</td></tr>
+        <tr><td>Cancelar un turno (<span class="mono">POST /turnos/{id}/cancelacion</span>)</td><td>El propio</td><td>Los de su agenda</td><td>Cualquiera</td></tr>
         <tr><td>Consultar turnos por la API (<span class="mono">GET /turnos</span>)</td><td>Los propios</td><td>Los de su agenda</td><td>No (403)</td></tr>
         <tr><td>Publicar disponibilidad</td><td>No</td><td>Sí</td><td>No</td></tr>
         <tr><td>Cargar la historia clínica</td><td>No</td><td>Pacientes con turno confirmado</td><td>No</td></tr>
@@ -311,7 +333,7 @@
   </div>
   <h2 id="otras">Otras medidas de esta entrega</h2>
   <p><b>Row Level Security en la base.</b> Supabase publica el esquema <span class="mono">public</span> por una API propia, y las tablas que crea Hibernate nacen sin RLS: con la clave anónima del proyecto se podían leer sin pasar por la aplicación. El asesor de seguridad de Supabase lo informaba como error crítico. Habilitamos RLS en las trece tablas sin definir políticas, de modo que esa API no devuelve filas; la aplicación se conecta con el rol dueño de las tablas y no cambia (ADR-0018, <span class="mono">sql/02-habilitar-rls.sql</span>). Las pruebas de navegador se corrieron después del cambio.</p>
-  <p><b>Cookie de sesión.</b> La cookie de la sesión web se emite con <span class="mono">HttpOnly</span> y el identificador de sesión ya no puede viajar en la URL. El atributo <span class="mono">Secure</span> no se activó porque el entorno de demostración es HTTP local (ver defectos conocidos).</p>
+  <p><b>HTTPS y cookie de sesión.</b> Desde el 14/11 toda la aplicación exige HTTPS (<span class="mono">transport-guarantee CONFIDENTIAL</span>; un pedido por HTTP se redirige al puerto seguro) y la cookie de sesión se emite con <span class="mono">HttpOnly</span>, <span class="mono">Secure</span> y <span class="mono">SameSite=Lax</span>; el identificador de sesión no puede viajar en la URL. El certificado es el autofirmado que WildFly genera para <span class="mono">localhost</span> (ver defectos conocidos).</p>
 </section>
 <section class="salto">
   <h1 id="p2">Parte II: Patrón State y respuesta 409</h1>
@@ -319,7 +341,7 @@
   <p>El turno es la entidad central del sistema y pasa por cuatro estados: disponible, en espera (hold), confirmado y cancelado. Qué operaciones valen en cada uno no está escrito en los servicios sino en el patrón State: la entidad <span class="mono">Turno</span> guarda el estado como un enumerado y delega cada operación en el objeto de estado asociado. La interfaz <span class="mono">EstadoDeTurno</span> rechaza toda transición por defecto, y cada estado concreto redefine sólo las que admite. Una transición no prevista es imposible aunque un servicio nuevo se olvide de validarla.</p>
 
   <div class="tabla" style="page-break-inside:auto">
-    <div class="num">Tabla 4</div>
+    <div class="num">Tabla 5</div>
     <div class="tit">Operaciones admitidas en cada estado del turno</div>
     <table class="">
       <thead><tr><th>Estado</th><th>reservar</th><th>confirmar</th><th>liberar</th><th>cancelar</th></tr></thead>
@@ -354,10 +376,10 @@
 <section class="salto">
   <h1 id="p3">Parte III: Patrones y decisiones de arquitectura</h1>
   <h2 id="adr">Un ADR por patrón</h2>
-  <p>Cada patrón implementado tiene un registro de decisión de arquitectura en <span class="mono">docs/adr/</span>. Todos siguen la misma estructura: el problema concreto del dominio, la decisión, las alternativas que descartamos y por qué, lo que se gana y lo que se pierde, dónde está en el código y con qué prueba se verifica. La Tabla 5 los resume y el Apéndice A los incluye completos. Los ADR se escribieron para esta entrega a partir del código y de los documentos anteriores; la fecha de cada uno es la de la entrega en la que se tomó la decisión.</p>
+  <p>Cada patrón implementado tiene un registro de decisión de arquitectura en <span class="mono">docs/adr/</span>. Todos siguen la misma estructura: el problema concreto del dominio, la decisión, las alternativas que descartamos y por qué, lo que se gana y lo que se pierde, dónde está en el código y con qué prueba se verifica. La Tabla 6 los resume y el Apéndice A los incluye completos. Los ADR se escribieron para esta entrega a partir del código y de los documentos anteriores; la fecha de cada uno es la de la entrega en la que se tomó la decisión.</p>
 
   <div class="tabla" style="page-break-inside:auto">
-    <div class="num">Tabla 5</div>
+    <div class="num">Tabla 6</div>
     <div class="tit">Registros de decisiones de arquitectura</div>
     <table class="chica">
       <thead><tr><th style="width:7%">ADR</th><th style="width:39%">Decisión</th><th style="width:27%">Patrón</th><th>Verificación principal</th></tr></thead>
@@ -383,22 +405,40 @@
       </tbody>
     </table>
   </div>
-  <h2 id="flujo">Flujo de punta a punta y mensajería</h2>
+  <h2 id="flujo">Flujo de punta a punta, integraciones y transacción</h2>
   <p>El flujo de punta a punta que se muestra en vivo es la confirmación de un turno. El paciente reserva un horario (queda en espera cinco minutos), el sistema consulta la cobertura a la obra social por SOAP y calcula el copago, cobra por REST en la pasarela, confirma el turno, encola el pedido de autorización y publica el evento, todo en una transacción declarativa. Después, sin que el paciente espere, un consumidor de la cola obtiene la autorización del legado y los suscriptores del tópico generan las notificaciones, la auditoría y el reclamo a la obra social.</p>
-  <p>La mensajería funciona en dos procesos: el tópico <span class="mono">topico.turnos</span>, con tres suscriptores durables e idempotentes (ADR-0011), y la cola <span class="mono">cola.autorizaciones</span>, con dos consumidores en competencia, reintentos con espera creciente y cola de mensajes muertos (ADR-0012). El detalle de las integraciones y de las transacciones, con sus diagramas de secuencia, está en el documento técnico del 9 de noviembre (<span class="mono">docs/documento-tecnico/MediConecta_Documento_Tecnico_Entrega4.pdf</span>); no lo repetimos acá.</p>
+  <p>La regla para clasificar cada integración es una sola: es sincrónica cuando quien la inicia necesita la respuesta para continuar, y asincrónica cuando es una consecuencia que puede esperar o que le interesa a más de un componente. Dentro de las sincrónicas, el protocolo lo impone el tercero. La Tabla 7 la aplica a cada integración.</p>
+
+  <div class="tabla" style="page-break-inside:auto">
+    <div class="num">Tabla 7</div>
+    <div class="tit">Por qué cada integración es sincrónica o asincrónica</div>
+    <table class="">
+      <thead><tr><th style="width:22%">Integración</th><th style="width:21%">Tipo y canal</th><th>Justificación</th></tr></thead>
+      <tbody>
+        <tr><td>Validar la cobertura</td><td>Sincrónica · SOAP</td><td>El paciente necesita saber cuánto paga antes de confirmar. La obra social es un sistema legado que sólo expone SOAP, con su WSDL</td></tr>
+        <tr><td>Cobrar el copago</td><td>Sincrónica · REST</td><td>Sin un cobro aprobado no se confirma el turno. La pasarela es un servicio moderno con API REST</td></tr>
+        <tr><td>Crear la sala de videoconsulta</td><td>Sincrónica · REST</td><td>El profesional necesita el enlace en el momento de entrar</td></tr>
+        <tr><td>API <span class="mono">/api/v1</span></td><td>Sincrónica · REST</td><td>La consumen aplicaciones de terceros (un portal de salud, la aplicación de una obra social): pedido y respuesta</td></tr>
+        <tr><td>Autorizar la prestación</td><td>Asincrónica · cola punto a punto</td><td>Cada solicitud la procesa un solo consumidor, una sola vez; el legado puede tardar o estar caído y el paciente no la espera</td></tr>
+        <tr><td>Eventos del turno</td><td>Asincrónica · tópico</td><td>Tres interesados que no se conocen entre sí (notificaciones, auditoría y facturación) reaccionan al mismo evento</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p><b>Falla a mitad del flujo crítico.</b> <span class="mono">ProcesoConfirmacionTurno.confirmar</span> tiene el atributo <span class="mono">REQUIRED</span>: si cualquier paso falla, el contenedor revierte la transacción. La base y el broker participan de esa transacción (el envío JMS usa la fábrica de conexiones XA de WildFly; el datasource es <span class="mono">jta=true</span>), así que el turno vuelve a quedar en espera y ni la solicitud de autorización ni el evento salen. La pasarela es un servicio REST y no puede participar: al aprobarse el cobro, <span class="mono">ServicioDePagosBean.cobrar</span> (<span class="mono">MANDATORY</span>) registra en la transacción una <span class="mono">Synchronization</span> (<span class="mono">CompensacionDePago</span>) que, si la transacción no termina en commit, pide el reembolso. La bitácora de llamadas a los sistemas externos se escribe con <span class="mono">REQUIRES_NEW</span> y sobrevive al rollback.</p>
+  <p>Para mostrarlo en vivo, el administrativo arma desde su pantalla de Pagos una falla de demostración que se dispara en la próxima confirmación, después de todos los pasos y antes del commit. En la corrida del 15/11/2026 (escenario F) el paciente recibió el aviso de la reversión y conservó su reserva, la cantidad de turnos confirmados no cambió, la pasarela registró el cobro como reembolsado con el motivo de la reversión, no se generó ningún aviso de ese turno y, al reintentar, el turno se confirmó. Los diagramas de secuencia de cada integración y de esta falla están en el documento técnico del 9 de noviembre (<span class="mono">docs/documento-tecnico/MediConecta_Documento_Tecnico_Entrega4.pdf</span>).</p>
 </section>
 <section class="salto">
   <h1 id="p4">Parte IV: Pruebas y evidencia</h1>
-  <p>Todas las pruebas de esta parte se ejecutaron el 14/11/2026 sobre la versión que se entrega: las unitarias con <span class="mono">mvn package</span> y las de punta a punta contra la aplicación desplegada en WildFly con la base en Supabase y los tres sistemas externos simulados. El Apéndice C indica cómo repetirlas.</p>
+  <p>Todas las pruebas de esta parte se ejecutaron el 15/11/2026 sobre la versión que se entrega: las unitarias con <span class="mono">mvn package</span> y las de punta a punta contra la aplicación desplegada en WildFly con la base en Supabase y los tres sistemas externos simulados. El Apéndice C indica cómo repetirlas.</p>
   <h2 id="unitarias">Pruebas unitarias</h2>
 
   <div class="tabla" style="page-break-inside:auto">
-    <div class="num">Tabla 6</div>
-    <div class="tit">Pruebas unitarias (JUnit 5): 47 ejecutadas, 47 aprobadas</div>
+    <div class="num">Tabla 8</div>
+    <div class="tit">Pruebas unitarias (JUnit 5): 70 ejecutadas, 70 aprobadas</div>
     <table class="">
       <thead><tr><th style="width:33%">Clase de prueba</th><th style="width:9%">Pruebas</th><th>Qué verifica</th></tr></thead>
       <tbody>
-        <tr><td><span class="mono">MapeadorDeExcepcionesTest</span></td><td>4</td><td>Código HTTP de cada error: <b>409 ante una transición inválida</b>, 401 y 403, y que un 500 no filtre nombres internos</td></tr>
+        <tr><td><span class="mono">MapeadorDeExcepcionesTest</span></td><td>5</td><td>Código HTTP de cada error: <b>409 ante una transición inválida</b>, 404 para un turno ajeno, 401 y 403, y que un 500 no filtre nombres internos</td></tr>
         <tr><td><span class="mono">TurnoEstadoTest</span></td><td>6</td><td>Patrón State: recorrido válido y las <b>doce transiciones inválidas</b>, cada una con su mensaje</td></tr>
         <tr><td><span class="mono">CodificadorJwtTest</span></td><td>8</td><td>JWT: emisión y validación, vencimiento con reloj controlado, rol adulterado, otro secreto, <span class="mono">alg: none</span>, entradas mal formadas</td></tr>
         <tr><td><span class="mono">CircuitBreakerTest</span></td><td>5</td><td>Circuit Breaker: se abre tras las fallas, rechaza abierto, se cierra tras una prueba exitosa</td></tr>
@@ -409,26 +449,32 @@
         <tr><td><span class="mono">CalculoCopagoTest</span></td><td>5</td><td>Strategy: cada cálculo de copago y la elección de la estrategia</td></tr>
         <tr><td><span class="mono">UsuarioFactoryTest</span></td><td>4</td><td>Factory: cada rol crea su subclase</td></tr>
         <tr><td><span class="mono">ValidadorReservaTest</span></td><td>3</td><td>Chain of Responsibility: cada eslabón corta con su mensaje</td></tr>
+        <tr><td><span class="mono">CancelacionPorRolTest</span></td><td>6</td><td>Quién puede cancelar: el paciente los suyos, el profesional los de su agenda, el administrativo cualquiera; el horario se vuelve a ofrecer sólo si cancela el paciente</td></tr>
+        <tr><td><span class="mono">BloqueoPorIntentosTest</span></td><td>6</td><td>Bloqueo de la cuenta tras cinco intentos fallidos y desbloqueo al vencer el plazo</td></tr>
+        <tr><td><span class="mono">EnmascaradorTest</span></td><td>4</td><td>Los emails se escriben enmascarados en el log</td></tr>
+        <tr><td><span class="mono">EventoSinDatosClinicosTest</span></td><td>3</td><td>Los eventos del tópico no llevan datos clínicos</td></tr>
+        <tr><td><span class="mono">HistoriaConTurnoConfirmadoTest</span></td><td>3</td><td>Una entrada de historia clínica exige un turno confirmado con ese profesional</td></tr>
       </tbody>
     </table>
-    <div class="nota"><em class="etq">Nota.</em> Las tres primeras corresponden a los requisitos de esta entrega; <span class="mono">CodificadorJwtTest</span> y <span class="mono">MapeadorDeExcepcionesTest</span> son nuevas, y a <span class="mono">TurnoEstadoTest</span> se le agregó la matriz completa de transiciones. Ninguna necesita el servidor ni la base: prueban las clases de dominio y de seguridad en aislamiento.</div>
+    <div class="nota"><em class="etq">Nota.</em> Las tres primeras corresponden a los requisitos del 16/11; las cinco últimas se agregaron el 14/11; <span class="mono">CodificadorJwtTest</span> y <span class="mono">MapeadorDeExcepcionesTest</span> son nuevas, y a <span class="mono">TurnoEstadoTest</span> se le agregó la matriz completa de transiciones. Ninguna necesita el servidor ni la base: prueban las clases de dominio y de seguridad en aislamiento.</div>
   </div>
   <h2 id="navegador">Pruebas de punta a punta</h2>
-  <p>La prueba <span class="mono">pruebas/prueba_entrega4.py</span> maneja un navegador real (Chrome, con Playwright) y hace además llamadas HTTP directas a la API. En la última corrida aprobó las 53 verificaciones. La Tabla 7 las agrupa por escenario.</p>
+  <p>La prueba <span class="mono">pruebas/prueba_entrega4.py</span> maneja un navegador real (Chrome, con Playwright) y hace además llamadas HTTP directas a la API. En la última corrida aprobó las 58 verificaciones. La Tabla 9 las agrupa por escenario.</p>
 
   <div class="tabla" style="page-break-inside:auto">
-    <div class="num">Tabla 7</div>
-    <div class="tit">Prueba de punta a punta: 53 verificaciones, 53 aprobadas</div>
+    <div class="num">Tabla 9</div>
+    <div class="tit">Prueba de integración de punta a punta: 58 verificaciones, 58 aprobadas</div>
     <table class="">
       <thead><tr><th style="width:7%">Esc.</th><th>Qué recorre</th><th style="width:9%">Verif.</th></tr></thead>
       <tbody>
         <tr><td>A</td><td>Contrato SOAP: WSDL del legado publicado</td><td>1</td></tr>
         <tr><td>B</td><td>API REST: recurso público, <b>login con JWT</b>, 401 sin token, <b>token adulterado y <span class="mono">alg: none</span> rechazados</b>, Basic rechazado, 404 de un turno ajeno</td><td>9</td></tr>
-        <tr><td>L</td><td><b>Control de acceso por rol</b> en vistas, URL y API (403 al administrativo)</td><td>5</td></tr>
+        <tr><td>L</td><td><b>Control de acceso por rol</b> en vistas, URL y API (403 al administrativo en <span class="mono">GET /turnos</span>)</td><td>5</td></tr>
         <tr><td>C</td><td>Flujo crítico: cotización por SOAP, pago rechazado (el turno sigue en espera) y pago aprobado</td><td>4</td></tr>
         <tr><td>D</td><td><b>Mensajería</b>: la cola resuelve la autorización y el tópico genera la notificación y el reclamo</td><td>2</td></tr>
+        <tr><td>F</td><td><b>Falla a mitad del flujo crítico</b>, armada por el administrativo: aviso de la reversión, el turno no queda confirmado, cobro reembolsado en la pasarela, ningún aviso publicado y confirmación al reintentar</td><td>6</td></tr>
         <tr><td>G</td><td>Legado caído: fallback de cobertura y el turno se confirma igual</td><td>2</td></tr>
-        <tr><td>N</td><td><b>Patrón State por HTTP</b>: 401, 403, cancelación válida (200), <b>segunda cancelación 409</b>, turno en espera 409, 404, el horario se vuelve a ofrecer</td><td>9</td></tr>
+        <tr><td>N</td><td><b>Patrón State por HTTP</b>: 401, cancelación válida (200), <b>segunda cancelación 409</b>, turno en espera 409, 404, el horario se vuelve a ofrecer</td><td>8</td></tr>
         <tr><td>H</td><td>Cancelación desde la web: reintegro y anulación del reclamo, asincrónicos</td><td>3</td></tr>
         <tr><td>I</td><td>Telemedicina: sala creada por REST</td><td>3</td></tr>
         <tr><td>J</td><td>Auditoría del acceso a la historia clínica (interceptor)</td><td>1</td></tr>
@@ -437,27 +483,27 @@
       </tbody>
     </table>
   </div>
-  <p>Se corrieron además el recorrido básico <span class="mono">prueba_e2e.py</span> (13 de 13: publicar, reservar, confirmar, cancelar y avisos al profesional), la prueba <span class="mono">prueba_hold_vence.py</span> (5 de 5: un turno reservado y no confirmado volvió a ofrecerse solo a los 347 segundos de la reserva) y el guion <span class="mono">demo_api_jwt_409.py</span>, cuya salida completa está en el Apéndice B.</p>
-  <p>Durante estas corridas encontramos y corregimos un defecto de la propia prueba (el calendario de fecha quedaba abierto y tapaba el botón Publicar) y registramos el problema de usabilidad asociado en la Tabla 9.</p>
+  <p>Se corrieron además, el mismo día: el recorrido básico <span class="mono">prueba_e2e.py</span> (13 de 13: publicar, reservar, confirmar, cancelar y avisos al profesional); <span class="mono">prueba_cancelacion.py</span> (31 de 31: cancelación por el paciente, el profesional, el administrativo y la API, con el 404 para un turno ajeno); <span class="mono">prueba_monitor.py</span> (14 de 14: Monitor de eventos con un suscriptor frenado y recuperado, y la paginación); <span class="mono">prueba_seguridad.py</span> (47 de 47: bloqueo por intentos, HTTPS y cookie, inyección SQL, cola de mensajes muertos con la pasarela caída y su reproceso, historia clínica y logs sin datos sensibles); y el guion <span class="mono">demo_api_jwt_409.py</span>, cuya salida completa está en el Apéndice B. La prueba <span class="mono">prueba_hold_vence.py</span> (5 de 5: un turno reservado y no confirmado volvió a ofrecerse solo a los 347 segundos) se corrió el 14/11 y no se repitió.</p>
+  <p>Las corridas del 15/11 encontraron un defecto real, que corregimos: si se cancelaba un turno cuyo pago la pasarela no conocía (un pago anterior a un reinicio del simulador), el reintegro respondía 404, el adaptador lo contaba como una caída y, tras tres intentos, abría el Circuit Breaker de la pasarela durante 30 segundos, con lo que la confirmación siguiente fallaba. Ahora un «pago inexistente» se trata como una respuesta válida: no abre el circuito, no se reintenta y queda registrado para conciliación manual. Las del 14/11 habían encontrado un defecto de la propia prueba (el calendario de fecha tapaba el botón Publicar), registrado en la Tabla 11.</p>
   <h2 id="trazabilidad">Trazabilidad de las historias de usuario</h2>
-  <p>La Tabla 8 recorre las diez historias de usuario comprometidas en la documentación funcional y, para cada una, indica dónde está implementada, con qué se verificó y en qué estado queda. Usamos tres estados: verificada (hay una prueba automática que cubre sus criterios), verificada en parte (la prueba cubre algunos criterios; el resto se muestra a mano en la demostración) y no disponible.</p>
+  <p>La Tabla 10 recorre las diez historias de usuario comprometidas en la documentación funcional y, para cada una, indica dónde está implementada, con qué se verificó y en qué estado queda. Usamos dos estados: verificada (hay una prueba automática que cubre sus criterios), y verificada en parte (la prueba cubre algunos criterios; el resto se muestra a mano en la demostración).</p>
 
   <div class="tabla" style="page-break-inside:auto">
-    <div class="num">Tabla 8</div>
+    <div class="num">Tabla 10</div>
     <div class="tit">Historias de usuario comprometidas: implementación, verificación y estado</div>
     <table class="chica">
       <thead><tr><th style="width:22%">Historia</th><th style="width:26%">Implementación</th><th>Verificación</th><th style="width:12%">Estado</th></tr></thead>
       <tbody>
         <tr><td>HU-01 Reservar con unos minutos para confirmar</td><td><span class="mono">ServicioDeTurnos.reservarHold</span>; liberación por <span class="mono">@StatefulTimeout</span> y <span class="mono">LiberadorDeHolds</span></td><td><span class="mono">prueba_e2e.py</span> (hold visible); <span class="mono">prueba_hold_vence.py</span> (no se ofrece a otros; se libera solo a los 347 s)</td><td>Verificada</td></tr>
         <tr><td>HU-02 Confirmar y ver que quedó registrado</td><td><span class="mono">ProcesoConfirmacionTurno</span>; notificación por el tópico</td><td><span class="mono">prueba_e2e.py</span> (aparece en Mis turnos en la misma respuesta); escenarios C y D (notificación)</td><td>Verificada</td></tr>
-        <tr><td>HU-03 Cancelar un turno</td><td><span class="mono">ProcesoCancelacionTurno</span> (web y API); evento <span class="mono">TURNO_CANCELADO</span></td><td><span class="mono">prueba_e2e.py</span> (cancela y avisa al profesional); escenario N (el horario vuelve a ofrecerse); escenario H (reintegro)</td><td>Verificada</td></tr>
+        <tr><td>HU-03 Cancelar un turno</td><td><span class="mono">ProcesoCancelacionTurno</span> (web y API); evento <span class="mono">TURNO_CANCELADO</span></td><td><span class="mono">prueba_e2e.py</span> (cancela y avisa al profesional); escenario N (el horario vuelve a ofrecerse); escenario H (reintegro); <span class="mono">prueba_cancelacion.py</span></td><td>Verificada</td></tr>
         <tr><td>HU-04 Ver sólo horarios que todavía se pueden usar</td><td>La consulta de disponibilidad filtra por fecha futura; <span class="mono">VencedorDeDisponibilidad</span> elimina los vencidos</td><td>Escenario N: toda la disponibilidad pública es futura. No hay una prueba que cree un horario pasado (la publicación lo impide)</td><td>Verificada en parte</td></tr>
         <tr><td>HU-05 Consultar mi historia clínica</td><td><span class="mono">ServicioDeHistoriaClinica</span> con titularidad; pantalla Historia clínica</td><td>Escenario J (el paciente entra a su historia y ve quién la consultó). La lectura de una entrada cargada se muestra a mano</td><td>Verificada en parte</td></tr>
         <tr><td>HU-06 Publicar horarios</td><td><span class="mono">ServicioDeTurnos.publicarDisponibilidad</span> (sólo profesional, sólo fecha futura)</td><td><span class="mono">prueba_e2e.py</span>; escenarios C, G e I</td><td>Verificada</td></tr>
         <tr><td>HU-07 Enterarme cuando confirman o cancelan</td><td><span class="mono">NotificacionesSubscriber</span> (tópico) y bandeja con actualización periódica</td><td><span class="mono">prueba_e2e.py</span>: el profesional recibe los dos avisos. La prueba recarga la página; la actualización sin recargar se muestra a mano</td><td>Verificada en parte</td></tr>
-        <tr><td>HU-08 Registrar diagnósticos y recetas</td><td><span class="mono">ServicioDeHistoriaClinica</span> con <span class="mono">@RolesAllowed</span> y regla del turno confirmado</td><td>Sin prueba automática de la carga. Se muestra a mano en la demostración</td><td>Verificada en parte</td></tr>
-        <tr><td>HU-09 Ver si el sistema procesó los avisos (monitor de eventos)</td><td>La pantalla Monitor de eventos se retiró el 31/10</td><td>El procesamiento se observa en Notificaciones, en Pagos y en el log, pero la historia no se cumple como fue escrita (Tabla 9, D-01)</td><td>No disponible</td></tr>
-        <tr><td>HU-10 Que el registro avise si falta un dato</td><td><span class="mono">registro.xhtml</span> y <span class="mono">ServicioDeUsuarios.registrarPaciente</span></td><td>Escenario M (registro correcto). Los mensajes por dato faltante o email repetido se muestran a mano. El registro público ahora es sólo de pacientes (Tabla 10)</td><td>Verificada en parte</td></tr>
+        <tr><td>HU-08 Registrar diagnósticos y recetas</td><td><span class="mono">ServicioDeHistoriaClinica</span> con <span class="mono">@RolesAllowed</span> y regla del turno confirmado</td><td><span class="mono">HistoriaConTurnoConfirmadoTest</span> y <span class="mono">prueba_seguridad.py</span> (sólo con turno confirmado). La carga completa desde la pantalla se muestra a mano</td><td>Verificada en parte</td></tr>
+        <tr><td>HU-09 Ver si el sistema procesó los avisos (monitor de eventos)</td><td>Pantalla Monitor de eventos (paciente y profesional), restituida el 14/11: estado y latencia de cada suscriptor, de a 10 por página</td><td><span class="mono">prueba_monitor.py</span> (14 verificaciones: suscriptor frenado y recuperado, paginación)</td><td>Verificada</td></tr>
+        <tr><td>HU-10 Que el registro avise si falta un dato</td><td><span class="mono">registro.xhtml</span> y <span class="mono">ServicioDeUsuarios.registrarPaciente</span></td><td>Escenario M (registro correcto). Los mensajes por dato faltante o email repetido se muestran a mano. El registro público ahora es sólo de pacientes (Tabla 12)</td><td>Verificada en parte</td></tr>
       </tbody>
     </table>
   </div>
@@ -465,34 +511,32 @@
 <section class="salto">
   <h1 id="p5">Parte V: Estado del proyecto</h1>
   <h2 id="defectos">Defectos y pendientes conocidos</h2>
-  <p>Esta es la lista de defectos, limitaciones y pendientes que conocemos al momento de la entrega. Los ordenamos por severidad. Ninguno impide el flujo principal.</p>
+  <p>Esta es la lista de defectos, limitaciones y pendientes que conocemos al momento de la entrega. Los ordenamos por severidad. Ninguno impide el flujo principal. Conservamos los identificadores de la versión del 14/11: desde entonces se cerraron D-01 (volvió el Monitor de eventos), D-02 (bloqueo de la cuenta tras cinco intentos fallidos), D-07 (el profesional y el administrativo ya pueden cancelar) y D-09 (los emails se enmascaran en el log, con su prueba), y D-04 se redujo al certificado.</p>
 
   <div class="tabla" style="page-break-inside:auto">
-    <div class="num">Tabla 9</div>
+    <div class="num">Tabla 11</div>
     <div class="tit">Defectos y pendientes conocidos</div>
     <table class="chica">
       <thead><tr><th style="width:7%">Id</th><th>Descripción</th><th style="width:11%">Severidad</th><th style="width:33%">Situación</th></tr></thead>
       <tbody>
-        <tr><td>D-01</td><td>La historia HU-09 (monitor de eventos) no está disponible: la pantalla se retiró al simplificar la interfaz</td><td>Media</td><td>Decisión a revisar para la entrega final: restituir una vista mínima o reemplazar la historia con el acuerdo de la cátedra</td></tr>
-        <tr><td>D-02</td><td>No hay bloqueo de la cuenta tras varios intentos fallidos de ingreso (prueba de seguridad SEC-W01 del diseño), ni en la web ni en el login de la API</td><td>Media</td><td>Pendiente. Mitigación actual: mensaje genérico y hash PBKDF2</td></tr>
         <tr><td>D-03</td><td>Un JWT no se puede revocar antes de su vencimiento, y un cambio de rol se ve recién en el token siguiente</td><td>Media</td><td>Limitación aceptada: vigencia de 30 minutos (ADR-0017)</td></tr>
-        <tr><td>D-04</td><td>El entorno de demostración es HTTP sin TLS: la contraseña del login y el token viajan sin cifrar, y la cookie de sesión no lleva <span class="mono">Secure</span> ni <span class="mono">SameSite</span> (SEC-W04, cumplida sólo en <span class="mono">HttpOnly</span>)</td><td>Media</td><td>En producción, TLS en el servidor. Fuera del alcance del entorno local</td></tr>
+        <tr><td>D-06</td><td>Si la confirmación falla después de cobrar y la pasarela también está caída, el reembolso compensatorio no se concreta</td><td>Media</td><td>Queda registrado para conciliación manual (ADR-0013). Mejora prevista: encolarlo para reintentarlo</td></tr>
+        <tr><td>D-13</td><td>Si la pasarela responde que no conoce un pago que hay que reintegrar, el reintegro no se concreta</td><td>Media</td><td>Queda registrado en el log para conciliación manual; el pago no se marca como reembolsado. Encontrado y acotado el 15/11</td></tr>
+        <tr><td>D-04</td><td>El certificado HTTPS es el autofirmado de WildFly para <span class="mono">localhost</span>: el navegador pide aceptarlo la primera vez</td><td>Baja</td><td>En producción, un certificado emitido por una autoridad. La aplicación ya exige HTTPS y la cookie lleva <span class="mono">HttpOnly</span>, <span class="mono">Secure</span> y <span class="mono">SameSite</span></td></tr>
         <tr><td>D-05</td><td>Si no se configura el secreto del JWT, se genera uno por arranque y los tokens no sobreviven a un reinicio</td><td>Baja</td><td>Documentado en <span class="mono">SETUP.md</span>; el servidor lo avisa en el log</td></tr>
-        <tr><td>D-06</td><td>Si la confirmación falla después de cobrar y la pasarela también está caída, el reembolso compensatorio no se concreta</td><td>Media</td><td>Queda registrado para conciliación manual (ADR-0013)</td></tr>
-        <tr><td>D-07</td><td>Sólo el paciente puede cancelar un turno; el diseño preveía que también pudieran el profesional y el administrativo</td><td>Baja</td><td>Pendiente para la entrega final</td></tr>
         <tr><td>D-08</td><td>Al tipear la fecha para publicar disponibilidad, el calendario queda abierto y tapa el botón Publicar hasta que se hace clic fuera</td><td>Baja</td><td>Encontrado en las pruebas del 14/11. Pendiente</td></tr>
-        <tr><td>D-09</td><td>No verificamos que los logs enmascaren el email de los usuarios (SEC-D02 del diseño)</td><td>Baja</td><td>Sin verificar: no afirmamos que se cumpla</td></tr>
-        <tr><td>D-10</td><td>Hibernate crea las tablas nuevas sin Row Level Security</td><td>Baja</td><td>Hay que volver a correr <span class="mono">sql/02-habilitar-rls.sql</span> al agregar entidades</td></tr>
+        <tr><td>D-10</td><td>Hibernate crea las tablas nuevas sin Row Level Security</td><td>Baja</td><td>Hay que volver a correr <span class="mono">sql/02-habilitar-rls.sql</span> al agregar entidades (los cambios del 14/11 agregaron columnas, no tablas)</td></tr>
         <tr><td>D-11</td><td>La base gratuita de Supabase se pausa tras una semana sin uso y la aplicación no despliega hasta reanudarla</td><td>Baja</td><td>Ocurrió el 14/11. Está en la lista de control previa a la demostración</td></tr>
-        <tr><td>D-12</td><td>Sin pruebas automáticas para la carga de la historia clínica ni para los mensajes de validación del registro</td><td>Baja</td><td>Se verifican a mano (Tabla 8)</td></tr>
+        <tr><td>D-12</td><td>Sin pruebas automáticas para la carga completa de la historia clínica desde la pantalla ni para los mensajes de validación del registro</td><td>Baja</td><td>Se verifican a mano (Tabla 10)</td></tr>
+        <tr><td>D-14</td><td>La falla de demostración del flujo crítico es una herramienta de la defensa que vive en la aplicación</td><td>Baja</td><td>Sólo la puede armar el administrativo y se desarma sola; se retira para la entrega final</td></tr>
       </tbody>
     </table>
   </div>
   <h2 id="diseno">Cambios respecto del diseño</h2>
-  <p>No recibimos una devolución escrita del documento de diseño de patrones y seguridad, así que no hay observaciones de la cátedra para incorporar. Lo que sí hicimos fue comparar ese documento con lo construido. La Tabla 10 registra cada diferencia y su motivo, para que el diseño y el código no se contradigan en la defensa.</p>
+  <p>No recibimos una devolución escrita del documento de diseño de patrones y seguridad, así que no hay observaciones de la cátedra para incorporar. Lo que sí hicimos fue comparar ese documento con lo construido. La Tabla 12 registra cada diferencia y su motivo, para que el diseño y el código no se contradigan en la defensa.</p>
 
   <div class="tabla" style="page-break-inside:auto">
-    <div class="num">Tabla 10</div>
+    <div class="num">Tabla 12</div>
     <div class="tit">Diferencias entre el documento de diseño y la implementación</div>
     <table class="chica">
       <thead><tr><th style="width:15%">Tema</th><th style="width:25%">Diseño</th><th style="width:27%">Implementación</th><th>Motivo</th></tr></thead>
@@ -504,7 +548,7 @@
         <tr><td>Facturación</td><td>Selector sobre <span class="mono">TURNO_CONFIRMADO</span> y <span class="mono">TURNO_CANCELADO</span></td><td>Selector sobre <span class="mono">TURNO_AUTORIZADO</span> y <span class="mono">TURNO_CANCELADO</span></td><td>El reclamo a la obra social necesita el código de autorización</td></tr>
         <tr><td>Reintentos de la cola</td><td>3 intentos con 10 s</td><td>8 intentos con espera creciente de 10 a 60 s</td><td>Dar tiempo a que el legado vuelva sin perder el pedido (ADR-0012)</td></tr>
         <tr><td>Roles</td><td>Incluye AUDITOR</td><td>Paciente, profesional, administrativo y el rol técnico SISTEMA</td><td>La auditoría de accesos se le muestra al propio paciente; no hay pantalla de auditor</td></tr>
-        <tr><td>Cancelación</td><td>Paciente, profesional y administrativo</td><td>Sólo el paciente</td><td>Pendiente (D-07)</td></tr>
+        <tr><td>Cancelación</td><td>Paciente, profesional y administrativo</td><td>Igual que el diseño desde el 14/11; el horario se vuelve a ofrecer sólo si cancela el paciente</td><td>Si cancela el profesional o el centro, ese horario ya no está disponible</td></tr>
         <tr><td>Registro</td><td>Pacientes y profesionales</td><td>El registro público crea sólo pacientes; al resto lo da de alta un administrativo</td><td>Un profesional no debe poder autoasignarse el rol</td></tr>
         <tr><td>Nombres</td><td><span class="mono">TurnoFacade</span>, <span class="mono">TurnoService</span></td><td><span class="mono">ServicioDeTurnosBean</span>, <span class="mono">ProcesoConfirmacionTurno</span>, <span class="mono">ProcesoCancelacionTurno</span></td><td>Se mantuvieron los nombres de componentes de la consigna</td></tr>
         <tr><td>Decorator</td><td><span class="mono">PacienteEnmascarado</span>, previsto para la entrega final</td><td>No implementado</td><td>Sigue previsto para la final</td></tr>
@@ -513,10 +557,10 @@
   </div>
   <h2 id="tablero">Tablero y participación</h2>
   <p>El seguimiento del equipo se lleva en Trello, una de las herramientas equivalentes a Jira que admite el anexo: https://trello.com/b/7c84ZN3J/mediconecta-grupo-04. El tablero tiene cuatro columnas (por hacer, en progreso, en revisión y terminado) y los tres integrantes son miembros.</p>
-  <p>El trabajo se repartió por capa de la arquitectura, con un responsable por capa. La Tabla 11 indica qué abarca cada una. El reparto ordena el trabajo, no la defensa: los tres integrantes revisamos el sistema completo y cualquiera puede responder por cualquier parte, incluidas las pruebas.</p>
+  <p>El trabajo se repartió por capa de la arquitectura, con un responsable por capa. La Tabla 13 indica qué abarca cada una. El reparto ordena el trabajo, no la defensa: los tres integrantes revisamos el sistema completo y cualquiera puede responder por cualquier parte, incluidas las pruebas.</p>
 
   <div class="tabla" style="page-break-inside:auto">
-    <div class="num">Tabla 11</div>
+    <div class="num">Tabla 13</div>
     <div class="tit">Reparto del trabajo por capa</div>
     <table class="">
       <thead><tr><th style="width:16%">Capa</th><th style="width:19%">Responsable</th><th>Qué abarca</th></tr></thead>
@@ -528,12 +572,12 @@
       </tbody>
     </table>
   </div>
-  <p>El repositorio Git tiene 26 commits entre el 28 de agosto y el 1 de noviembre, a los que se suman los de esta entrega. El historial muestra la evolución por entregas: componentes y seguridad en septiembre, mensajería en octubre, integraciones y transacciones a fines de octubre y los ajustes de roles en noviembre.</p>
+  <p>El repositorio Git tiene 26 commits entre el 28 de agosto y el 1 de noviembre, a los que se suman los de esta entrega (21 el 14 de noviembre, de dos integrantes). El historial muestra la evolución por entregas: componentes y seguridad en septiembre, mensajería en octubre, integraciones y transacciones a fines de octubre y los ajustes de roles en noviembre.</p>
 </section>
 <section class="salto">
   <h1 id="ia">Declaración de uso de inteligencia artificial generativa</h1>
-  <p>De acuerdo con la consigna, declaramos que en esta entrega usamos Claude, un asistente de inteligencia artificial generativa desarrollado por Anthropic, a través de la herramienta Claude Code. Lo usamos para: revisar el proyecto contra los requisitos de la entrega; implementar la autenticación con JWT, el recurso de cancelación con la respuesta 409 y sus pruebas; redactar los registros de decisión a partir del código existente; habilitar Row Level Security en la base; generar los dos diagramas nuevos; ejecutar las pruebas; y redactar este informe.</p>
-  <p>Ningún resultado de este documento es una afirmación del asistente sin respaldo: cada «verificada» de las tablas corresponde a una prueba que se ejecutó el 14/11/2026 sobre la aplicación desplegada, y el Apéndice B reproduce una salida real. Lo que no se pudo verificar está marcado como tal en las Tablas 8 y 9. El grupo revisó el código y el contenido, y cada integrante está en condiciones de explicar y defender cualquier parte del trabajo, incluidas las pruebas.</p>
+  <p>De acuerdo con la consigna, declaramos que en esta entrega usamos Claude, un asistente de inteligencia artificial generativa desarrollado por Anthropic, a través de la herramienta Claude Code. Lo usamos para: revisar el proyecto contra los requisitos de la entrega; implementar la autenticación con JWT, el recurso de cancelación con la respuesta 409 y sus pruebas; redactar los registros de decisión a partir del código existente; habilitar Row Level Security en la base; implementar las tarjetas de seguridad, el Monitor de eventos y la cancelación por rol; volver a exponer la falla de demostración del flujo crítico; generar los dos diagramas nuevos; ejecutar las pruebas; y redactar este informe, el guion y las diapositivas de la presentación.</p>
+  <p>Ningún resultado de este documento es una afirmación del asistente sin respaldo: cada «verificada» de las tablas corresponde a una prueba que se ejecutó el 15/11/2026 sobre la aplicación desplegada, y el Apéndice B reproduce una salida real. Lo que no se pudo verificar está marcado como tal en las Tablas 10 y 11. El grupo revisó el código y el contenido, y cada integrante está en condiciones de explicar y defender cualquier parte del trabajo, incluidas las pruebas.</p>
 </section>
 <section class="salto">
   <h1 id="apa">Apéndice A: registros de decisiones de arquitectura</h1>
@@ -650,10 +694,10 @@
     <h3>ADR-0013: Transactional Client y transacción compensatoria en la confirmación</h3>
     <p class="meta">Estado: aceptado · Fecha: 09/11/2026 · Patrón: Transactional Client + compensación</p>
     <p><b>Contexto.</b> Confirmar un turno toca la base, dos destinos de mensajería y la pasarela de pagos. Si falla a mitad de camino no puede quedar un turno confirmado sin cobro, ni un cobro sin turno, ni un aviso de algo que no ocurrió.</p>
-    <p><b>Decisión.</b> <span class="mono">ProcesoConfirmacionTurno.confirmar</span> es una transacción JTA declarativa (<span class="mono">REQUIRED</span>). La base y el broker participan como recursos XA: si hay rollback, los datos se revierten y los mensajes no salen. La pasarela es REST y no puede participar: al cobrar se registra una <span class="mono">Synchronization</span> (<span class="mono">CompensacionDePago</span>) que, si la transacción no confirma, pide el reembolso. La bitácora de integraciones usa <span class="mono">REQUIRES_NEW</span> para sobrevivir al rollback.</p>
+    <p><b>Decisión.</b> <span class="mono">ProcesoConfirmacionTurno.confirmar</span> es una transacción JTA declarativa (<span class="mono">REQUIRED</span>). La base y el broker participan de esa transacción (el broker como recurso XA; la base, con un datasource <span class="mono">jta=true</span>, como último recurso): si hay rollback, los datos se revierten y los mensajes no salen. La pasarela es REST y no puede participar: al cobrar se registra una <span class="mono">Synchronization</span> (<span class="mono">CompensacionDePago</span>) que, si la transacción no confirma, pide el reembolso. La bitácora de integraciones usa <span class="mono">REQUIRES_NEW</span> para sobrevivir al rollback.</p>
     <p><b>Alternativas descartadas.</b> Commit en dos fases con la pasarela: un servicio REST no es un recurso XA. Cobrar después de confirmar: dejaría turnos confirmados sin pagar si el cobro falla.</p>
     <p><b>Consecuencias.</b> A favor: ante una falla el sistema vuelve a un estado coherente sin intervención. En contra: si la pasarela también está caída al compensar, el caso queda para conciliación manual (ver defectos conocidos).</p>
-    <p><b>Código.</b> <span class="mono">negocio/ProcesoConfirmacionTurno</span>, <span class="mono">negocio/CompensacionDePago</span>, <span class="mono">mensajeria/PublicadorEventosTurno</span>. <b>Verificación.</b> <span class="mono">prueba_entrega4.py</span> escenario C (pago rechazado: el turno sigue en espera).</p>
+    <p><b>Código.</b> <span class="mono">negocio/ProcesoConfirmacionTurno</span>, <span class="mono">negocio/CompensacionDePago</span>, <span class="mono">mensajeria/PublicadorEventosTurno</span>. <b>Verificación.</b> <span class="mono">prueba_entrega4.py</span> escenario C (pago rechazado: el turno sigue en espera) y escenario F (falla después de cobrar: rollback y reembolso compensatorio).</p>
   </div>
   <div class="adr">
     <h3>ADR-0014: Intercepting Filter para auditar el acceso a la historia clínica</h3>
@@ -703,12 +747,12 @@
 </section>
 <section class="salto">
   <h1 id="apb">Apéndice B: salida de la demostración por consola</h1>
-  <p>Salida de <span class="mono">python pruebas/demo_api_jwt_409.py</span> del 14/11/2026, sin editar. Las líneas que empiezan con «&gt;» son el pedido y las que empiezan con «&lt;», la respuesta. Las respuestas largas están recortadas por el propio guion.</p>
+  <p>Salida de <span class="mono">python pruebas/demo_api_jwt_409.py</span> del 15/11/2026, sin editar. Las líneas que empiezan con «&gt;» son el pedido y las que empiezan con «&lt;», la respuesta. Las respuestas largas están recortadas por el propio guion.</p>
 <pre class="consola">=== 1. Sin token ===
 
 &gt; GET /api/v1/turnos
 &lt; HTTP 401   WWW-Authenticate: Bearer realm=&quot;MediConecta API&quot;
-&lt; {&quot;error&quot;:&quot;no_autenticado&quot;,&quot;estado&quot;:401,&quot;fecha&quot;:&quot;2026-11-14T11:00:36.2762695&quot;,&quot;mensaje&quot;:&quot;Necesitás autenticarte: pedí un token en POST /api/v1/auth/login y envialo como Bearer.&quot;}
+&lt; {&quot;error&quot;:&quot;no_autenticado&quot;,&quot;estado&quot;:401,&quot;fecha&quot;:&quot;2026-11-15T18:17:06.764563&quot;,&quot;mensaje&quot;:&quot;Necesitás autenticarte: pedí un token en POST /api/v1/auth/login y envialo como Bearer.&quot;}
    OK    401 Unauthorized
 
 === 2. Login: email y contraseña por un JWT ===
@@ -716,53 +760,53 @@
 &gt; POST /api/v1/auth/login
 &gt; {&quot;email&quot;: &quot;juan.perez@mediconecta.test&quot;, &quot;password&quot;: &quot;********&quot;}
 &lt; HTTP 401
-&lt; {&quot;error&quot;:&quot;credenciales_invalidas&quot;,&quot;estado&quot;:401,&quot;fecha&quot;:&quot;2026-11-14T11:00:38.3791984&quot;,&quot;mensaje&quot;:&quot;Email o contraseña incorrectos.&quot;}
+&lt; {&quot;error&quot;:&quot;credenciales_invalidas&quot;,&quot;estado&quot;:401,&quot;fecha&quot;:&quot;2026-11-15T18:17:08.9208925&quot;,&quot;mensaje&quot;:&quot;Email o contraseña incorrectos.&quot;}
    OK    contraseña incorrecta: 401
 
 &gt; POST /api/v1/auth/login
 &gt; {&quot;email&quot;: &quot;juan.perez@mediconecta.test&quot;, &quot;password&quot;: &quot;********&quot;}
 &lt; HTTP 200
-&lt; {&quot;expiraEnSegundos&quot;:1800,&quot;rol&quot;:&quot;PACIENTE&quot;,&quot;tipo&quot;:&quot;Bearer&quot;,&quot;token&quot;:&quot;eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJtZWRpY29uZWN0YSIsInN1YiI6Imp1YW4ucGVyZXpAbWVkaWNvbmVjdGEudGVzdCIsInJvbCI6IlBBQ0lFTlRFIiwiaWF0IjoxNzk0NjY0ODQwLCJleHAiOjE3OTQ2NjY2NDAsImp0aSI6IjAxYTJmMDA2LTQwMDEtNGMyNy1hZjM1LWIwMTNmN2Q3MTcwZSJ9.OP-KFIP5gRkeM79x0r_H- ...
+&lt; {&quot;expiraEnSegundos&quot;:1800,&quot;rol&quot;:&quot;PACIENTE&quot;,&quot;tipo&quot;:&quot;Bearer&quot;,&quot;token&quot;:&quot;eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJtZWRpY29uZWN0YSIsInN1YiI6Imp1YW4ucGVyZXpAbWVkaWNvbmVjdGEudGVzdCIsInJvbCI6IlBBQ0lFTlRFIiwiaWF0IjoxNzk0Nzc3NDMxLCJleHAiOjE3OTQ3NzkyMzEsImp0aSI6IjFiYTQ4ZTgxLTc5MmYtNDgwZi1iZGU5LTBmOWM4ZDhkMDJhMCJ9.KaLcdmxalwQf_AUhzgCzo ...
    OK    credenciales válidas: 200 con el token
    cabecera  : {&quot;alg&quot;:&quot;HS256&quot;,&quot;typ&quot;:&quot;JWT&quot;}
-   contenido : {&quot;iss&quot;:&quot;mediconecta&quot;,&quot;sub&quot;:&quot;juan.perez@mediconecta.test&quot;,&quot;rol&quot;:&quot;PACIENTE&quot;,&quot;iat&quot;:1794664840,&quot;exp&quot;:1794666640,&quot;jti&quot;:&quot;01a2f006-4001-4c27-af35-b013f7d7170e&quot;}
-   firma     : OP-KFIP5gRkeM79x0r_H-ClqCSmHUSzQjsSTcFmAVd0 (HMAC-SHA256 con el secreto del servidor)
+   contenido : {&quot;iss&quot;:&quot;mediconecta&quot;,&quot;sub&quot;:&quot;juan.perez@mediconecta.test&quot;,&quot;rol&quot;:&quot;PACIENTE&quot;,&quot;iat&quot;:1794777431,&quot;exp&quot;:1794779231,&quot;jti&quot;:&quot;1ba48e81-792f-480f-bde9-0f9c8d8d02a0&quot;}
+   firma     : KaLcdmxalwQf_AUhzgCzoKmiu4525No2hOMeIbarpLQ (HMAC-SHA256 con el secreto del servidor)
 
 === 3. Con el token ===
 
 &gt; GET /api/v1/turnos   [Authorization: Bearer eyJhbGciOiJIUzI1Ni...]
 &lt; HTTP 200
-&lt; [{&quot;autorizacion&quot;:&quot;AUTORIZADA&quot;,&quot;cobertura&quot;:&quot;CUBIERTA&quot;,&quot;codigoAutorizacion&quot;:&quot;AUT-100052&quot;,&quot;especialidad&quot;:&quot;Cardiologia&quot;,&quot;estado&quot;:&quot;CANCELADO&quot;,&quot;fechaHora&quot;:&quot;2026-12-11T13:25:00&quot;,&quot;id&quot;:52,&quot;importePaciente&quot;:7680.00,&quot;modalidad&quot;:&quot;TELEMEDICINA&quot;,&quot;paciente&quot;:&quot;Juan Perez&quot;,&quot;profesional&quot;:&quot;Dra. Ana Lopez&quot;,&quot;salaVideoconsulta&quot;:&quot;http://localhost:8080/ ...
+&lt; [{&quot;autorizacion&quot;:&quot;AUTORIZADA&quot;,&quot;cobertura&quot;:&quot;CUBIERTA&quot;,&quot;codigoAutorizacion&quot;:&quot;AUT-100018&quot;,&quot;especialidad&quot;:&quot;Cardiologia&quot;,&quot;estado&quot;:&quot;CANCELADO&quot;,&quot;fechaHora&quot;:&quot;2026-12-21T15:55:00&quot;,&quot;id&quot;:186,&quot;importePaciente&quot;:7680.00,&quot;modalidad&quot;:&quot;TELEMEDICINA&quot;,&quot;paciente&quot;:&quot;Juan Perez&quot;,&quot;profesional&quot;:&quot;Dra. Ana Lopez&quot;,&quot;salaVideoconsulta&quot;:&quot;http://localhost:8080 ...
    OK    200 con los turnos del paciente
 
 &gt; GET /api/v1/turnos   [Authorization: Bearer eyJhbGciOiJIUzI1Ni...]
 &lt; HTTP 401   WWW-Authenticate: Bearer realm=&quot;MediConecta API&quot;, error=&quot;invalid_token&quot;
-&lt; {&quot;error&quot;:&quot;token_invalido&quot;,&quot;estado&quot;:401,&quot;fecha&quot;:&quot;2026-11-14T11:00:44.9797379&quot;,&quot;mensaje&quot;:&quot;El token es inválido o venció: pedí uno nuevo en POST /api/v1/auth/login.&quot;}
+&lt; {&quot;error&quot;:&quot;token_invalido&quot;,&quot;estado&quot;:401,&quot;fecha&quot;:&quot;2026-11-15T18:17:15.7025797&quot;,&quot;mensaje&quot;:&quot;El token es inválido o venció: pedí uno nuevo en POST /api/v1/auth/login.&quot;}
    OK    token con el rol cambiado a mano (la firma ya no coincide): 401
 
 === 4. Control de acceso por rol ===
 
 &gt; GET /api/v1/turnos   [Authorization: Bearer eyJhbGciOiJIUzI1Ni...]
 &lt; HTTP 403
-&lt; {&quot;error&quot;:&quot;prohibido&quot;,&quot;estado&quot;:403,&quot;fecha&quot;:&quot;2026-11-14T11:00:49.2429308&quot;,&quot;mensaje&quot;:&quot;Tu rol no tiene permiso para esta operación.&quot;}
+&lt; {&quot;error&quot;:&quot;prohibido&quot;,&quot;estado&quot;:403,&quot;fecha&quot;:&quot;2026-11-15T18:17:20.0229469&quot;,&quot;mensaje&quot;:&quot;Tu rol no tiene permiso para esta operación.&quot;}
    OK    token válido de ADMINISTRATIVO en un recurso de PACIENTE/PROFESIONAL: 403
 
 === 5. Patrón State: transición inválida = 409 ===
 
-&gt; POST /api/v1/turnos/51/cancelacion   [Authorization: Bearer eyJhbGciOiJIUzI1Ni...]
+&gt; POST /api/v1/turnos/193/cancelacion   [Authorization: Bearer eyJhbGciOiJIUzI1Ni...]
 &lt; HTTP 200
-&lt; {&quot;autorizacion&quot;:&quot;AUTORIZADA&quot;,&quot;cobertura&quot;:&quot;CUBIERTA&quot;,&quot;codigoAutorizacion&quot;:&quot;AUT-100049&quot;,&quot;especialidad&quot;:&quot;Cardiologia&quot;,&quot;estado&quot;:&quot;CANCELADO&quot;,&quot;fechaHora&quot;:&quot;2026-12-10T13:55:00&quot;,&quot;id&quot;:51,&quot;importePaciente&quot;:9600.00,&quot;modalidad&quot;:&quot;PRESENCIAL&quot;,&quot;paciente&quot;:&quot;Juan Perez&quot;,&quot;profesional&quot;:&quot;Dra. Ana Lopez&quot;}
+&lt; {&quot;autorizacion&quot;:&quot;AUTORIZADA&quot;,&quot;cobertura&quot;:&quot;CUBIERTA&quot;,&quot;codigoAutorizacion&quot;:&quot;AUT-100011&quot;,&quot;especialidad&quot;:&quot;Cardiologia&quot;,&quot;estado&quot;:&quot;CANCELADO&quot;,&quot;fechaHora&quot;:&quot;2026-12-04T18:55:00&quot;,&quot;id&quot;:193,&quot;importePaciente&quot;:7680.00,&quot;modalidad&quot;:&quot;TELEMEDICINA&quot;,&quot;paciente&quot;:&quot;Juan Perez&quot;,&quot;profesional&quot;:&quot;Dra. Ana Lopez&quot;,&quot;salaVideoconsulta&quot;:&quot;http://localhost:8080/ ...
    OK    CONFIRMADO -&gt; CANCELADO: 200
 
-&gt; POST /api/v1/turnos/51/cancelacion   [Authorization: Bearer eyJhbGciOiJIUzI1Ni...]
+&gt; POST /api/v1/turnos/193/cancelacion   [Authorization: Bearer eyJhbGciOiJIUzI1Ni...]
 &lt; HTTP 409
-&lt; {&quot;error&quot;:&quot;transicion_invalida&quot;,&quot;estado&quot;:409,&quot;fecha&quot;:&quot;2026-11-14T11:00:53.8514715&quot;,&quot;mensaje&quot;:&quot;No se puede cancelar un turno cancelado.&quot;}
+&lt; {&quot;error&quot;:&quot;transicion_invalida&quot;,&quot;estado&quot;:409,&quot;fecha&quot;:&quot;2026-11-15T18:17:24.5958772&quot;,&quot;mensaje&quot;:&quot;No se puede cancelar un turno cancelado.&quot;}
    OK    cancelar un turno ya cancelado: 409 transicion_invalida
 
-&gt; POST /api/v1/turnos/51/cancelacion   [Authorization: Bearer eyJhbGciOiJIUzI1Ni...]
-&lt; HTTP 403
-&lt; {&quot;error&quot;:&quot;prohibido&quot;,&quot;estado&quot;:403,&quot;fecha&quot;:&quot;2026-11-14T11:00:55.8944926&quot;,&quot;mensaje&quot;:&quot;Tu rol no tiene permiso para esta operación.&quot;}
-   OK    el administrativo no puede cancelar: 403
+&gt; POST /api/v1/turnos/193/cancelacion   [Authorization: Bearer eyJhbGciOiJIUzI1Ni...]
+&lt; HTTP 409
+&lt; {&quot;error&quot;:&quot;transicion_invalida&quot;,&quot;estado&quot;:409,&quot;fecha&quot;:&quot;2026-11-15T18:17:26.7700745&quot;,&quot;mensaje&quot;:&quot;No se puede cancelar un turno cancelado.&quot;}
+   OK    otro rol con permiso (administrativo) recibe el mismo 409: decide el estado, no quién pide
 
 RESULTADO: TODO OK</pre>
 </section>
@@ -770,12 +814,15 @@ RESULTADO: TODO OK</pre>
   <h1 id="apc">Apéndice C: cómo reproducir las pruebas</h1>
   <p>Con WildFly levantado (perfil <span class="mono">standalone-full</span>), los dos WAR desplegados y la base de Supabase activa, según <span class="mono">SETUP.md</span>:</p>
 <pre class="consola" style="font-size:8.6pt">mvn package                                  # compila y corre las pruebas unitarias
-python pruebas/prueba_entrega4.py            # punta a punta con navegador (unos 3 minutos)
+python pruebas/prueba_entrega4.py            # integración de punta a punta (unos 4 minutos)
 python pruebas/prueba_e2e.py                 # recorrido básico
+python pruebas/prueba_cancelacion.py         # cancelación por rol y por la API
+python pruebas/prueba_monitor.py             # Monitor de eventos (necesita WILDFLY_HOME)
+python pruebas/prueba_seguridad.py           # pruebas de seguridad (necesita WILDFLY_HOME)
 python pruebas/prueba_hold_vence.py          # vencimiento del hold (unos 6 minutos)
 python pruebas/demo_api_jwt_409.py           # guion de la demostración: JWT, 401, 403 y 409
 python pruebas/demo_api_jwt_409.py --sin-cancelar   # lo mismo sin modificar datos</pre>
-  <p>Las pruebas de navegador necesitan Google Chrome y <span class="mono">pip install playwright</span>. Usan los usuarios de demostración y dejan datos de prueba en la base. El contrato de la API, con los ejemplos para curl, está en <span class="mono">docs/api/README.md</span>.</p>
+  <p>La aplicación corre en <span class="mono">https://localhost:8443/mediconecta/</span>. Las pruebas de navegador necesitan Google Chrome y <span class="mono">pip install playwright</span>. Usan los usuarios de demostración y dejan datos de prueba en la base. El contrato de la API, con los ejemplos para curl, está en <span class="mono">docs/api/README.md</span>.</p>
 </section>
 </body>
 </html>

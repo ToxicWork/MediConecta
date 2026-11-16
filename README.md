@@ -103,6 +103,16 @@ defectos D-01, D-02, D-04, D-07 y D-09 del informe del 16/11.
   **Turnos** del administrativo (de a tandas, con filtro por profesional). El turno registra quién lo canceló,
   los avisos lo dicen y el horario no se vuelve a ofrecer (sí cuando cancela el paciente). También por la API.
 
+**Presentación del 16/11 (15/11)**: revisión contra la consigna de la Entrega Obligatoria N.º 2.
+
+- **Falla a mitad del flujo crítico, en vivo**: el administrativo la arma desde **Pagos** («Armar falla antes del
+  commit», `ControlDeDemostracion` con `@RolesAllowed`). La próxima confirmación falla después de cobrar y antes
+  del commit: la base y los mensajes se revierten y el cobro se reembolsa (escenario F de `prueba_entrega4.py`).
+- **Pago inexistente en la pasarela**: un 404 al reintegrar ya no cuenta como caída para el Circuit Breaker ni se
+  reintenta; queda en el log para conciliación manual.
+- Guion y diapositivas nuevos (`docs/entrega-nucleo/`, con `generar_presentacion.py`), informe actualizado y
+  documento técnico de la Obligatoria N.º 2 llevado a la extensión de la consigna.
+
 - **Sistemas externos simulados** (`sistemas-externos/`, se despliega como `externos.war`): la obra
   social (SOAP), la pasarela y la videoconsulta (REST), con una consola para tirarlos abajo en vivo.
 
@@ -145,7 +155,8 @@ defectos D-01, D-02, D-04, D-07 y D-09 del informe del 16/11.
   - [`pruebas/prueba_cancelacion.py`](pruebas/prueba_cancelacion.py): cancelación por el profesional, el
     administrativo, el paciente y la API.
   - [`pruebas/prueba_entrega4.py`](pruebas/prueba_entrega4.py): verificaciones de punta a punta
-    (SOAP, API REST con JWT, transición inválida con 409, pago rechazado y aprobado, cola, legado caído, cancelación con reintegro,
+    (SOAP, API REST con JWT, transición inválida con 409, pago rechazado y aprobado, cola, falla a mitad del flujo con
+    rollback y reembolso, legado caído, cancelación con reintegro,
     telemedicina, auditoría, temas, roles y alta de usuarios con contraseña temporal).
   - [`pruebas/prueba_e2e.py`](pruebas/prueba_e2e.py): 13 verificaciones del recorrido básico.
   - [`pruebas/prueba_hold_vence.py`](pruebas/prueba_hold_vence.py): el hold de 5 minutos vence solo (tarda

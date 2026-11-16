@@ -109,6 +109,27 @@
                     </h:panelGroup>
                 </h:panelGroup>
             </h:panelGroup>
+
+            <h:panelGroup id="panelFalla" layout="block" styleClass="card" rendered="#{loginBean.administrativo}">
+                <div class="card-header">
+                    <div>
+                        <h3>Demostración: falla a mitad del flujo crítico</h3>
+                        <div class="subtle">La próxima confirmación de un turno con copago falla después de cobrar, encolar y publicar, justo antes del commit</div>
+                    </div>
+                    <h:outputText id="estadoFalla" value="#{pagosBean.fallaArmada ? 'Falla armada' : 'Normal'}"
+                                  styleClass="tag #{pagosBean.fallaArmada ? 'tag-danger' : 'tag-success'}"/>
+                </div>
+                <p class="texto-tenue">
+                    Qué se ve: el paciente recibe el aviso de la reversión y conserva su reserva; el turno, el pago, la
+                    solicitud de autorización y los eventos no quedan en la base ni salen del broker (rollback de la
+                    transacción); y en la consola de la pasarela el cobro figura reembolsado (compensación). Se desarma
+                    sola después de disparar.
+                </p>
+                <p:commandButton id="armarFalla" value="Armar falla antes del commit" action="#{pagosBean.armarFalla}"
+                                 update="panelFalla :mensajes" styleClass="btn btn-warning" rendered="#{not pagosBean.fallaArmada}"/>
+                <p:commandButton id="desarmarFalla" value="Desarmar" action="#{pagosBean.desarmarFalla}"
+                                 update="panelFalla" styleClass="btn btn-secondary" rendered="#{pagosBean.fallaArmada}"/>
+            </h:panelGroup>
         </h:form>
     </ui:define>
 </ui:composition>

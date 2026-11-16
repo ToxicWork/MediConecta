@@ -99,10 +99,18 @@ public class ServicioDePagosBean implements ServicioDePagos {
         if (pago.isEmpty()) {
             return;
         }
+        ResultadoCobro resultado;
         try {
-            pasarela.reembolsar(pago.get().getIdPasarela(), motivo, "turno-" + turnoId);
+            resultado = pasarela.reembolsar(pago.get().getIdPasarela(), motivo, "turno-" + turnoId);
         } catch (IntegracionNoDisponibleException falla) {
             throw new PasarelaNoDisponibleException();
+        }
+        if (resultado.inexistente()) {
+            // La pasarela está en línea pero no conoce el pago: reintentar no lo arregla. El pago no se marca como
+            // reembolsado y queda para conciliación manual, sin devolver el mensaje al broker ni abrir el circuito.
+            LOG.warning("La pasarela no conoce el pago " + pago.get().getIdPasarela() + " del turno " + turnoId
+                    + ": el reintegro requiere conciliación manual.");
+            return;
         }
         pago.get().marcarReembolsado(motivo);
     }
