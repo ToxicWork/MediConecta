@@ -37,6 +37,7 @@ turno cancelado de la Dra. Ana Lopez. No toca los usuarios de demo.
 """
 import http.client as cliente_http
 import base64, json, os, random, re, subprocess, sys, time, urllib.error, urllib.request
+from datetime import date, timedelta
 from playwright.sync_api import sync_playwright
 import ssl
 # MediConecta corre por HTTPS con el certificado autofirmado que WildFly genera para localhost (SEC-W04):
@@ -190,9 +191,14 @@ def registrar_paciente(br, email, clave, nombre="Paciente Seguridad"):
     pg.context.close()
 
 
+def dia_desde_hoy(dias):
+    """Un día a tantos días de hoy ("dd/mm/aaaa"): la prueba no depende de la fecha en que se corre."""
+    return (date.today() + timedelta(days=dias)).strftime("%d/%m/%Y")
+
+
 def fecha_libre():
-    """Un horario de diciembre al azar, lejos de los que usan las otras pruebas (días 1 a 6)."""
-    return "%02d/12/2026 %02d:%02d" % (random.randint(20, 28), random.randint(7, 19), random.randint(0, 59))
+    """Un horario al azar a 32-40 días de hoy, lejos de los que usan las otras pruebas."""
+    return "%s %02d:%02d" % (dia_desde_hoy(random.randint(32, 40)), random.randint(7, 19), random.randint(0, 59))
 
 
 def publicar_horario(br, fecha):

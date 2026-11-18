@@ -11,6 +11,7 @@ Uso:  python pruebas/prueba_hold_vence.py
 """
 import os
 import json, random, sys, time, urllib.request
+from datetime import date, timedelta
 from playwright.sync_api import sync_playwright
 import ssl
 # MediConecta corre por HTTPS con el certificado autofirmado que WildFly genera para localhost (SEC-W04):
@@ -55,9 +56,14 @@ def login(br, email):
 ana = next(p["id"] for p in api("profesionales") if "Ana Lopez" in p["nombre"])
 
 
+def dia_desde_hoy(dias):
+    """Un día a tantos días de hoy ("dd/mm/aaaa"): la prueba no depende de la fecha en que se corre."""
+    return (date.today() + timedelta(days=dias)).strftime("%d/%m/%Y")
+
+
 def elegir_fecha():
     global fecha, dia, hora, iso
-    fecha = "%02d/12/2026 %02d:%02d" % (random.randint(14, 28), random.randint(7, 19), random.randint(0, 59))
+    fecha = "%s %02d:%02d" % (dia_desde_hoy(random.randint(26, 40)), random.randint(7, 19), random.randint(0, 59))
     dia, hora = fecha.split(" ")
     iso = "%s-%s-%sT%s" % (dia[6:], dia[3:5], dia[:2], hora)
 

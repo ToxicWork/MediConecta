@@ -21,15 +21,21 @@ que ya empezó) y D-21 (el paciente confirma antes de cancelar) están en prueba
         perfil se abre desde la tarjeta del usuario (no se repite en el menú).
   D-36. Dos pacientes reservan el mismo horario al mismo tiempo: uno se lo queda y al otro se le dice que ya no está
         disponible; ninguno ve un error.
+  D-36 (paso 1). El paciente cancela mientras otra transacción modifica el mismo turno, como la autorización de la
+        obra social: la cancelación la espera y cancela sobre la versión nueva, sin error 500. Necesita WILDFLY_HOME
+        (lee el datasource de MediConecta y usa el driver de PostgreSQL de WildFly) y Java; sin WILDFLY_HOME se omite.
+  D-38. La pantalla Pagos del administrativo (su página de inicio) abre en pocos segundos aunque haya cientos de
+        cobros y reclamos: cada listado sale en una sola consulta, no una por fila.
 
 Requisitos: WildFly levantado (perfil standalone-full) con mediconecta.war y externos.war desplegados, Google
 Chrome (o Edge con NAVEGADOR=msedge) y  pip install playwright
 Uso:  python pruebas/prueba_defectos.py
 Deja en la base un paciente de prueba por corrida (defectos.NNNNN@mediconecta.test, OSDE) con dos turnos confirmados
-y los horarios publicados en diciembre con la Dra. Ana Lopez. Tarda unos 2 minutos: en D-20 espera que se cierre el
+(y uno cancelado) y los horarios publicados a 33-39 días de hoy con la Dra. Ana Lopez. Tarda unos 2 minutos: en D-20 espera que se cierre el
 Circuit Breaker de la obra social.
 """
-import json, os, random, re, ssl, sys, time, urllib.request
+import glob, json, os, random, re, ssl, subprocess, sys, time, urllib.error, urllib.request
+from datetime import date, timedelta
 from playwright.sync_api import sync_playwright
 
 urllib.request.install_opener(urllib.request.build_opener(
@@ -42,7 +48,10 @@ except AttributeError:
 B = "https://localhost:8443/mediconecta/"
 EXT = "http://localhost:8080/externos/"
 PROFESIONAL = "ana.lopez@mediconecta.test"
+ADMINISTRATIVO = "carla.admin@mediconecta.test"
 NAVEGADOR = os.environ.get("NAVEGADOR", "chrome")
+WILDFLY_HOME = os.environ.get("WILDFLY_HOME")
+BLOQUEO = os.path.join(os.path.dirname(os.path.abspath(__file__)), "BloqueoExterno.java")
 DIAS = ("lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo")
 DAYS = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
 ok = True
@@ -58,6 +67,35 @@ def consola(**modos):
     pedido = urllib.request.Request(EXT + "api/consola/estado", method="PUT", data=json.dumps(modos).encode(),
                                     headers={"Content-Type": "application/json"})
     urllib.request.urlopen(pedido, timeout=10)
+
+
+def api(ruta, metodo="GET", cuerpo=None, token=None):
+    pedido = urllib.request.Request(B + "api/v1/" + ruta, method=metodo,
+                                    data=(b"" if metodo == "POST" else None) if cuerpo is None else json.dumps(cuerpo).encode())
+    pedido.add_header("Content-Type", "application/json")
+    if token:
+        pedido.add_header("Authorization", "Bearer " + token)
+    try:
+        with urllib.request.urlopen(pedido, timeout=30) as respuesta:
+            return respuesta.status, json.loads(respuesta.read().decode() or "null")
+    except urllib.error.HTTPError as error:
+        return error.code, json.loads(error.read().decode() or "null")
+
+
+def datasource_de_wildfly():
+    """URL, usuario y contraseña del datasource de MediConecta, leídos de la configuración de WildFly (no se imprimen)."""
+    try:
+        with open(os.path.join(WILDFLY_HOME, "standalone", "configuration", "standalone-full.xml"), encoding="utf-8") as xml:
+            configuracion = xml.read()
+        bloque = configuracion[configuracion.index('jndi-name="java:/mediconectaDS"'):]
+    except (OSError, ValueError):
+        return None
+    url = re.search(r"<connection-url>([^<]+)</connection-url>", bloque)
+    credenciales = re.search(r'<security user-name="([^"]+)" password="([^"]+)"', bloque)
+    drivers = glob.glob(os.path.join(WILDFLY_HOME, "modules", "org", "postgresql", "main", "*.jar"))
+    if not (url and credenciales and drivers):
+        return None
+    return drivers[0], {"MC_URL": url.group(1), "MC_USUARIO": credenciales.group(1), "MC_CLAVE": credenciales.group(2)}
 
 
 def pagina(br):
@@ -78,9 +116,14 @@ def mensajes(pg):
     return pg.locator(".ui-growl-message").all_inner_texts()
 
 
+def dia_desde_hoy(dias):
+    """Un día a tantos días de hoy ("dd/mm/aaaa"): la prueba no depende de la fecha en que se corre."""
+    return (date.today() + timedelta(days=dias)).strftime("%d/%m/%Y")
+
+
 def fecha_al_azar():
-    """Un horario de fines de diciembre, lejos de los días que usan las otras pruebas."""
-    return "%02d/12/2026 %02d:%02d" % (random.randint(21, 27), random.randint(7, 19), random.randint(0, 59))
+    """Un horario a 33-39 días de hoy, lejos de los días que usan las otras pruebas."""
+    return "%s %02d:%02d" % (dia_desde_hoy(random.randint(33, 39)), random.randint(7, 19), random.randint(0, 59))
 
 
 def publicar_libre(prof, modalidad="Presencial"):
@@ -424,6 +467,53 @@ with sync_playwright() as p:
         with otro.expect_navigation():
             otro.click("#formConfirmacion button:has-text('Liberar turno')")
     otro.context.close()
+
+    # ---- D-36 (paso 1). Otra transacción modifica el turno mientras el paciente cancela ----------------------
+    # Como la autorización asincrónica de la obra social: otra transacción sube la versión del turno y lo retiene 3 s.
+    # La cancelación tiene que esperarla y cancelar sobre la versión nueva (con Hibernate 7, em.find con
+    # PESSIMISTIC_WRITE bloqueaba la fila después de leer el turno y el commit terminaba en un error 500).
+    datasource = datasource_de_wildfly() if WILDFLY_HOME else None
+    if datasource is None:
+        print("-- D-36 (paso 1): se omite; necesita WILDFLY_HOME con el datasource de MediConecta configurado")
+    else:
+        print("-- D-36 (paso 1). El paciente cancela mientras otra transacción modifica el mismo turno")
+        f6 = publicar_libre(prof)
+        reservar(pac, f6)
+        tarjeta(pac)
+        check("D-36. el paciente confirma un tercer turno", "Turno confirmado" in pagar(pac))
+        token_paciente = api("auth/login", "POST", {"email": email, "password": "demo1234"})[1]["token"]
+        dia, hora = f6.split(" ")
+        iso = "%s-%s-%sT%s" % (dia[6:], dia[3:5], dia[:2], hora)
+        turno = next(t["id"] for t in api("turnos", token=token_paciente)[1]
+                     if t["fechaHora"].startswith(iso) and t["estado"] == "CONFIRMADO")
+        time.sleep(8)  # que termine la autorización de la obra social: compiten sólo la otra transacción y la cancelación
+        driver, credenciales = datasource
+        otra = subprocess.Popen(["java", "-cp", driver, BLOQUEO, str(turno), "3000"], env={**os.environ, **credenciales},
+                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        retenido = otra.stdout.readline().strip() == "bloqueado 1"
+        inicio = time.time()
+        estado, cuerpo = api("turnos/%d/cancelacion" % turno, "POST", token=token_paciente)
+        demora = time.time() - inicio
+        otra.wait(30)
+        check("D-36. la otra transacción modificó el turno y lo retuvo mientras el paciente cancelaba", retenido)
+        check("D-36. la cancelación la espera (%.1f s) y cancela sobre la versión nueva, sin error 500 (%d)" % (demora, estado),
+              estado == 200 and isinstance(cuerpo, dict) and cuerpo.get("estado") == "CANCELADO" and demora >= 2)
+
+    # ---- D-38. La pantalla Pagos del administrativo con cientos de filas ---------------------------------
+    # Antes cada fila leía su turno con una consulta aparte (N+1): con 355 cobros y 165 reclamos tardaba 30 s.
+    print("-- D-38. La pantalla Pagos del administrativo")
+    adm = pagina(br)
+    adm.goto(B + "login.xhtml")
+    adm.fill("#formLogin\\:email", ADMINISTRATIVO)
+    adm.fill("#formLogin\\:password", "demo1234")
+    inicio = time.time()
+    with adm.expect_navigation(timeout=120000):
+        adm.click("#formLogin button:has-text('Ingresar')")
+    demora = time.time() - inicio
+    cobros = adm.locator("[id$='tablaPagos'] tbody tr").count()
+    check("D-38. el administrativo entra a Pagos en pocos segundos (%.1f s, %d cobros)" % (demora, cobros),
+          "pagos.xhtml" in adm.url and cobros > 0 and demora < 10)
+    adm.context.close()
 
     # ---- D-24, D-27 y D-28. Pantallas ---------------------------------------------------------------
     print("-- D-24, D-27 y D-28. Pantallas")

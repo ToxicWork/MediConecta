@@ -3,3 +3,7 @@ sistemas-externos/target/
 wildfly/*.local.cli
 .DS_Store
 docs/**/*.tmp.html
+
+# Bytecode de Python que generan las pruebas al correr
+__pycache__/
+*.pyc

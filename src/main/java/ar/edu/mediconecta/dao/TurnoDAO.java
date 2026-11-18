@@ -26,17 +26,36 @@ public class TurnoDAO {
     }
 
     /**
-     * Lee el turno y bloquea su fila hasta el fin de la transacción (SELECT ... FOR UPDATE). Lo usan las operaciones
-     * que lo modifican: si otra lo está modificando, ésta espera y lee la versión nueva, en lugar de chocar al hacer el
-     * commit con el bloqueo optimista (@Version) y terminar en un error 500 (D-36).
+     * Lee el turno y bloquea su fila hasta el fin de la transacción (SELECT ... FOR NO KEY UPDATE). Lo usan las
+     * operaciones que lo modifican: si otra lo está modificando, ésta espera y lee la versión nueva, en lugar de chocar
+     * al hacer el commit con el bloqueo optimista (@Version) y terminar en un error 500 (D-36).
+     * <p>
+     * El bloqueo va en una consulta sobre la tabla turno sola, que bloquea y lee en la misma sentencia. Con
+     * {@code em.find(Turno.class, id, PESSIMISTIC_WRITE)}, Hibernate 7 lee el turno con los joins al paciente y al
+     * profesional sin bloquear y recién después bloquea la fila en otra sentencia (follow-on locking): si entre las
+     * dos otra transacción hace commit (la autorización de la obra social), el turno queda con la versión vieja y el
+     * commit falla igual. Por eso, con la fila ya bloqueada, se relee: nadie más puede cambiarla hasta el commit.
      */
     public Turno buscarPorIdParaActualizar(Long id) {
-        return em.find(Turno.class, id, LockModeType.PESSIMISTIC_WRITE);
+        List<Turno> turnos = em.createQuery("select t from Turno t where t.id = :id", Turno.class)
+                .setParameter("id", id)
+                .setLockMode(LockModeType.PESSIMISTIC_WRITE)
+                .getResultList();
+        if (turnos.isEmpty()) {
+            return null;
+        }
+        Turno turno = turnos.get(0);
+        // Si el turno ya estaba cargado en esta transacción, la consulta devuelve ese mismo objeto sin pisar su estado.
+        em.refresh(turno);
+        return turno;
     }
 
-    /** Relee un turno ya cargado y bloquea su fila: después de una llamada externa larga, justo antes de escribir (D-36). */
+    /**
+     * Relee un turno ya cargado y bloquea su fila: después de una llamada externa larga, justo antes de escribir
+     * (D-36). Mismo bloqueo que {@link #buscarPorIdParaActualizar(Long)}: el objeto queda con la versión vigente.
+     */
     public void refrescarParaActualizar(Turno turno) {
-        em.refresh(turno, LockModeType.PESSIMISTIC_WRITE);
+        buscarPorIdParaActualizar(turno.getId());
     }
 
     public Turno actualizar(Turno turno) {
