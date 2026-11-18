@@ -338,7 +338,9 @@ a.user-chip:hover { background: var(--color-sidebar-chip); text-decoration: none
 .topbar-right { display: flex; align-items: center; gap: 16px; }
 .topbar .greeting { font-size: 13px; color: var(--color-text-secondary); }
 
-.content { padding: 26px 32px 56px; flex: 1; max-width: 1180px; width: 100%; }
+/* D-27: el contenido aprovecha monitores anchos (con 1180 px quedaba una franja vacía a la derecha y las tablas
+   apretadas); el tope evita renglones eternos en pantallas de más de 1900 px. */
+.content { padding: 26px 32px 56px; flex: 1; max-width: 1600px; width: 100%; }
 
 .page-subtitle { color: var(--color-text-secondary); font-size: 13.5px; margin-bottom: 22px; }
 
@@ -668,12 +670,14 @@ html .table-wrap .ui-datatable tbody tr:hover td { background: var(--color-row-h
 .auth-brand .brand-mark { width: 52px; height: 52px; border-radius: 14px; margin-bottom: 22px; }
 .auth-brand .brand-mark svg { width: 28px; height: 28px; stroke: var(--color-sidebar-fg); }
 html[data-tema="claro"] .auth-brand .brand-mark svg { stroke: var(--color-primary); }
-.auth-brand h1 { font-size: 30px; color: var(--color-sidebar-fg); margin-bottom: 10px; }
-.auth-brand p { color: var(--color-sidebar-text); font-size: 14.5px; max-width: 380px; }
+.auth-brand { align-items: center; }
+.auth-brand-contenido { width: 100%; max-width: 540px; }
+.auth-brand h1 { font-size: clamp(30px, 2.4vw, 44px); color: var(--color-sidebar-fg); margin-bottom: 12px; }
+.auth-brand p { color: var(--color-sidebar-text); font-size: clamp(14.5px, 1.05vw, 17.5px); line-height: 1.6; }
 
 .auth-panel {
   position: relative;
-  width: 460px;
+  width: clamp(460px, 34vw, 620px);
   flex-shrink: 0;
   background: var(--color-card);
   display: flex;
@@ -830,3 +834,13 @@ html[data-tema="oscuro"] .stat-num { color: var(--color-primary); }
 .ui-confirm-dialog.ui-dialog { border-radius: 14px; max-width: calc(100vw - 32px); }
 .ui-confirm-dialog .ui-dialog-content { line-height: 1.5; }
 .ui-confirm-dialog .ui-dialog-footer { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+
+/* D-16: marcar una sola notificación como leída */
+.notif-head:has(.notif-marcar) { justify-content: flex-start; }
+.notif-head:has(.notif-marcar) .tag { margin-left: auto; }
+.notif-head .notif-marcar { font-size: 12.5px; font-weight: 500; color: var(--color-primary); text-decoration: none;
+  white-space: nowrap; }
+.notif-head .notif-marcar:hover { text-decoration: underline; }
+
+/* D-28: el perfil se abre desde la tarjeta del usuario; se resalta cuando es la página actual */
+.user-chip.active { background: var(--color-sidebar-chip); }

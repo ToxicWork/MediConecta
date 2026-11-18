@@ -20,7 +20,7 @@
 
         <h:form id="formNotificaciones">
             <!-- Las notificaciones las genera un MDB después del commit: se refresca la bandeja sola. -->
-            <p:poll interval="5" update="bandeja"/>
+            <p:poll interval="5" update="bandeja :badgeNotificaciones"/>
 
             <h:panelGroup id="bandeja" layout="block" styleClass="card">
                 <div class="card-header">
@@ -32,7 +32,7 @@
                         </div>
                     </div>
                     <p:commandButton value="Marcar todas como leídas" action="#{notificacionesBean.marcarTodasLeidas}"
-                                     update="@form" styleClass="btn btn-primary btn-sm"
+                                     update="@form :badgeNotificaciones" styleClass="btn btn-primary btn-sm"
                                      rendered="#{notificacionesBean.noLeidas > 0}"/>
                 </div>
 
@@ -43,6 +43,9 @@
                             <span class="tag #{n.canal == 'EMAIL' ? 'tag-info' : 'tag-success'}">
                                 #{n.canal == 'EMAIL' ? 'Email' : 'En la app'}
                             </span>
+                            <p:commandLink value="Marcar como leída" action="#{notificacionesBean.marcarLeida(n.id)}"
+                                           update="@form :badgeNotificaciones" rendered="#{not n.leida}"
+                                           styleClass="notif-marcar"/>
                         </div>
                         <div class="notif-body">#{n.cuerpo}</div>
                         <div class="notif-meta">

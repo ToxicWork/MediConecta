@@ -36,4 +36,9 @@ public class ServicioDeNotificacionesBean implements ServicioDeNotificaciones {
     public void marcarTodasLeidas(Long usuarioId) {
         notificacionDAO.marcarLeidas(usuarioId);
     }
+
+    @Override
+    public boolean marcarLeida(Long usuarioId, Long notificacionId) {
+        return notificacionId != null && notificacionDAO.marcarLeida(usuarioId, notificacionId);
+    }
 }

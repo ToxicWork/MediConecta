@@ -209,8 +209,9 @@ with sync_playwright() as p:
 
     # ---- L. Roles: el administrativo sólo ve Pagos y el profesional ya no tiene Pagos ------------
     menu = adm.inner_text(".sidebar .nav")
-    check("L. el administrativo entra directo a Pagos y su menú tiene Pagos, Usuarios y Mi perfil",
-          "pagos.xhtml" in adm.url and "Pagos" in menu and "Usuarios" in menu and "Mi perfil" in menu
+    check("L. el administrativo entra directo a Pagos, su menú tiene Pagos y Usuarios, y el perfil está en su tarjeta",
+          "pagos.xhtml" in adm.url and "Pagos" in menu and "Usuarios" in menu
+          and adm.locator(".sidebar .user-chip[title='Mi perfil']").count() == 1
           and "Agenda" not in menu and "Notificaciones" not in menu)
     adm.goto(B + "agenda.xhtml")
     check("L. si el administrativo escribe la URL de la Agenda, vuelve a Pagos", "pagos.xhtml" in adm.url)
@@ -393,8 +394,9 @@ with sync_playwright() as p:
     check("M. con contraseña temporal el login de la API no entrega token (403)", estado == 403)
     doc = login(br, email_prof, "perfil.xhtml", "Temporal.2026")
     menu = doc.inner_text(".sidebar .nav")
-    check("M. con contraseña temporal, el primer ingreso va a Mi perfil y el menú sólo ofrece Mi perfil",
-          "Elegí tu contraseña para continuar" in doc.content() and "Agenda" not in menu and "Mi perfil" in menu)
+    check("M. con contraseña temporal, el primer ingreso va a Mi perfil y el menú no ofrece nada más",
+          "Elegí tu contraseña para continuar" in doc.content() and "Agenda" not in menu
+          and doc.locator(".sidebar .user-chip[title='Mi perfil']").count() == 1)
     doc.goto(B + "agenda.xhtml")
     check("M. hasta cambiarla no puede entrar a otra pantalla", "perfil.xhtml" in doc.url)
     doc.fill("#formPassword\\:actual", "Temporal.2026")
