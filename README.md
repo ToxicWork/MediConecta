@@ -1,5 +1,7 @@
 # MediConecta
 
+[![CI](https://github.com/ToxicWork/MediConecta/actions/workflows/ci.yml/badge.svg)](https://github.com/ToxicWork/MediConecta/actions/workflows/ci.yml)
+
 Plataforma que conecta pacientes con profesionales de salud independientes y pequeñas clínicas
 para turnos presenciales y telemedicina, con facturación a obras sociales y prepagas.
 
@@ -143,9 +145,17 @@ defectos D-01, D-02, D-04, D-07 y D-09 del informe del 16/11.
 
 ## Pruebas
 
-- Unitarias (JUnit 5): `mvn package` corre 70 pruebas (State, Strategy, Chain of Responsibility, Circuit
+- Unitarias (JUnit 5): `mvn verify` corre las pruebas (State, Strategy, Chain of Responsibility, Circuit
   Breaker, Retry, Builder, Factory, política de contraseñas, catálogo, JWT, códigos HTTP de la API, bloqueo
-  por intentos, eventos sin datos clínicos, enmascarado de emails y cancelación por rol).
+  por intentos, eventos sin datos clínicos, enmascarado de emails y cancelación por rol) con la cobertura de
+  JaCoCo; `mvn test-compile org.pitest:pitest-maven:mutationCoverage` corre las de mutación (PIT) sobre el
+  dominio.
+- Integración continua ([`.github/workflows/ci.yml`](.github/workflows/ci.yml), en cada push y pull request):
+  compila los dos proyectos, corre las pruebas unitarias con los umbrales de cobertura y de mutación, repite la
+  suite tres veces para detectar pruebas inestables, busca secretos en todo el historial (gitleaks) y
+  vulnerabilidades en las dependencias (Trivy). El análisis estático de SonarCloud corre cuando el repositorio
+  tiene el secreto `SONAR_TOKEN`. Los hallazgos de gitleaks revisados, ninguno un secreto, están con su motivo en
+  [`.gitleaksignore`](.gitleaksignore).
 - De punta a punta con navegador real (requieren `pip install playwright` y Google Chrome, o Edge con
   `NAVEGADOR=msedge`, con la app desplegada; ver `SETUP.md`):
   - [`pruebas/prueba_seguridad.py`](pruebas/prueba_seguridad.py): las pruebas de seguridad del diseño (SEC-W01,
@@ -159,6 +169,8 @@ defectos D-01, D-02, D-04, D-07 y D-09 del informe del 16/11.
     rollback y reembolso, legado caído, cancelación con reintegro,
     telemedicina, auditoría, temas, roles y alta de usuarios con contraseña temporal).
   - [`pruebas/prueba_e2e.py`](pruebas/prueba_e2e.py): 13 verificaciones del recorrido básico.
+  - [`pruebas/prueba_defectos.py`](pruebas/prueba_defectos.py): un escenario por cada defecto de la prueba
+    exploratoria (D-13 a D-36), incluidos el doble clic y dos usuarios sobre el mismo turno.
   - [`pruebas/prueba_hold_vence.py`](pruebas/prueba_hold_vence.py): el hold de 5 minutos vence solo (tarda
     unos 6 minutos).
   - [`pruebas/demo_api_jwt_409.py`](pruebas/demo_api_jwt_409.py): guion por consola del login con JWT, los

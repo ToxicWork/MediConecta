@@ -70,10 +70,12 @@ Usuarios de demo ya cargados en Supabase (contraseña `demo1234` en los tres):
 | Administrativo | `carla.admin@mediconecta.test` | Pagos (todos los cobros y reclamos), Turnos y Usuarios. Lo usan las pruebas de punta a punta |
 
 **Administrador por defecto.** Al desplegar, `InicializadorDeAdministrador` crea
-`admin@mediconecta.test` si no existe, con la contraseña inicial **`Admin.2026`**, marcada como temporal:
-el primer ingreso lleva a "Mi perfil" y obliga a cambiarla antes de usar cualquier otra pantalla (y la API
-la rechaza mientras tanto). Para otra contraseña inicial: `-Dmediconecta.admin.password=...` al levantar
-WildFly. Con ese usuario (o con cualquier administrativo) se dan de alta profesionales y otros
+`admin@mediconecta.test` si no existe, con la contraseña inicial que se le configura al servidor: la
+variable de entorno `MEDICONECTA_ADMIN_PASSWORD` o la propiedad `-Dmediconecta.admin.password=...` al
+levantar WildFly (8 caracteres o más; nunca va en el repositorio). Sin ninguna de las dos no lo crea y lo
+avisa en el log. La contraseña queda marcada como temporal: el primer ingreso lleva a "Mi perfil" y obliga
+a cambiarla antes de usar cualquier otra pantalla (y la API la rechaza mientras tanto). En la base del grupo
+ya existe. Con ese usuario (o con cualquier administrativo) se dan de alta profesionales y otros
 administrativos desde **Usuarios**: el registro público (`/registro.xhtml`) sólo crea pacientes.
 
 > **Rol Administrativo (noviembre 2026):** en una base que ya existía hay que correr una vez
@@ -270,13 +272,14 @@ ad-hoc a partir del `CallerPrincipalCallback`/`GroupPrincipalCallback` que emite
 ## Pruebas
 
 ```bash
-mvn package                          # 70 pruebas unitarias
+mvn verify                           # pruebas unitarias, con cobertura (JaCoCo) y sus umbrales
 pip install playwright               # una sola vez; usa el Google Chrome instalado
 python pruebas/prueba_entrega4.py    # punta a punta (integraciones, JWT, 409, roles)
 python pruebas/prueba_e2e.py         # 13 verificaciones del recorrido básico
 python pruebas/prueba_seguridad.py   # tarjetas SEC-*: bloqueo, HTTPS y cookie, inyección SQL, DLQ, historia, logs
 python pruebas/prueba_monitor.py     # HU-09: Monitor de eventos (suscriptor caído y recuperado, paginación)
 python pruebas/prueba_cancelacion.py # cancelación por paciente, profesional, administrativo y API
+python pruebas/prueba_defectos.py    # un escenario por cada defecto de la prueba exploratoria (D-13 a D-36)
 python pruebas/prueba_hold_vence.py  # el hold vence solo (tarda unos 6 minutos)
 python pruebas/demo_api_jwt_409.py --sin-cancelar   # guion del login con JWT (no modifica datos)
 ```
@@ -307,10 +310,11 @@ Los PDF de `docs/` se regeneran con `python docs/generar_pdf.py <html> <pdf>` (C
 **Secreto del JWT (opcional).** La API firma los tokens con un secreto que se lee de la propiedad de sistema
 `mediconecta.jwt.secreto` o de la variable de entorno `MEDICONECTA_JWT_SECRETO` (32 caracteres o más). Si no
 está, el servidor genera uno al azar en cada arranque y lo avisa en el log: todo funciona, pero los tokens
-emitidos dejan de valer al reiniciar. Para fijarlo, antes de levantar WildFly:
+emitidos dejan de valer al reiniciar. Para fijarlo, antes de levantar WildFly (reemplazando `...` por una
+frase de 32 caracteres o más):
 
 ```bat
-set MEDICONECTA_JWT_SECRETO=una-frase-larga-de-al-menos-32-caracteres
+set MEDICONECTA_JWT_SECRETO=...
 ```
 
 El secreto no va en el repositorio.

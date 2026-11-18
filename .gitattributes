@@ -1,0 +1,3 @@
+# gitleaks compara cada línea de .gitleaksignore con la huella del hallazgo: con fin de línea CRLF (checkout en Windows
+# con core.autocrlf) podría no reconocerla. Se fija LF para que el escaneo dé lo mismo en cualquier máquina.
+.gitleaksignore text eol=lf
