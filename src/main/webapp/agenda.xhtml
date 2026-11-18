@@ -155,10 +155,17 @@
                                 <h:outputText value="—" rendered="#{turno.importePaciente == null}" styleClass="texto-tenue"/>
                             </p:column>
                             <p:column headerText="" style="text-align:right;width:130px;">
-                                <p:commandButton value="Cancelar" action="#{agendaBean.cancelar(turno.id)}" ajax="false" styleClass="btn btn-danger btn-sm"/>
+                                <p:commandButton value="Cancelar" action="#{agendaBean.cancelar(turno.id)}" ajax="false" styleClass="btn btn-danger btn-sm">
+                                    <p:confirm header="Cancelar turno"
+                                               message="¿Cancelar tu turno con #{turno.profesional.nombreCompleto} del #{agendaBean.formatear(turno.fechaHora)}?#{turno.importePaciente != null and turno.importePaciente.signum() > 0 ? ' Te reintegramos lo que pagaste.' : ''}"/>
+                                </p:commandButton>
                             </p:column>
                         </p:dataTable>
                     </h:panelGroup>
+                    <p:confirmDialog global="true" responsive="true" width="420">
+                        <p:commandButton value="Sí, cancelar el turno" type="button" styleClass="ui-confirmdialog-yes btn btn-danger"/>
+                        <p:commandButton value="No" type="button" styleClass="ui-confirmdialog-no btn btn-secondary"/>
+                    </p:confirmDialog>
 
                     <div class="empty-state" style="#{empty agendaBean.misTurnos ? '' : 'display:none;'}">
                         No tenés turnos confirmados por delante.

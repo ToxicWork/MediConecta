@@ -144,8 +144,9 @@ with sync_playwright() as p:
         try:
             check("2. se frena el MDB de Auditoría (jboss-cli stop-delivery)", "success" in jboss_cli(MDB_AUDITORIA + ":stop-delivery"))
             pac.goto(B + "agenda.xhtml")
+            pac.locator("#formAgenda\\:tablaMisTurnos tr", has_text=dia + " · " + hora).locator("button:has-text('Cancelar')").first.click()
             with pac.expect_navigation():
-                pac.locator("#formAgenda\\:tablaMisTurnos tr", has_text=dia + " · " + hora).locator("button:has-text('Cancelar')").first.click()
+                pac.locator(".ui-confirm-dialog:visible button:has-text('Sí, cancelar el turno')").click()
             fila = esperar_fila(pac, lambda f: "Cancelado" in f and f.count(" ms") >= 2)
             print("     fila:", fila)
             check("2. con Auditoría frenada, el aviso de cancelación figura Pendiente en Auditoría y procesado en las otras dos",

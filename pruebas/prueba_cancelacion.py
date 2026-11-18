@@ -239,8 +239,13 @@ with sync_playwright() as p:
     print("-- C. Cancela el paciente")
     check("C. el paciente confirma un turno (%s)" % f3, reservar_y_pagar(pac, f3))
     pac.goto(B + "agenda.xhtml")
+    pac.locator("#formAgenda\\:tablaMisTurnos tr", has_text=f3.replace(" ", " · ")).locator("button:has-text('Cancelar')").first.click()
+    dialogo = pac.locator(".ui-confirm-dialog:visible")
+    dialogo.wait_for()
+    check("C. el paciente también confirma, y el diálogo nombra a la profesional y la fecha (D-21)",
+          "Ana Lopez" in dialogo.inner_text() and f3 in dialogo.inner_text())
     with pac.expect_navigation():
-        pac.locator("#formAgenda\\:tablaMisTurnos tr", has_text=f3.replace(" ", " · ")).locator("button:has-text('Cancelar')").first.click()
+        pac.locator(".ui-confirm-dialog:visible button:has-text('Sí, cancelar el turno')").click()
     check("C. el paciente cancela", "Turno cancelado" in mensaje(pac))
     check("C. cuando cancela el paciente, el horario SÍ se vuelve a ofrecer", ofrecido(pac, f3))
 

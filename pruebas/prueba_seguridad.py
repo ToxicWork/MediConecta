@@ -182,9 +182,10 @@ def reservar_y_pagar(br, email, clave, fecha):
 def cancelar_turno(pac, fecha):
     dia, hora = fecha.split(" ")
     pac.goto(B + "agenda.xhtml")
+    pac.locator("#formAgenda\\:tablaMisTurnos tr", has_text=dia + " · " + hora).locator(
+        "button:has-text('Cancelar')").first.click()
     with pac.expect_navigation():
-        pac.locator("#formAgenda\\:tablaMisTurnos tr", has_text=dia + " · " + hora).locator(
-            "button:has-text('Cancelar')").first.click()
+        pac.locator(".ui-confirm-dialog:visible button:has-text('Sí, cancelar el turno')").click()
 
 
 def fila_de_pago(pac, fecha):
@@ -371,9 +372,10 @@ with sync_playwright() as p:
         origen = None
         try:
             consola(pasarela="CAIDO")
+            pac.locator("#formAgenda\\:tablaMisTurnos tr", has_text=dia + " · " + hora).locator(
+                "button:has-text('Cancelar')").first.click()
             with pac.expect_navigation():
-                pac.locator("#formAgenda\\:tablaMisTurnos tr", has_text=dia + " · " + hora).locator(
-                    "button:has-text('Cancelar')").first.click()
+                pac.locator(".ui-confirm-dialog:visible button:has-text('Sí, cancelar el turno')").click()
             check("I02. con la pasarela caída, la cancelación igual se acepta (el reintegro es asincrónico)",
                   "Turno cancelado" in pac.content())
 

@@ -299,7 +299,8 @@ with sync_playwright() as p:
     # ---- H. Cancelación con reintegro asincrónico -------------------------------------------
     pac.goto(B + "agenda.xhtml")
     pac.locator("#formAgenda\\:tablaMisTurnos tr", has_text=f1.replace(" ", " · ")).locator("button:has-text('Cancelar')").click()
-    pac.wait_for_load_state()
+    with pac.expect_navigation():
+        pac.locator(".ui-confirm-dialog:visible button:has-text('Sí, cancelar el turno')").click()
     check("H. cancelación aceptada, con aviso del reintegro", "reintegro" in pac.content())
     check("H. Facturación reintegra el pago por REST (estado Reembolsado)",
           esperar(pac, B + "pagos.xhtml", lambda c: "Reembolsado" in c, 20))

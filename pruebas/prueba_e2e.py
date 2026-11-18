@@ -61,7 +61,10 @@ with sync_playwright() as p:
     check("confirmación OK (%.2f s)"%dt, "Turno confirmado" in pac.content())
     check("mis turnos se actualiza en la MISMA respuesta al confirmar (%d -> %d)"%(antes,mis(pac)), mis(pac)==antes+1)
     row=pac.locator("#formAgenda\\:tablaMisTurnos tr", has_text=FECHA_TABLA)
-    t=time.time(); row.locator("button:has-text('Cancelar')").click(); pac.wait_for_load_state(); dt=time.time()-t
+    row.locator("button:has-text('Cancelar')").click()
+    t=time.time()
+    with pac.expect_navigation(): pac.locator(".ui-confirm-dialog:visible button:has-text('Sí, cancelar el turno')").click()
+    dt=time.time()-t
     check("cancelación OK (%.2f s)"%dt, "Turno cancelado" in pac.content())
     check("mis turnos se actualiza en la MISMA respuesta al cancelar (-> %d)"%mis(pac), mis(pac)==antes)
     time.sleep(4)

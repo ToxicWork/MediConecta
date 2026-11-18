@@ -3,6 +3,7 @@ package ar.edu.mediconecta.negocio;
 import ar.edu.mediconecta.dao.ReclamoObraSocialDAO;
 import ar.edu.mediconecta.dao.TurnoDAO;
 import ar.edu.mediconecta.mensajeria.EventoTurno;
+import ar.edu.mediconecta.modelo.Rol;
 import ar.edu.mediconecta.modelo.ReclamoObraSocial;
 import ar.edu.mediconecta.modelo.Turno;
 import jakarta.annotation.security.DeclareRoles;
@@ -50,7 +51,7 @@ public class ServicioDeFacturacionBean implements ServicioDeFacturacion {
             }
             case TURNO_CANCELADO -> {
                 reclamoDAO.buscarVigenteDeTurno(turno.getId()).ifPresent(ReclamoObraSocial::anular);
-                pagos.reembolsarPagoDeTurno(turno.getId(), "Cancelación del turno por el paciente");
+                pagos.reembolsarPagoDeTurno(turno.getId(), motivoDeReintegro(turno.getCanceladoPor()));
                 LOG.info("[Facturación] Turno " + turno.getId() + " cancelado: reclamo anulado y pago reintegrado (si lo había).");
             }
             default -> LOG.warning("[Facturación] Evento inesperado " + evento.tipo() + ": revisar el selector.");
@@ -61,5 +62,17 @@ public class ServicioDeFacturacionBean implements ServicioDeFacturacion {
     @RolesAllowed("ADMINISTRATIVO")
     public List<ReclamoObraSocial> todosLosReclamos() {
         return reclamoDAO.buscarTodos();
+    }
+
+    /** Motivo del reintegro que viaja a la pasarela y queda en el pago: dice quién canceló (D-22). */
+    static String motivoDeReintegro(Rol canceladoPor) {
+        if (canceladoPor == null) {
+            return "Cancelación del turno";
+        }
+        return switch (canceladoPor) {
+            case PACIENTE -> "Cancelación del turno por el paciente";
+            case PROFESIONAL -> "Cancelación del turno por el profesional";
+            case ADMINISTRATIVO -> "Cancelación del turno por la administración";
+        };
     }
 }

@@ -92,6 +92,16 @@ class CancelacionPorRolTest {
         assertEquals(Rol.ADMINISTRATIVO, turno.getCanceladoPor(), "un intento fallido no cambia quién canceló");
     }
 
+    /** D-22: el motivo del reintegro (lo ve la pasarela y queda en el pago) dice quién canceló. */
+    @Test
+    void elMotivoDelReintegroDiceQuienCancelo() {
+        assertEquals("Cancelación del turno por el paciente", ServicioDeFacturacionBean.motivoDeReintegro(Rol.PACIENTE));
+        assertEquals("Cancelación del turno por el profesional", ServicioDeFacturacionBean.motivoDeReintegro(Rol.PROFESIONAL));
+        assertEquals("Cancelación del turno por la administración", ServicioDeFacturacionBean.motivoDeReintegro(Rol.ADMINISTRATIVO));
+        assertEquals("Cancelación del turno", ServicioDeFacturacionBean.motivoDeReintegro(null),
+                "turnos cancelados antes de registrar quién");
+    }
+
     /** D-13: ningún rol cancela un turno que ya empezó (sería reintegrar el copago de una consulta realizada). */
     @Test
     void ningunRolCancelaUnTurnoQueYaEmpezo() {
