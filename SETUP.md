@@ -288,7 +288,8 @@ Todas usan `https://localhost:8443/mediconecta/` y aceptan el certificado autofi
 
 - `NAVEGADOR=msedge` para usar Microsoft Edge en vez de Google Chrome (el valor por defecto es `chrome`).
 - `WILDFLY_HOME` con la carpeta de WildFly: la necesitan `prueba_seguridad.py` (consulta la DLQ y lee el log
-  del servidor) y `prueba_monitor.py` (frena y reactiva un MDB con `jboss-cli`).
+  del servidor), `prueba_monitor.py` (frena y reactiva un MDB con `jboss-cli`) y `prueba_entrega4.py` (habilita
+  con `jboss-cli` la falla de demostración del escenario F, que está apagada salvo `-Dmediconecta.demo.fallas=true`).
 
 En Windows, por ejemplo: `set NAVEGADOR=msedge` y `set WILDFLY_HOME=C:\WildFly\wildfly-41.0.0.Final`. Las pruebas
 crean pacientes de prueba con email `@mediconecta.test`; nunca bloquean ni cancelan turnos de los usuarios de demo.
