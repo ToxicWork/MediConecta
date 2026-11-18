@@ -88,14 +88,19 @@ public class TurnoDAO {
                 .getResultList();
     }
 
-    /** Turnos de telemedicina confirmados en los que participa el usuario (como paciente o profesional). */
-    public List<Turno> buscarVirtualesConfirmadosDeUsuario(Long usuarioId) {
+    /**
+     * Turnos de telemedicina confirmados en los que participa el usuario (como paciente o profesional) que todavía
+     * importan: los de {@code desde} en adelante y los anteriores con la sala abierta. Los de sala cerrada ya terminaron.
+     */
+    public List<Turno> buscarVirtualesConfirmadosDeUsuario(Long usuarioId, LocalDateTime desde) {
         return em.createQuery(
                         "SELECT t FROM Turno t WHERE (t.paciente.id = :usuarioId OR t.profesional.id = :usuarioId) "
-                                + "AND t.estado = :estado AND t.modalidad = :modalidad ORDER BY t.fechaHora", Turno.class)
+                                + "AND t.estado = :estado AND t.modalidad = :modalidad AND t.salaCerradaEn IS NULL "
+                                + "AND (t.fechaHora >= :desde OR t.salaId IS NOT NULL) ORDER BY t.fechaHora", Turno.class)
                 .setParameter("usuarioId", usuarioId)
                 .setParameter("estado", EstadoTurno.CONFIRMADO)
                 .setParameter("modalidad", Modalidad.TELEMEDICINA)
+                .setParameter("desde", desde)
                 .getResultList();
     }
 

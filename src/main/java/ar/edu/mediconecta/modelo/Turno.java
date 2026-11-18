@@ -95,6 +95,10 @@ public class Turno implements Serializable {
     @Column(name = "sala_url_paciente", length = 300)
     private String salaUrlPaciente;
 
+    /** Cuándo el profesional cerró la sala al terminar la videoconsulta (D-14); null mientras esté abierta o sin abrir. */
+    @Column(name = "sala_cerrada_en")
+    private LocalDateTime salaCerradaEn;
+
     @Column(name = "confirmado_en")
     private LocalDateTime confirmadoEn;
 
@@ -220,6 +224,27 @@ public class Turno implements Serializable {
     }
 
     // ---- Consultas ---------------------------------------------------------------------------
+
+    /**
+     * El profesional termina la videoconsulta: la sala se cierra y el turno sale de la lista de Telemedicina (D-14).
+     * No cambia el estado del turno (sigue confirmado): la sala es un recurso del proveedor de video, no del turno.
+     */
+    public void cerrarSala(LocalDateTime ahora) {
+        if (salaId == null) {
+            throw new TransicionInvalidaException("La videoconsulta de este turno no se inició.");
+        }
+        if (salaCerradaEn == null) {
+            salaCerradaEn = ahora;
+        }
+    }
+
+    public boolean isSalaAbierta() {
+        return salaId != null && salaCerradaEn == null;
+    }
+
+    public LocalDateTime getSalaCerradaEn() {
+        return salaCerradaEn;
+    }
 
     public boolean perteneceAPaciente(Long pacienteId) {
         return paciente != null && paciente.getId().equals(pacienteId);

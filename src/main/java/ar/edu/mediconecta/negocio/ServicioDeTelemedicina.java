@@ -12,4 +12,7 @@ public interface ServicioDeTelemedicina {
     List<Turno> turnosVirtualesDelUsuarioActual();
 
     Turno iniciarVideoconsulta(Long turnoId);
+
+    /** El profesional termina la videoconsulta y cierra la sala (D-14). */
+    Turno finalizarVideoconsulta(Long turnoId);
 }

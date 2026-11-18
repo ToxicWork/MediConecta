@@ -39,6 +39,9 @@ public class ProcesadorEmail extends ProcesadorNotificacion {
                     "Hola " + evento.pacienteNombre() + ", " + evento.obraSocial() + " no autorizó la prestación de tu turno del "
                             + fecha + ": " + evento.motivoAutorizacion() + " El turno sigue confirmado; la diferencia se "
                             + "abona en el consultorio.");
+            case SALA_ABIERTA -> email(evento, "Tu profesional ya está en la sala",
+                    "Hola " + evento.pacienteNombre() + ", " + profesional + " abrió la sala de tu teleconsulta del " + fecha
+                            + ". Entrá desde Telemedicina con «Unirme a la consulta».");
         };
     }
 

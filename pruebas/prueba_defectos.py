@@ -13,6 +13,12 @@ que ya empezó) y D-21 (el paciente confirma antes de cancelar) están en prueba
   D-29. Antes de cobrar, un diálogo muestra el importe y la tarjeta; "Revisar los datos" no cobra.
   D-15. En Historia Clínica el profesional ve a cada paciente una sola vez, aunque tenga varios turnos.
   D-32. La sección de auditoría del paciente se explica sin jerga técnica.
+  D-16. Se puede marcar una sola notificación como leída, y el contador del menú baja.
+  D-14, D-31, D-25, D-26 y micrófono. El profesional abre la sala de una teleconsulta: al paciente le llega el aviso;
+        Telemedicina no muestra el id interno; la sala no tiene notas técnicas y tiene micrófono con «Silenciar». Al
+        finalizar la consulta, la sala se cierra para los dos y la teleconsulta sale de las listas.
+  D-24, D-27 y D-28. Sin jerga técnica en las pantallas del paciente, el contenido aprovecha un monitor ancho y el
+        perfil se abre desde la tarjeta del usuario (no se repite en el menú).
 
 Requisitos: WildFly levantado (perfil standalone-full) con mediconecta.war y externos.war desplegados, Google
 Chrome (o Edge con NAVEGADOR=msedge) y  pip install playwright
@@ -78,10 +84,11 @@ def fechas_libres(cantidad):
     return sorted(elegidas)
 
 
-def publicar(prof, fecha):
+def publicar(prof, fecha, modalidad="Presencial"):
     prof.goto(B + "agenda.xhtml")
     prof.fill("#formPublicar\\:fecha_input", fecha)
     prof.keyboard.press("Escape")
+    prof.select_option("#formPublicar\\:modalidad", label=modalidad)
     with prof.expect_navigation():
         prof.locator("#formPublicar button:has-text('Publicar')").evaluate("b => b.click()")
     return " ".join(mensajes(prof))
@@ -143,7 +150,9 @@ def revisar_tarjeta(pac):
 
 
 with sync_playwright() as p:
-    br = p.chromium.launch(channel=NAVEGADOR, headless=True)
+    # Cámara y micrófono simulados por el navegador, sin pedir permiso (la sala de videoconsulta los usa).
+    br = p.chromium.launch(channel=NAVEGADOR, headless=True,
+                           args=["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream"])
     consola(pasarela="EN_LINEA", obraSocial="EN_LINEA", autorizaciones="APROBAR")
     sufijo = random.randint(10000, 99999)
     email, nombre = "defectos.%d@mediconecta.test" % sufijo, "Paciente Defectos %d" % sufijo
@@ -275,6 +284,107 @@ with sync_playwright() as p:
     check("D-32. el paciente ve quién vio su historia, explicado sin jerga",
           "Quién vio tu historia clínica" in contenido and "Ana Lopez" in contenido
           and "interceptor" not in contenido and "Ley" not in contenido)
+
+
+    # ---- D-16. Una notificación por vez -------------------------------------------------------------
+    print("-- D-16. Notificaciones")
+    pac.goto(B + "notificaciones.xhtml")
+    resumen = lambda: int(re.search(r"(\d+) sin leer", pac.inner_text("#formNotificaciones")).group(1))
+    badge = lambda: int((pac.locator(".sidebar .count-badge").all_inner_texts() or ["0"])[0])
+    antes, badge_antes = resumen(), badge()
+    primera = pac.locator(".notif-unread").first
+    asunto = primera.locator("strong").inner_text()
+    with pac.expect_response(lambda r: "notificaciones.xhtml" in r.url and r.request.method == "POST"):
+        primera.locator("a:has-text('Marcar como leída')").click()
+    pac.wait_for_timeout(500)
+    despues, badge_despues = resumen(), badge()
+    check("D-16. al marcar una («%s») quedan %d sin leer de %d" % (asunto, despues, antes), despues == antes - 1)
+    check("D-16. y el contador del menú baja igual (%d -> %d)" % (badge_antes, badge_despues), badge_despues == badge_antes - 1)
+
+    # ---- D-14, D-31, D-25, D-26 y el micrófono ------------------------------------------------------
+    print("-- D-14, D-31, D-25, D-26 y micrófono. Telemedicina")
+    publicar(prof, f4, "Telemedicina")
+    reservar(pac, f4)
+    tarjeta(pac)
+    check("D-14. el paciente confirma una teleconsulta (%s)" % f4, "Turno confirmado" in pagar(pac))
+    prof.goto(B + "telemedicina.xhtml")
+    fila_prof = lambda: prof.locator("#formTelemedicina\\:tablaTeleconsultas tr", has_text=nombre)
+    with prof.expect_navigation():
+        fila_prof().locator("button:has-text('Iniciar videoconsulta')").click()
+    check("D-24. al abrir la sala el mensaje no habla del proveedor ni de REST (%s)" % " ".join(mensajes(prof)),
+          any("Abriste la sala" in m for m in mensajes(prof)))
+    fin = time.time() + 30
+    while True:
+        pac.goto(B + "notificaciones.xhtml")
+        if "Tu profesional ya está en la sala" in pac.content() or time.time() > fin:
+            break
+        time.sleep(2)
+    check("D-31. al paciente le llega el aviso «Tu profesional ya está en la sala»",
+          "Tu profesional ya está en la sala" in pac.content())
+    pac.goto(B + "telemedicina.xhtml")
+    fila_pac = pac.locator("#formTelemedicina\\:tablaTeleconsultas tr", has_text="Ana Lopez").filter(has_text="Abierta")
+    enlace = fila_pac.locator("a:has-text('Unirme a la consulta')").first.get_attribute("href")
+    id_sala = re.search(r"id=([^&]+)", enlace).group(1)
+    check("D-26. Telemedicina no muestra el id interno de la sala (%s)" % id_sala, id_sala not in pac.inner_text(".content"))
+    check("D-24. ni la explicación técnica del proveedor",
+          "REST" not in pac.inner_text(".content") and "servicio externo" not in pac.inner_text(".content"))
+
+    pac.context.grant_permissions(["camera", "microphone"], origin="http://localhost:8080")
+    sala = pac.context.new_page()
+    sala.goto(enlace)
+    sala.wait_for_selector("#estado:has-text('En curso')")
+    check("D-25. la sala no tiene la nota técnica del proveedor",
+          "MediConecta la creó por REST" not in sala.content() and "proveedor externo" not in sala.inner_text("body"))
+    microfono = sala.locator("#microfono")
+    microfono.click()
+    sala.wait_for_selector("#microfono:has-text('Silenciar micrófono')")
+    check("Micrófono. se activa y el indicador lo muestra",
+          sala.inner_text("#indicadorMicrofono").startswith("Micrófono activado"))
+    microfono.click()
+    sala.wait_for_selector("#microfono:has-text('Activar micrófono')")
+    check("Micrófono. «Silenciar micrófono» lo silencia sin cerrar la sala",
+          sala.inner_text("#indicadorMicrofono").startswith("Micrófono silenciado")
+          and sala.evaluate("() => audio !== null && audio.getAudioTracks()[0].enabled === false"))
+
+    prof.goto(B + "telemedicina.xhtml")
+    fila_prof().locator("button:has-text('Finalizar consulta')").click()
+    with prof.expect_navigation():
+        prof.locator(".ui-confirm-dialog:visible button:has-text('Sí, finalizar')").click()
+    check("D-14. la profesional finaliza la consulta (%s)" % " ".join(mensajes(prof)),
+          any("Finalizaste la videoconsulta con " + nombre in m for m in mensajes(prof)))
+    sala.wait_for_selector("#estado:has-text('Consulta finalizada')", timeout=15000)
+    check("D-14. la sala se cierra sola para el paciente y apaga el micrófono",
+          sala.is_visible("#finalizada") and sala.is_disabled("#microfono"))
+    check("D-14. la teleconsulta sale de la lista de la profesional", fila_prof().count() == 0)
+    pac.goto(B + "telemedicina.xhtml")
+    check("D-14. y de la del paciente",
+          pac.locator("#formTelemedicina\\:tablaTeleconsultas tr", has_text=f4.split(" ")[0]).count() == 0)
+    pac.goto(B + "monitor.xhtml")
+    check("D-31. el aviso de la sala figura en el Monitor de eventos del paciente",
+          "Sala de videoconsulta abierta" in pac.inner_text(".content"))
+    sala.close()
+
+    # ---- D-24, D-27 y D-28. Pantallas ---------------------------------------------------------------
+    print("-- D-24, D-27 y D-28. Pantallas")
+    jerga = re.compile(r"\b(REST|SOAP|WSDL|JMS|MDB|DLQ)\b|t[oó]pico|asincr|interceptor|cach[eé]|\bhold\b|pasarela")
+    for pantalla in ("agenda.xhtml", "historia.xhtml", "telemedicina.xhtml", "notificaciones.xhtml", "pagos.xhtml"):
+        pac.goto(B + pantalla)
+        encontrada = jerga.search(pac.inner_text(".content"))
+        check("D-24. %s sin jerga técnica%s" % (pantalla, "" if not encontrada else " (dice «%s»)" % encontrada.group(0)),
+              encontrada is None)
+    ancho = pagina(br)
+    ancho.set_viewport_size({"width": 1920, "height": 1080})
+    ancho.goto(B + "login.xhtml")
+    ancho.fill("#formLogin\\:email", email)
+    ancho.fill("#formLogin\\:password", "demo1234")
+    with ancho.expect_navigation():
+        ancho.click("#formLogin button:has-text('Ingresar')")
+    medida = ancho.evaluate("() => document.querySelector('.content').getBoundingClientRect().width")
+    check("D-27. en un monitor de 1920 px el contenido aprovecha el ancho (%d px)" % medida, medida >= 1550)
+    check("D-28. «Mi perfil» no se repite en el menú y se abre desde la tarjeta del usuario",
+          "Mi perfil" not in ancho.inner_text(".sidebar .nav")
+          and ancho.locator(".sidebar a.user-chip[title='Mi perfil']").count() == 1)
+    ancho.context.close()
 
     prof.context.close()
     pac.context.close()
