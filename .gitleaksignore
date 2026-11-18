@@ -19,6 +19,10 @@ a767111770f043c4e4852f42f398653cc087c7d8:docs/api/README.md:curl-auth-header:76
 0236f3a8d5396c62562c9e0ede6f388a8e1d4992:docs/entrega-nucleo/informe-entrega-nucleo.html:jwt:710
 1d722df34cdc794c84a995f189e20bb80223c486:docs/entrega-nucleo/informe-entrega-nucleo.html:jwt:769
 
+# JWT adulterado a propósito (firma inválida) con el que prueba_seguridad verifica el 401 token_invalido: no es un
+# token emitido por la app ni da acceso a nada.
+456f2783033df9e451a4dacb499e70a6ab90485e:pruebas/prueba_seguridad.py:generic-api-key:307
+
 # Contraseña temporal que las pruebas de punta a punta le ponen a un usuario de prueba que ellas mismas crean.
 c31cb50b146e884e000f80b3af48ccbf30c92bb7:pruebas/prueba_entrega4.py:generic-api-key:270
 4db2ce5544d43705f3209ce27d935f525ba7fe17:pruebas/prueba_seguridad.py:generic-api-key:433
