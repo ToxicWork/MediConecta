@@ -44,6 +44,7 @@ public class AgendaBean implements Serializable {
     private static final Locale ES_AR = Locale.forLanguageTag("es-AR");
     private static final DateTimeFormatter FORMATO_DIA = DateTimeFormatter.ofPattern("EEEE dd/MM 'a las' HH:mm", ES_AR);
     private static final String MIS_TURNOS = AgendaBean.class.getName() + ".misTurnos";
+    private static final String SESION_VENCIDA = "Tu sesión venció: volvé a ingresar.";
     private static final String TURNOS_PROFESIONAL = AgendaBean.class.getName() + ".turnosProfesional";
 
     @Inject
@@ -155,6 +156,10 @@ public class AgendaBean implements Serializable {
     public void reservarHold(Long turnoId) {
         try {
             Usuario usuario = loginBean.getUsuarioActual();
+            if (usuario == null) {
+                error(SESION_VENCIDA);
+                return;
+            }
             turnoEnHold = servicioDeTurnos.reservarHold(turnoId, usuario.getId());
             datosPago = new DatosPago();
             cotizar();
@@ -286,6 +291,10 @@ public class AgendaBean implements Serializable {
     public void publicarDisponibilidad() {
         try {
             Usuario actual = loginBean.getUsuarioActual();
+            if (actual == null) {
+                error(SESION_VENCIDA);
+                return;
+            }
             servicioDeTurnos.publicarDisponibilidad(actual.getId(), nuevaFechaHora, nuevaModalidad);
             nuevaFechaHora = null;
             info("Disponibilidad publicada");

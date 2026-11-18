@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -44,7 +45,8 @@ class TareasProgramadasYNotificacionesTest {
         Inyectar.invocar(limpieza, "borrarVencidos");
 
         verify(pedidos).borrarAnterioresA(argThat(limite ->
-                Duration.between(haceUnDia, limite).abs().compareTo(Duration.ofSeconds(5)) < 0));
+                Duration.between(haceUnDia.atZone(ZoneId.systemDefault()), limite.atZone(ZoneId.systemDefault()))
+                        .abs().compareTo(Duration.ofSeconds(5)) < 0));
     }
 
     @Test

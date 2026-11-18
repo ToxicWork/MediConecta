@@ -23,6 +23,10 @@ import java.util.logging.Logger;
 public class ServicioDeTokens {
 
     private static final Logger LOG = Logger.getLogger(ServicioDeTokens.class.getName());
+
+    /** Uno solo, reutilizado (Sonar S2119): un SecureRandom nuevo por uso es caro y no suma azar. */
+
+    private static final SecureRandom AZAR = new SecureRandom();
     static final Duration VIGENCIA = Duration.ofMinutes(30);
 
     private CodificadorJwt codificador;
@@ -36,7 +40,7 @@ public class ServicioDeTokens {
             LOG.info("JWT: secreto de firma tomado de la configuración del servidor.");
         } else {
             secreto = new byte[32];
-            new SecureRandom().nextBytes(secreto);
+            AZAR.nextBytes(secreto);
             LOG.warning("JWT: no hay un secreto configurado (mediconecta.jwt.secreto, 32 caracteres o más); "
                     + "se generó uno al azar y los tokens dejarán de valer al reiniciar el servidor.");
         }

@@ -105,11 +105,13 @@ public class LoginBean implements Serializable {
         if (principal == null) {
             return null;
         }
-        var usuario = (Optional<Usuario>) request.getAttribute(USUARIO_ACTUAL);
-        if (usuario == null) {
-            usuario = servicioDeUsuarios.buscarPorEmail(principal.getName());
+        // Un Optional nunca es null (Sonar S2789): el atributo del request es el Optional ya consultado, o no está.
+        if (!(request.getAttribute(USUARIO_ACTUAL) instanceof Optional<?> guardado)) {
+            Optional<Usuario> usuario = servicioDeUsuarios.buscarPorEmail(principal.getName());
             request.setAttribute(USUARIO_ACTUAL, usuario);
+            return usuario.orElse(null);
         }
+        var usuario = (Optional<Usuario>) guardado;
         return usuario.orElse(null);
     }
 

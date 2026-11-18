@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -118,7 +119,8 @@ class ServicioDeTurnosBeanTest {
 
         assertEquals(EstadoTurno.HOLD, turno.getEstado());
         assertTrue(turno.perteneceAPaciente(PACIENTE));
-        Duration vence = Duration.between(LocalDateTime.now(), turno.getHoldVenceEn());
+        ZoneId zona = ZoneId.systemDefault();
+        Duration vence = Duration.between(LocalDateTime.now().atZone(zona), turno.getHoldVenceEn().atZone(zona));
         assertTrue(vence.compareTo(Duration.ofMinutes(4)) > 0 && vence.compareTo(Duration.ofMinutes(5)) <= 0, vence.toString());
         assertSame(turno, servicio.getTurnoEnHold());
         verify(turnoDAO).actualizar(turno);

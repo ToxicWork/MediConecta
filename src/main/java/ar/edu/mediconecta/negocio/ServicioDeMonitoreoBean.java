@@ -28,6 +28,7 @@ import jakarta.inject.Inject;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -115,7 +116,7 @@ public class ServicioDeMonitoreoBean implements ServicioDeMonitoreo {
                 s.getCodigoAutorizacion(), s.getMotivo(), s.getIntento(), fallas.getOrDefault(s.getIdSolicitud(), 0L),
                 s.getProcesadaPor(), s.getCreadaEn(),
                 s.getEstado() == EstadoSolicitud.PENDIENTE || s.getResueltaEn() == null ? null
-                        : Duration.between(s.getCreadaEn(), s.getResueltaEn()).toMillis())).toList();
+                        : milisEntre(s.getCreadaEn(), s.getResueltaEn()))).toList();
     }
 
     @Override
@@ -141,7 +142,12 @@ public class ServicioDeMonitoreoBean implements ServicioDeMonitoreo {
         if (cuando == null) {
             return new EstadoSuscriptorDTO(suscriptor, true, false, null);
         }
-        return new EstadoSuscriptorDTO(suscriptor, true, true,
-                Duration.between(evento.getPublicadoEn(), cuando).toMillis());
+        return new EstadoSuscriptorDTO(suscriptor, true, true, milisEntre(evento.getPublicadoEn(), cuando));
+    }
+
+    /** Milisegundos entre dos momentos del servidor, con su zona horaria (Sonar S8700: no restar horas locales). */
+    private static long milisEntre(LocalDateTime desde, LocalDateTime hasta) {
+        ZoneId zona = ZoneId.systemDefault();
+        return Duration.between(desde.atZone(zona), hasta.atZone(zona)).toMillis();
     }
 }

@@ -75,6 +75,6 @@ public class CatalogoPrestaciones {
 
     static String normalizar(String texto) {
         String sinAcentos = Normalizer.normalize(texto, Normalizer.Form.NFD).replaceAll("\\p{M}", "");
-        return sinAcentos.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "_").replaceAll("^_|_$", "");
+        return sinAcentos.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "_").replaceAll("(?:^_)|(?:_$)", "");
     }
 }
