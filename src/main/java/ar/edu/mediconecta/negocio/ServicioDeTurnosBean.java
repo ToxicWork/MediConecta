@@ -26,6 +26,7 @@ import jakarta.inject.Inject;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -47,6 +48,8 @@ import java.util.logging.Logger;
 @StatefulTimeout(value = 5, unit = TimeUnit.MINUTES)
 @DeclareRoles({"PACIENTE", "PROFESIONAL"})
 public class ServicioDeTurnosBean implements ServicioDeTurnos {
+
+    private static final DateTimeFormatter FORMATO_HORARIO = DateTimeFormatter.ofPattern("dd/MM/yyyy 'a las' HH:mm");
 
     private static final Logger LOG = Logger.getLogger(ServicioDeTurnosBean.class.getName());
     static final Duration DURACION_HOLD = Duration.ofMinutes(5);
@@ -79,6 +82,13 @@ public class ServicioDeTurnosBean implements ServicioDeTurnos {
     public Turno publicarDisponibilidad(Long profesionalId, LocalDateTime fechaHora, Modalidad modalidad) {
         if (fechaHora == null || !fechaHora.isAfter(LocalDateTime.now())) {
             throw new TurnoNoDisponibleException("Elegí una fecha y hora futura.");
+        }
+        // D-23: con la fila del profesional bloqueada, dos publicaciones simultáneas (doble clic) no pasan las dos
+        // la verificación: la segunda espera el commit de la primera y ve el horario ya publicado.
+        usuarioDAO.bloquear(profesionalId);
+        if (turnoDAO.profesionalTieneHorarioEn(profesionalId, fechaHora)) {
+            throw new TurnoNoDisponibleException("Ya tenés publicado un horario el "
+                    + FORMATO_HORARIO.format(fechaHora) + " hs.");
         }
         Turno turno = new Turno(usuarioDAO.obtenerReferenciaProfesional(profesionalId), fechaHora, modalidad);
         turnoDAO.guardar(turno);

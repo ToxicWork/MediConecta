@@ -161,4 +161,17 @@ public class TurnoDAO {
                 .setParameter("ahora", ahora)
                 .getResultList();
     }
+
+    /**
+     * Regla "sin horarios repetidos" al publicar (D-23): otro turno vigente del profesional en la misma fecha y hora.
+     * Los cancelados no cuentan: si el profesional canceló, puede volver a ofrecer ese horario.
+     */
+    public boolean profesionalTieneHorarioEn(Long profesionalId, LocalDateTime fechaHora) {
+        return em.createQuery("SELECT COUNT(t) FROM Turno t WHERE t.profesional.id = :profesionalId "
+                        + "AND t.fechaHora = :fechaHora AND t.estado <> :cancelado", Long.class)
+                .setParameter("profesionalId", profesionalId)
+                .setParameter("fechaHora", fechaHora)
+                .setParameter("cancelado", EstadoTurno.CANCELADO)
+                .getSingleResult() > 0;
+    }
 }
