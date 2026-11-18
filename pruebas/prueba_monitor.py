@@ -100,17 +100,21 @@ with sync_playwright() as p:
     sufijo = random.randint(10000, 99999)
     email = "monitor.%d@mediconecta.test" % sufijo
     registrar(br, email, "Paciente Monitor %d" % sufijo)
-    fecha = "%02d/12/2026 %02d:%02d" % (random.randint(20, 28), random.randint(7, 19), random.choice(range(5, 60, 10)))
-    dia, hora = fecha.split(" ")
 
     # ---- 1. Aviso procesado, con latencia ------------------------------------------------------
     prof = login(br, PROFESIONAL)
     check("1. la profesional tiene el Monitor de eventos en el menú", prof.locator("a.nav-item", has_text="Monitor de eventos").count() == 1)
-    prof.goto(B + "agenda.xhtml")
-    prof.fill("#formPublicar\\:fecha_input", fecha)
-    prof.keyboard.press("Escape")
-    with prof.expect_navigation():
-        prof.locator("#formPublicar button:has-text('Publicar')").evaluate("boton => boton.click()")
+    # Un horario libre: si ya existe uno igual de otra corrida (D-23 no lo deja repetir), se elige otro.
+    for _ in range(15):
+        fecha = "%02d/12/2026 %02d:%02d" % (random.randint(20, 28), random.randint(7, 19), random.randint(0, 59))
+        prof.goto(B + "agenda.xhtml")
+        prof.fill("#formPublicar\\:fecha_input", fecha)
+        prof.keyboard.press("Escape")
+        with prof.expect_navigation():
+            prof.locator("#formPublicar button:has-text('Publicar')").evaluate("boton => boton.click()")
+        if "Disponibilidad publicada" in prof.content():
+            break
+    dia, hora = fecha.split(" ")
 
     pac = login(br, email)
     pac.goto(B + "monitor.xhtml")

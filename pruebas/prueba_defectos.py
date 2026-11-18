@@ -19,6 +19,8 @@ que ya empezó) y D-21 (el paciente confirma antes de cancelar) están en prueba
         finalizar la consulta, la sala se cierra para los dos y la teleconsulta sale de las listas.
   D-24, D-27 y D-28. Sin jerga técnica en las pantallas del paciente, el contenido aprovecha un monitor ancho y el
         perfil se abre desde la tarjeta del usuario (no se repite en el menú).
+  D-36. Dos pacientes reservan el mismo horario al mismo tiempo: uno se lo queda y al otro se le dice que ya no está
+        disponible; ninguno ve un error.
 
 Requisitos: WildFly levantado (perfil standalone-full) con mediconecta.war y externos.war desplegados, Google
 Chrome (o Edge con NAVEGADOR=msedge) y  pip install playwright
@@ -76,12 +78,18 @@ def mensajes(pg):
     return pg.locator(".ui-growl-message").all_inner_texts()
 
 
-def fechas_libres(cantidad):
-    """Horarios distintos de fines de diciembre, lejos de los días que usan las otras pruebas."""
-    elegidas = set()
-    while len(elegidas) < cantidad:
-        elegidas.add("%02d/12/2026 %02d:%02d" % (random.randint(21, 27), random.randint(7, 19), random.choice(range(5, 60, 10))))
-    return sorted(elegidas)
+def fecha_al_azar():
+    """Un horario de fines de diciembre, lejos de los días que usan las otras pruebas."""
+    return "%02d/12/2026 %02d:%02d" % (random.randint(21, 27), random.randint(7, 19), random.randint(0, 59))
+
+
+def publicar_libre(prof, modalidad="Presencial"):
+    """Un horario libre publicado: si ya existe uno igual de otra corrida (D-23 no lo deja repetir), elige otro."""
+    for _ in range(15):
+        fecha = fecha_al_azar()
+        if "Disponibilidad publicada" in publicar(prof, fecha, modalidad):
+            return fecha
+    raise AssertionError("no se encontró un horario libre en diciembre")
 
 
 def publicar(prof, fecha, modalidad="Presencial"):
@@ -103,7 +111,8 @@ def publicar_dos_veces_a_la_vez(prof, fecha):
         const datos = new FormData(b.form);
         datos.append(b.name, b.name);
         return Promise.all([1, 2].map(() =>
-            fetch(b.form.action, {method: 'POST', body: new URLSearchParams(datos)}).then(r => r.status)));
+            fetch(b.form.action, {method: 'POST', body: new URLSearchParams(datos)})
+                .then(async r => [r.status, (await r.text()).includes('Disponibilidad publicada')])));
     }""")
 
 
@@ -165,14 +174,13 @@ with sync_playwright() as p:
         nuevo.click("#formRegistro button:has-text('Registrarme')")
     nuevo.context.close()
 
-    f1, f2, f3, f4 = fechas_libres(4)
     prof = login(br, PROFESIONAL)
     pac = login(br, email)
 
     # ---- D-20. Consultar de nuevo a la obra social -------------------------------------------------
     # Va primero: el paciente todavía no tiene ninguna cobertura en la caché, así que con el legado caído queda pendiente.
     print("-- D-20. Consultar de nuevo a la obra social")
-    publicar(prof, f3)
+    f3 = publicar_libre(prof)
     try:
         consola(obraSocial="CAIDO")
         reservar(pac, f3)
@@ -202,17 +210,24 @@ with sync_playwright() as p:
 
     # ---- D-23. Sin horarios repetidos ---------------------------------------------------------------
     print("-- D-23. Sin horarios repetidos")
-    check("D-23. la profesional publica un horario (%s)" % f1, "Disponibilidad publicada" in publicar(prof, f1))
+    f1 = publicar_libre(prof)
+    check("D-23. la profesional publica un horario (%s)" % f1, True)
     dia, hora = f1.split(" ")
     repetido = publicar(prof, f1)
     check("D-23. si lo publica otra vez, se rechaza con un mensaje claro",
           "Ya tenés publicado un horario el %s a las %s hs." % (dia, hora) in repetido)
     buscar(pac)
     check("D-23. el paciente ve ese horario una sola vez", filas_disponibles(pac, f1).count() == 1)
-    estados = publicar_dos_veces_a_la_vez(prof, f2)
+    for _ in range(15):  # un horario libre: si las dos respuestas dicen que ya existía, era de otra corrida
+        f2 = fecha_al_azar()
+        respuestas = publicar_dos_veces_a_la_vez(prof, f2)
+        if any(publicado for _, publicado in respuestas):
+            break
     buscar(pac)
-    check("D-23. con dos envíos simultáneos (doble clic) tampoco queda repetido (%s, %d)"
-          % (estados, filas_disponibles(pac, f2).count()), estados == [200, 200] and filas_disponibles(pac, f2).count() == 1)
+    check("D-23. con dos envíos simultáneos (doble clic) se publica uno solo y el otro se rechaza (%s, %d)"
+          % (respuestas, filas_disponibles(pac, f2).count()),
+          [estado for estado, _ in respuestas] == [200, 200] and sorted(p for _, p in respuestas) == [False, True]
+          and filas_disponibles(pac, f2).count() == 1)
 
     # ---- D-17 y D-18. La Agenda del paciente ---------------------------------------------------------
     print("-- D-17 y D-18. La Agenda del paciente")
@@ -303,7 +318,7 @@ with sync_playwright() as p:
 
     # ---- D-14, D-31, D-25, D-26 y el micrófono ------------------------------------------------------
     print("-- D-14, D-31, D-25, D-26 y micrófono. Telemedicina")
-    publicar(prof, f4, "Telemedicina")
+    f4 = publicar_libre(prof, "Telemedicina")
     reservar(pac, f4)
     tarjeta(pac)
     check("D-14. el paciente confirma una teleconsulta (%s)" % f4, "Turno confirmado" in pagar(pac))
@@ -363,6 +378,52 @@ with sync_playwright() as p:
     check("D-31. el aviso de la sala figura en el Monitor de eventos del paciente",
           "Sala de videoconsulta abierta" in pac.inner_text(".content"))
     sala.close()
+
+    # ---- D-36. Dos pacientes, el mismo horario, al mismo tiempo ----------------------------------------
+    print("-- D-36. Dos pacientes reservan el mismo horario a la vez")
+    otro_email = "defectos.otro.%d@mediconecta.test" % sufijo
+    registro = pagina(br)
+    registro.goto(B + "registro.xhtml")
+    for campo, valor in (("nombre", "Paciente Defectos Otro %d" % sufijo), ("email", otro_email), ("password", "demo1234"),
+                         ("repeticion", "demo1234")):
+        registro.fill("#formRegistro\\:" + campo, valor)
+    with registro.expect_navigation():
+        registro.click("#formRegistro button:has-text('Registrarme')")
+    registro.context.close()
+    otro = login(br, otro_email)
+    f5 = publicar_libre(prof)
+    buscar(pac)
+    buscar(otro)
+    # El primero envía su reserva por fetch (sin esperar) y el segundo hace clic enseguida: los dos pedidos llegan juntos.
+    filas_disponibles(pac, f5).locator("button:has-text('Reservar')").first.evaluate("""b => {
+        const datos = new FormData(b.form);
+        datos.append(b.name, b.name);
+        window.__reserva = null;
+        fetch(b.form.action, {method: 'POST', body: new URLSearchParams(datos)})
+            .then(async r => { window.__reserva = [r.status, await r.text()]; });
+    }""")
+    with otro.expect_navigation():
+        filas_disponibles(otro, f5).locator("button:has-text('Reservar')").first.click()
+    pac.wait_for_function("() => window.__reserva !== null", timeout=30000)
+    estado_primero, html_primero = pac.evaluate("() => window.__reserva")
+    gano_primero = "Turno reservado temporalmente" in html_primero
+    gano_otro = "Turno reservado temporalmente" in otro.content()
+    check("D-36. los dos pedidos responden bien, sin error del servidor (%d y la página del segundo)" % estado_primero,
+          estado_primero == 200 and "error" not in otro.url)
+    check("D-36. uno solo se queda con el turno (primero: %s, segundo: %s)" % (gano_primero, gano_otro),
+          gano_primero != gano_otro)
+    perdedor = " ".join(mensajes(otro)) if gano_primero else html_primero
+    check("D-36. al otro se le avisa que el turno ya no está disponible",
+          "disponible" in perdedor or "otro paciente" in perdedor or "en espera" in perdedor)
+    pac.goto(B + "agenda.xhtml")
+    if "Turno reservado temporalmente" in pac.content():
+        with pac.expect_navigation():
+            pac.click("#formConfirmacion button:has-text('Liberar turno')")
+    otro.goto(B + "agenda.xhtml")
+    if "Turno reservado temporalmente" in otro.content():
+        with otro.expect_navigation():
+            otro.click("#formConfirmacion button:has-text('Liberar turno')")
+    otro.context.close()
 
     # ---- D-24, D-27 y D-28. Pantallas ---------------------------------------------------------------
     print("-- D-24, D-27 y D-28. Pantallas")

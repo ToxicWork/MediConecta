@@ -29,7 +29,7 @@ def login(br, email):
 def mis(pg):
     m=re.search(r"(\d+) turno\(s\) confirmado\(s\)", pg.content()); return int(m.group(1))
 import random
-HORA="%02d:%02d" % (random.randint(7,19), random.choice([5,15,25,35,45,55]))
+HORA="%02d:%02d" % (random.randint(7,19), random.randint(0,59))
 FECHA="26/11/2026 "+HORA
 FECHA_TABLA="26/11/2026 · "+HORA
 ok=True
@@ -45,7 +45,12 @@ with sync_playwright() as p:
     prof=login(br,"ana.lopez@mediconecta.test")
     check("profesional ve su nombre en el layout", "Dra. Ana Lopez" in prof.content())
     check("CSS cargado (recursos estáticos)", prof.evaluate("getComputedStyle(document.querySelector('.sidebar')).backgroundImage").startswith("linear-gradient"))
-    prof.fill("#formPublicar\\:fecha_input",FECHA); prof.keyboard.press("Escape"); prof.click("#formPublicar button:has-text('Publicar')"); prof.wait_for_load_state()
+    for _ in range(15):  # si el horario ya existe de otra corrida (D-23 no lo deja repetir), se elige otro
+        prof.goto(B+"agenda.xhtml")
+        prof.fill("#formPublicar\\:fecha_input",FECHA); prof.keyboard.press("Escape")
+        with prof.expect_navigation(): prof.locator("#formPublicar button:has-text('Publicar')").evaluate("b => b.click()")
+        if "Disponibilidad publicada" in prof.content(): break
+        HORA="%02d:%02d" % (random.randint(7,19), random.randint(0,59)); FECHA="26/11/2026 "+HORA; FECHA_TABLA="26/11/2026 · "+HORA
     check("profesional publica disponibilidad", "Disponibilidad publicada" in prof.content())
     prof.goto(B+"historia.xhtml"); check("profesional abre historia clínica", "Historia" in prof.title() or "Historia" in prof.content())
     pac=login(br,"juan.perez@mediconecta.test")

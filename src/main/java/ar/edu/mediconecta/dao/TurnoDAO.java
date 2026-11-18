@@ -5,6 +5,7 @@ import ar.edu.mediconecta.modelo.Modalidad;
 import ar.edu.mediconecta.modelo.Turno;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
 import jakarta.persistence.PersistenceContext;
 
 import java.time.LocalDateTime;
@@ -22,6 +23,20 @@ public class TurnoDAO {
 
     public Turno buscarPorId(Long id) {
         return em.find(Turno.class, id);
+    }
+
+    /**
+     * Lee el turno y bloquea su fila hasta el fin de la transacción (SELECT ... FOR UPDATE). Lo usan las operaciones
+     * que lo modifican: si otra lo está modificando, ésta espera y lee la versión nueva, en lugar de chocar al hacer el
+     * commit con el bloqueo optimista (@Version) y terminar en un error 500 (D-36).
+     */
+    public Turno buscarPorIdParaActualizar(Long id) {
+        return em.find(Turno.class, id, LockModeType.PESSIMISTIC_WRITE);
+    }
+
+    /** Relee un turno ya cargado y bloquea su fila: después de una llamada externa larga, justo antes de escribir (D-36). */
+    public void refrescarParaActualizar(Turno turno) {
+        em.refresh(turno, LockModeType.PESSIMISTIC_WRITE);
     }
 
     public Turno actualizar(Turno turno) {

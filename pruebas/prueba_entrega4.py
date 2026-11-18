@@ -162,7 +162,16 @@ def esperar(pg, url, condicion, segundos):
 
 
 def fecha_al_azar(dia):
-    return "%s/12/2026 %02d:%02d" % (dia, random.randint(7, 19), random.choice([5, 15, 25, 35, 45, 55]))
+    return "%s/12/2026 %02d:%02d" % (dia, random.randint(7, 19), random.randint(0, 59))
+
+
+def publicar_libre(prof, dia, modalidad="PRESENCIAL"):
+    """Publica un horario libre de ese día: si ya existe uno igual de otra corrida (D-23 no lo deja repetir), elige otro."""
+    for _ in range(15):
+        fecha = fecha_al_azar(dia)
+        if publicar(prof, fecha, modalidad):
+            return fecha
+    raise AssertionError("no se encontró un horario libre el %s/12" % dia)
 
 
 consola(obraSocial="EN_LINEA", autorizaciones="APROBAR", pasarela="EN_LINEA", videoconsulta="EN_LINEA")
@@ -222,8 +231,8 @@ with sync_playwright() as p:
     check("L. la API REST de turnos rechaza al administrativo (403, @RolesAllowed)", estado == 403)
 
     # ---- C. Flujo crítico con pago rechazado y aprobado -----------------------------------
-    f1 = fecha_al_azar("01")
-    check("C. el profesional publica un horario presencial (" + f1 + ")", publicar(prof, f1))
+    f1 = publicar_libre(prof, "01")
+    check("C. el profesional publica un horario presencial (" + f1 + ")", True)
     reservar(pac, f1)
     contenido = pac.content()
     check("C. la cotización consulta la cobertura por SOAP (OSDE, copago del 30 %)",
@@ -245,8 +254,7 @@ with sync_playwright() as p:
     adm.click("button:has-text('Armar falla antes del commit')")
     adm.wait_for_selector("text=Falla armada")
     check("F. el administrativo arma la falla de demostración desde Pagos", "Falla armada" in adm.content())
-    f2 = fecha_al_azar("02")
-    publicar(prof, f2)
+    f2 = publicar_libre(prof, "02")
     confirmados = lambda: sum(1 for t in json.loads(http(B + "api/v1/turnos", token=TOKEN)[1]) if t["estado"] == "CONFIRMADO")
     antes = confirmados()
     reservar(pac, f2)
@@ -267,8 +275,7 @@ with sync_playwright() as p:
 
     # ---- G. Legado caído: fallback de cobertura -------------------------------------------
     consola(obraSocial="CAIDO")
-    f3 = fecha_al_azar("03")
-    publicar(prof, f3)
+    f3 = publicar_libre(prof, "03")
     reservar(pac, f3)
     contenido = pac.content()
     check("G. con el legado caído la cotización usa el fallback (caché o cobertura pendiente)",
@@ -313,8 +320,7 @@ with sync_playwright() as p:
     check("H. y anula el reclamo a la obra social", esperar(adm, B + "pagos.xhtml", lambda c: "Anulado" in c, 15))
 
     # ---- I. Telemedicina -------------------------------------------------------------------
-    f4 = fecha_al_azar("04")
-    publicar(prof, f4, "TELEMEDICINA")
+    f4 = publicar_libre(prof, "04", "TELEMEDICINA")
     reservar(pac, f4)
     estado, cuerpo, _ = http(B + "api/v1/turnos/%s/cancelacion" % turno_id(f4), metodo="POST", token=TOKEN)
     check("N. cancelar un turno que todavía está en espera (HOLD): 409", estado == 409 and "en espera" in cuerpo)
@@ -324,7 +330,7 @@ with sync_playwright() as p:
     prof.locator("#formTelemedicina\\:tablaTeleconsultas tr", has_text=f4.split(" ")[0]).locator(
         "button:has-text('Iniciar videoconsulta')").first.click()
     prof.wait_for_load_state()
-    check("I. el profesional crea la sala en el proveedor externo (REST)", "Sala creada" in prof.content()
+    check("I. el profesional crea la sala en el proveedor externo (REST)", "Abriste la sala" in prof.content()
           and "Entrar a la sala" in prof.content())
     pac.goto(B + "telemedicina.xhtml")
     check("I. el paciente ve el enlace para unirse", "Unirme a la consulta" in pac.content())

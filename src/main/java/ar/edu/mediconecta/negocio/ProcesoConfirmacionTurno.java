@@ -101,7 +101,8 @@ public class ProcesoConfirmacionTurno {
 
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public Turno confirmar(Long turnoId, Long pacienteId, DatosPago datosPago) {
-        Turno turno = turnoDAO.buscarPorId(turnoId);
+        // D-36: bloqueado durante la confirmación, así el temporizador no libera el hold a mitad del cobro.
+        Turno turno = turnoId == null ? null : turnoDAO.buscarPorIdParaActualizar(turnoId);
 
         // 1. Reglas de la reserva (Chain of Responsibility)
         validaciones.paraConfirmar().validar(new SolicitudReserva(turno, pacienteId, LocalDateTime.now()));

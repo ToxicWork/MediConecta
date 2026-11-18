@@ -146,7 +146,7 @@ def registrar_paciente(br, email, clave, nombre="Paciente Seguridad"):
 
 def fecha_libre():
     """Un horario de diciembre al azar, lejos de los que usan las otras pruebas (días 1 a 6)."""
-    return "%02d/12/2026 %02d:%02d" % (random.randint(20, 28), random.randint(7, 19), random.choice(range(5, 60, 10)))
+    return "%02d/12/2026 %02d:%02d" % (random.randint(20, 28), random.randint(7, 19), random.randint(0, 59))
 
 
 def publicar_horario(br, fecha):
@@ -156,7 +156,18 @@ def publicar_horario(br, fecha):
     prof.keyboard.press("Escape")
     with prof.expect_navigation():
         prof.locator("#formPublicar button:has-text('Publicar')").evaluate("boton => boton.click()")
+    publicado = "Disponibilidad publicada" in prof.content()
     prof.context.close()
+    return publicado
+
+
+def publicar_horario_libre(br):
+    """Un horario libre publicado: si ya existe uno igual de otra corrida (D-23 no lo deja repetir), elige otro."""
+    for _ in range(15):
+        fecha = fecha_libre()
+        if publicar_horario(br, fecha):
+            return fecha
+    raise AssertionError("no se encontró un horario libre en diciembre")
 
 
 def reservar_y_pagar(br, email, clave, fecha):
@@ -323,8 +334,7 @@ with sync_playwright() as p:
     prof, _ = login_web(br, PROFESIONAL, "demo1234")
     check("D01. sin turno, el paciente no figura entre los que la profesional puede ver",
           not any(nombre in o for o in pacientes_en_historia(prof)))
-    fecha = fecha_libre()
-    publicar_horario(br, fecha)
+    fecha = publicar_horario_libre(br)
     pac = reservar_y_pagar(br, email, clave, fecha)
     check("D01. el paciente confirma un turno con la Dra. Ana Lopez (%s)" % fecha, "Turno confirmado" in pac.content())
     opcion = next((o for o in pacientes_en_historia(prof) if nombre in o), None)
@@ -364,9 +374,8 @@ with sync_playwright() as p:
         inicio_log = os.path.getsize(log)
         consola(pasarela="EN_LINEA", obraSocial="EN_LINEA", autorizaciones="APROBAR")
         en_dlq_antes = mensajes_en_dlq()
-        fecha = fecha_libre()
+        fecha = publicar_horario_libre(br)
         dia, hora = fecha.split(" ")
-        publicar_horario(br, fecha)
         pac = reservar_y_pagar(br, email, clave, fecha)
         check("I02. el paciente confirma y paga un turno (%s)" % fecha, "Turno confirmado" in pac.content())
 

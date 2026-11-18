@@ -11,6 +11,8 @@
   E. D-13: un turno que ya empezó no se cancela. Se publica uno para dentro de 2 minutos, el paciente lo confirma y
      lo paga, y pasada la hora sale de las agendas, la API responde 409 a los tres roles y el pago no se reintegra.
      (Tarda unos 2 minutos más que el resto: hay que esperar a que llegue la hora del turno.)
+  F. D-36: el paciente y la profesional cancelan el mismo turno por la API al mismo tiempo: uno gana (200) y el otro
+     recibe 409; nunca un error 500 (antes el bloqueo optimista hacía fallar el commit del segundo).
 
 Requisitos: WildFly levantado (perfil standalone-full) con mediconecta.war y externos.war desplegados, Google
 Chrome (o Edge con NAVEGADOR=msedge) y  pip install playwright
@@ -19,6 +21,7 @@ Deja en la base un paciente de prueba por corrida (cancelacion.NNNNN@mediconecta
 la Dra. Ana Lopez (más el horario que vuelve a ofrecerse en C y el turno ya pasado y confirmado de E).
 """
 import json, os, random, ssl, sys, time, urllib.error, urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from playwright.sync_api import sync_playwright
 
@@ -82,12 +85,9 @@ def mensaje(pg):
     return " ".join(pg.locator(".ui-growl-message").all_inner_texts())
 
 
-def fechas_libres(cantidad):
-    """Horarios distintos de diciembre, lejos de los días que usan las otras pruebas."""
-    elegidas = set()
-    while len(elegidas) < cantidad:
-        elegidas.add("%02d/12/2026 %02d:%02d" % (random.randint(14, 19), random.randint(7, 19), random.choice(range(5, 60, 10))))
-    return sorted(elegidas)
+def fecha_al_azar():
+    """Un horario de diciembre, lejos de los días que usan las otras pruebas."""
+    return "%02d/12/2026 %02d:%02d" % (random.randint(14, 19), random.randint(7, 19), random.randint(0, 59))
 
 
 def publicar(prof, fecha):
@@ -96,6 +96,16 @@ def publicar(prof, fecha):
     prof.keyboard.press("Escape")
     with prof.expect_navigation():
         prof.locator("#formPublicar button:has-text('Publicar')").evaluate("boton => boton.click()")
+    return "Disponibilidad publicada" in mensaje(prof)
+
+
+def publicar_libre(prof):
+    """Un horario libre publicado: si ya existe uno igual de otra corrida (D-23 no lo deja repetir), elige otro."""
+    for _ in range(15):
+        fecha = fecha_al_azar()
+        if publicar(prof, fecha):
+            return fecha
+    raise AssertionError("no se encontró un horario libre en diciembre")
 
 
 def ofrecido(pac, fecha):
@@ -161,10 +171,8 @@ with sync_playwright() as p:
         nuevo.click("#formRegistro button:has-text('Registrarme')")
     nuevo.context.close()
 
-    f1, f2, f3, f4, f5 = fechas_libres(5)
     prof = login(br, PROFESIONAL)
-    for f in (f1, f2, f3, f4, f5):
-        publicar(prof, f)
+    f1, f2, f3, f4, f5 = sorted(publicar_libre(prof) for _ in range(5))
     pac = login(br, email)
 
     # ---- A. Cancela el profesional desde su Agenda ----------------------------------------------
@@ -292,6 +300,18 @@ with sync_playwright() as p:
     pac.goto(B + "pagos.xhtml")
     fila6 = pac.locator("[id$='tablaPagos'] tr", has_text=f6)
     check("E. el pago sigue cobrado: no hubo reintegro", fila6.count() > 0 and "Reembolsado" not in fila6.first.inner_text())
+
+    # ---- F. D-36: dos cancelaciones simultáneas ----------------------------------------------------
+    print("-- F. Dos cancelaciones al mismo tiempo (D-36)")
+    for vuelta in (1, 2):
+        f7 = publicar_libre(prof)
+        check("F%d. el paciente confirma un turno (%s)" % (vuelta, f7), reservar_y_pagar(pac, f7))
+        id7 = turno_id(tk_pac, f7)
+        with ThreadPoolExecutor(2) as pool:
+            respuestas = list(pool.map(lambda tk: api("turnos/%d/cancelacion" % id7, "POST", token=tk), (tk_pac, tk_prof)))
+        estados = sorted(estado for estado, _ in respuestas)
+        check("F%d. el paciente y la profesional cancelan a la vez: uno gana y el otro recibe 409, nunca 500 (%s)"
+              % (vuelta, estados), estados == [200, 409])
 
     prof.context.close()
     pac.context.close()

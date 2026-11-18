@@ -64,7 +64,7 @@ public class ServicioDeTelemedicinaBean implements ServicioDeTelemedicina {
     @RolesAllowed("PROFESIONAL")
     public Turno finalizarVideoconsulta(Long turnoId) {
         Usuario profesional = usuarioActual();
-        Turno turno = turnoId == null ? null : turnoDAO.buscarPorId(turnoId);
+        Turno turno = turnoId == null ? null : turnoDAO.buscarPorIdParaActualizar(turnoId); // D-36
         if (turno == null || profesional == null || !turno.esDelProfesional(profesional.getId())) {
             throw new AccesoDenegadoException("El turno no existe o no es de tu agenda.");
         }
@@ -84,7 +84,7 @@ public class ServicioDeTelemedicinaBean implements ServicioDeTelemedicina {
     @RolesAllowed("PROFESIONAL")
     public Turno iniciarVideoconsulta(Long turnoId) {
         Usuario profesional = usuarioActual();
-        Turno turno = turnoDAO.buscarPorId(turnoId);
+        Turno turno = turnoId == null ? null : turnoDAO.buscarPorIdParaActualizar(turnoId); // D-36
         if (turno == null || profesional == null || !turno.esDelProfesional(profesional.getId())) {
             throw new AccesoDenegadoException("El turno no existe o no es de tu agenda.");
         }

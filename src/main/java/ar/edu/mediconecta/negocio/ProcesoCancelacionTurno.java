@@ -60,7 +60,9 @@ public class ProcesoCancelacionTurno {
     public Turno cancelar(Long turnoId) {
         Usuario quien = usuarioDAO.buscarPorEmail(contexto.getCallerPrincipal().getName())
                 .orElseThrow(TurnoInexistenteException::new);
-        Turno turno = turnoId == null ? null : turnoDAO.buscarPorId(turnoId);
+        // D-36: si otro lo está modificando (la autorización de la obra social, otra cancelación), se espera y se lee
+        // la versión nueva: una cancelación repetida recibe 409, nunca un error 500.
+        Turno turno = turnoId == null ? null : turnoDAO.buscarPorIdParaActualizar(turnoId);
         if (turno == null || !puedeCancelar(quien, turno)) {
             throw new TurnoInexistenteException();
         }

@@ -3,6 +3,8 @@
   1. La profesional publica un horario.
   2. El paciente lo reserva: deja de aparecer en la disponibilidad pública (API REST).
   3. Nadie confirma. Pasados los 5 minutos del hold, el horario vuelve a estar disponible.
+  4. D-33: al vencer la conversación (@StatefulTimeout), el @PreDestroy no falla. Lo verifica en el log del servidor
+     si está definida WILDFLY_HOME (sin ella, avisa que no lo puede verificar).
 
 Tarda entre 5 y 7 minutos porque espera el vencimiento real. Requisitos: los de prueba_entrega4.py.
 Uso:  python pruebas/prueba_hold_vence.py
@@ -22,6 +24,9 @@ except AttributeError:
     pass
 
 B = "https://localhost:8443/mediconecta/"
+WILDFLY_HOME = os.environ.get("WILDFLY_HOME")
+LOG_SERVIDOR = os.path.join(WILDFLY_HOME, "standalone", "log", "server.log") if WILDFLY_HOME else None
+INICIO_LOG = os.path.getsize(LOG_SERVIDOR) if LOG_SERVIDOR and os.path.exists(LOG_SERVIDOR) else 0
 PACIENTE, PROFESIONAL = "juan.perez@mediconecta.test", "ana.lopez@mediconecta.test"
 ok = True
 
@@ -47,10 +52,17 @@ def login(br, email):
     return pg
 
 
-fecha = "%02d/12/2026 %02d:%02d" % (random.randint(14, 28), random.randint(7, 19), random.choice([5, 15, 25, 35, 45, 55]))
-dia, hora = fecha.split(" ")
-iso = "%s-%s-%sT%s" % (dia[6:], dia[3:5], dia[:2], hora)
 ana = next(p["id"] for p in api("profesionales") if "Ana Lopez" in p["nombre"])
+
+
+def elegir_fecha():
+    global fecha, dia, hora, iso
+    fecha = "%02d/12/2026 %02d:%02d" % (random.randint(14, 28), random.randint(7, 19), random.randint(0, 59))
+    dia, hora = fecha.split(" ")
+    iso = "%s-%s-%sT%s" % (dia[6:], dia[3:5], dia[:2], hora)
+
+
+elegir_fecha()
 
 
 def ofrecido():
@@ -60,10 +72,16 @@ def ofrecido():
 with sync_playwright() as p:
     br = p.chromium.launch(channel=os.environ.get("NAVEGADOR", "chrome"), headless=True)
     prof = login(br, PROFESIONAL)
-    prof.fill("#formPublicar\\:fecha_input", fecha)
-    prof.keyboard.press("Escape")
-    with prof.expect_navigation():
-        prof.locator("#formPublicar button:has-text('Publicar')").evaluate("boton => boton.click()")
+    # Un horario libre: si ya existe uno igual de otra corrida (D-23 no lo deja repetir), se elige otro.
+    for _ in range(15):
+        prof.goto(B + "agenda.xhtml")
+        prof.fill("#formPublicar\\:fecha_input", fecha)
+        prof.keyboard.press("Escape")
+        with prof.expect_navigation():
+            prof.locator("#formPublicar button:has-text('Publicar')").evaluate("boton => boton.click()")
+        if "Disponibilidad publicada" in prof.content():
+            break
+        elegir_fecha()
     check("la profesional publica el horario " + fecha + " y la API lo ofrece", ofrecido())
 
     pac = login(br, PACIENTE)
@@ -84,6 +102,21 @@ with sync_playwright() as p:
         time.sleep(15)
         liberado = ofrecido()
     check("sin confirmar, el horario vuelve a ofrecerse solo (a los %d s de la reserva)" % (time.time() - inicio), liberado)
+
+    # D-33: la conversación del paciente vence 5 minutos después de su último pedido; se le da un minuto más al
+    # contenedor para destruirla y se revisa que el @PreDestroy no haya fallado.
+    if LOG_SERVIDOR:
+        time.sleep(60)
+        with open(LOG_SERVIDOR, encoding="utf-8", errors="replace") as log:
+            log.seek(INICIO_LOG)
+            nuevo = log.read()
+        fallas = [l for l in nuevo.splitlines() if "WFLYEE0006" in l and "ServicioDeTurnosBean" in l]
+        check("D-33. al vencer la conversación, el @PreDestroy del componente con estado no falla%s"
+              % ("" if not fallas else " (" + fallas[0][:110] + ")"), not fallas)
+        print("     lo liberó", "el contenedor (@PreDestroy)" if "el contenedor liberó el turno" in nuevo
+              else "el temporizador de respaldo (LiberadorDeHolds), que llegó primero")
+    else:
+        print("     D-33: definí WILDFLY_HOME para revisar el log del servidor")
     br.close()
 
 print("RESULTADO:", "TODO OK" if ok else "HAY FALLAS")
