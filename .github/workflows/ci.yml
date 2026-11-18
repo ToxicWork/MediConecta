@@ -60,7 +60,7 @@ jobs:
         if: always()
         run: |
           if [ -f target/site/jacoco/jacoco.csv ]; then
-            python3 .github/scripts/resumen_cobertura.py target/site/jacoco/jacoco.csv >> "$GITHUB_STEP_SUMMARY"
+            python3 .github/scripts/resumen_cobertura.py >> "$GITHUB_STEP_SUMMARY"
           fi
       - name: Análisis estático y Quality Gate (SonarCloud)
         if: env.SONAR_TOKEN != ''
@@ -105,8 +105,8 @@ jobs:
         if: always()
         run: |
           if [ -f target/pit-reports/mutations.xml ]; then
-            python3 .github/scripts/resumen_mutacion.py target/pit-reports/mutations.xml >> "$GITHUB_STEP_SUMMARY"
-            echo "::notice title=PIT::$(python3 .github/scripts/resumen_mutacion.py target/pit-reports/mutations.xml | grep -m1 'Puntaje')"
+            python3 .github/scripts/resumen_mutacion.py >> "$GITHUB_STEP_SUMMARY"
+            echo "::notice title=PIT::$(python3 .github/scripts/resumen_mutacion.py | grep -m1 'Puntaje')"
           else
             echo "::error title=PIT::PIT no dejó el reporte de mutaciones"
           fi
@@ -137,7 +137,7 @@ jobs:
             echo "::group::Corrida $corrida"
             mvn -B -ntp test || fallo=1
             echo "::endgroup::"
-            python3 .github/scripts/resultado_suite.py target/surefire-reports > "corrida-$corrida.txt"
+            python3 .github/scripts/resultado_suite.py > "corrida-$corrida.txt"
             echo "Corrida $corrida: $(head -1 corrida-$corrida.txt)"
             tail -n +2 "corrida-$corrida.txt" | { grep -v '^ok ' || true; } | while read -r estado prueba; do
               echo "::error title=Corrida $corrida: $estado::$prueba"
@@ -178,7 +178,7 @@ jobs:
         run: ./gitleaks git --redact --verbose --log-opts="--all" --report-format json --report-path gitleaks.json .
       - name: Resumen de secretos
         if: always()
-        run: python3 .github/scripts/resumen_secretos.py gitleaks.json "$(git rev-list --all --count)"
+        run: python3 .github/scripts/resumen_secretos.py "$(git rev-list --all --count)"
 
   dependencias:
     name: Dependencias con vulnerabilidades conocidas (Trivy)

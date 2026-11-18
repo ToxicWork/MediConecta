@@ -1,16 +1,17 @@
 """Resumen de la cobertura de JaCoCo para el pipeline.
 
-Uso: python3 .github/scripts/resumen_cobertura.py target/site/jacoco/jacoco.csv >> "$GITHUB_STEP_SUMMARY"
+Uso: python3 .github/scripts/resumen_cobertura.py >> "$GITHUB_STEP_SUMMARY" (desde la raíz del repositorio)
 
 Escribe en Markdown la cobertura de líneas y de ramas de la capa de negocio y dominio (paquetes modelo y negocio,
 la que miden los umbrales del Eje B), la de todo el código del equipo y el detalle por paquete.
 """
 import csv
-import sys
+import os
 from collections import defaultdict
 
-from rutas import dentro_del_repo
 
+# Siempre el reporte que deja mvn verify: el script no recibe rutas (Sonar pythonsecurity:S8707).
+REPORTE = os.path.join("target", "site", "jacoco", "jacoco.csv")
 RAIZ = "ar.edu.mediconecta"
 ALCANCE = ("modelo", "negocio")
 OBJETIVO_LINEAS = 80.0
@@ -25,7 +26,7 @@ def porcentaje(cubiertas, perdidas):
 def leer(ruta):
     """Por paquete de primer nivel: [líneas cubiertas, líneas sin cubrir, ramas cubiertas, ramas sin cubrir]."""
     por_paquete = defaultdict(lambda: [0, 0, 0, 0])
-    with open(dentro_del_repo(ruta), newline="", encoding="utf-8") as archivo:
+    with open(ruta, newline="", encoding="utf-8") as archivo:
         for fila in csv.DictReader(archivo):
             paquete = fila["PACKAGE"]
             relativo = paquete[len(RAIZ) + 1:] if paquete.startswith(RAIZ + ".") else paquete
@@ -73,4 +74,4 @@ def main(ruta):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1])
+    main(REPORTE)
