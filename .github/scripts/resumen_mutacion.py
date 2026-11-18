@@ -9,11 +9,13 @@ import sys
 import xml.etree.ElementTree as ET
 from collections import Counter, defaultdict
 
+from rutas import dentro_del_repo
+
 OBJETIVO = 60.0
 
 
 def main(ruta):
-    mutantes = ET.parse(ruta).getroot().findall("mutation")
+    mutantes = ET.parse(dentro_del_repo(ruta)).getroot().findall("mutation")
     estados = Counter(m.get("status") for m in mutantes)
     detectados = sum(1 for m in mutantes if m.get("detected") == "true")
     total = len(mutantes)

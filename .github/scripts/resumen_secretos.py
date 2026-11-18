@@ -10,10 +10,12 @@ import json
 import os
 import sys
 
+from rutas import dentro_del_repo
+
 
 def main(ruta, commits):
     try:
-        with open(ruta, encoding="utf-8") as archivo:
+        with open(dentro_del_repo(ruta), encoding="utf-8") as archivo:
             hallazgos = json.load(archivo)
     except (OSError, ValueError):
         hallazgos = None

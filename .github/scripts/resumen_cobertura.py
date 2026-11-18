@@ -9,6 +9,8 @@ import csv
 import sys
 from collections import defaultdict
 
+from rutas import dentro_del_repo
+
 RAIZ = "ar.edu.mediconecta"
 ALCANCE = ("modelo", "negocio")
 OBJETIVO_LINEAS = 80.0
@@ -23,7 +25,7 @@ def porcentaje(cubiertas, perdidas):
 def leer(ruta):
     """Por paquete de primer nivel: [líneas cubiertas, líneas sin cubrir, ramas cubiertas, ramas sin cubrir]."""
     por_paquete = defaultdict(lambda: [0, 0, 0, 0])
-    with open(ruta, newline="", encoding="utf-8") as archivo:
+    with open(dentro_del_repo(ruta), newline="", encoding="utf-8") as archivo:
         for fila in csv.DictReader(archivo):
             paquete = fila["PACKAGE"]
             relativo = paquete[len(RAIZ) + 1:] if paquete.startswith(RAIZ + ".") else paquete

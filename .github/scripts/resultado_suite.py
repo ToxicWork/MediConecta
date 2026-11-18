@@ -10,6 +10,8 @@ import os
 import sys
 import xml.etree.ElementTree as ET
 
+from rutas import dentro_del_repo
+
 
 def resultado(caso):
     for estado in ("failure", "error", "skipped"):
@@ -20,7 +22,7 @@ def resultado(caso):
 
 def main(carpeta):
     pruebas = []
-    for reporte in glob.glob(os.path.join(carpeta, "TEST-*.xml")):
+    for reporte in glob.glob(os.path.join(dentro_del_repo(carpeta), "TEST-*.xml")):
         for caso in ET.parse(reporte).getroot().iter("testcase"):
             pruebas.append(("%s.%s" % (caso.get("classname"), caso.get("name")), resultado(caso)))
     pruebas.sort()

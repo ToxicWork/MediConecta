@@ -89,12 +89,26 @@ jobs:
           java-version: '25'
           cache: maven
       - name: Correr PIT sobre el paquete de dominio
-        run: mvn -B -ntp test-compile org.pitest:pitest-maven:mutationCoverage
+        # Si falla (una prueba que no pasa sin mutaciones, o el puntaje bajo el umbral), las líneas que lo explican quedan
+        # como anotaciones del run: se ven sin abrir el log.
+        run: |
+          fallo=0
+          mvn -B -ntp test-compile org.pitest:pitest-maven:mutationCoverage > pit.log 2>&1 || fallo=1
+          cat pit.log
+          if [ "$fallo" = 1 ]; then
+            { grep -E 'ERROR|FAIL|did not pass|mutation score|threshold|Exception' pit.log || true; } | head -15 | while read -r linea; do
+              echo "::error title=PIT::$linea"
+            done
+          fi
+          exit "$fallo"
       - name: Resumen de mutación
         if: always()
         run: |
           if [ -f target/pit-reports/mutations.xml ]; then
             python3 .github/scripts/resumen_mutacion.py target/pit-reports/mutations.xml >> "$GITHUB_STEP_SUMMARY"
+            echo "::notice title=PIT::$(python3 .github/scripts/resumen_mutacion.py target/pit-reports/mutations.xml | grep -m1 'Puntaje')"
+          else
+            echo "::error title=PIT::PIT no dejó el reporte de mutaciones"
           fi
       - uses: actions/upload-artifact@v7
         if: always()
@@ -156,7 +170,7 @@ jobs:
           fetch-depth: 0  # todos los commits de todas las ramas
       - name: Instalar gitleaks 8.30.1
         run: |
-          curl -sSfL -o gitleaks.tar.gz https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz
+          curl --proto '=https' --tlsv1.2 -sSfL -o gitleaks.tar.gz https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz
           echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  gitleaks.tar.gz" | sha256sum -c -
           tar -xzf gitleaks.tar.gz gitleaks
       - name: Escanear todos los commits
@@ -174,7 +188,7 @@ jobs:
       - uses: actions/checkout@v7
       - name: Instalar Trivy 0.76.1
         run: |
-          curl -sSfL -o trivy.tar.gz https://github.com/aquasecurity/trivy/releases/download/v0.76.1/trivy_0.76.1_Linux-64bit.tar.gz
+          curl --proto '=https' --tlsv1.2 -sSfL -o trivy.tar.gz https://github.com/aquasecurity/trivy/releases/download/v0.76.1/trivy_0.76.1_Linux-64bit.tar.gz
           echo "c7cbe3137fb8a48a17574bede3dd6beb16742d1e9772929940fc90082c39d9c0  trivy.tar.gz" | sha256sum -c -
           tar -xzf trivy.tar.gz trivy
       - name: Escanear las dependencias de los dos proyectos Maven
