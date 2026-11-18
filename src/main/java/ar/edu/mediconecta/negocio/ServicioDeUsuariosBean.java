@@ -9,6 +9,7 @@ import ar.edu.mediconecta.negocio.excepciones.EmailYaRegistradoException;
 import ar.edu.mediconecta.negocio.factory.DatosRegistro;
 import ar.edu.mediconecta.negocio.factory.UsuarioFactory;
 import ar.edu.mediconecta.seguridad.Enmascarador;
+import ar.edu.mediconecta.seguridad.LimiteDeIntentos;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
 import jakarta.annotation.security.DeclareRoles;
@@ -41,6 +42,9 @@ public class ServicioDeUsuariosBean implements ServicioDeUsuarios {
 
     @Inject
     private UsuarioDAO usuarioDAO;
+
+    @Inject
+    private LimiteDeIntentos limiteDeIntentos;
 
     @Inject
     private UsuarioFactory usuarioFactory;
@@ -104,6 +108,7 @@ public class ServicioDeUsuariosBean implements ServicioDeUsuarios {
             throw new DatosDeUsuarioInvalidosException("El usuario no existe.");
         }
         usuario.desbloquear();
+        limiteDeIntentos.olvidar(usuario.getEmail()); // y la API deja de responderle 429
         LOG.info("Cuenta del usuario " + usuarioId + " desbloqueada por un administrativo.");
     }
 

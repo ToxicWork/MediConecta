@@ -8,6 +8,7 @@ import ar.edu.mediconecta.mensajeria.TipoEventoTurno;
 import ar.edu.mediconecta.modelo.Rol;
 import ar.edu.mediconecta.modelo.Turno;
 import ar.edu.mediconecta.modelo.Usuario;
+import ar.edu.mediconecta.negocio.excepciones.PrecondicionFallidaException;
 import ar.edu.mediconecta.negocio.excepciones.TurnoInexistenteException;
 import jakarta.annotation.Resource;
 import jakarta.annotation.security.DeclareRoles;
@@ -17,6 +18,7 @@ import jakarta.ejb.Stateless;
 import jakarta.inject.Inject;
 
 import java.time.LocalDateTime;
+import java.util.Set;
 
 /**
  * Cancelación de un turno, en una transacción (REQUIRED). Es sin estado para que la usen las dos capas de
@@ -58,6 +60,16 @@ public class ProcesoCancelacionTurno {
     private SessionContext contexto;
 
     public Turno cancelar(Long turnoId) {
+        return cancelar(turnoId, null);
+    }
+
+    /**
+     * Con {@code versionesAceptadas} (la precondición {@code If-Match} de la API), el turno se cancela sólo si su
+     * versión actual es una de ésas; si no, {@link PrecondicionFallidaException} (412): alguien lo modificó desde que
+     * el cliente lo leyó. Se verifica después de la titularidad (un turno ajeno da 404 aunque la versión no coincida)
+     * y antes del estado. {@code null}: sin precondición.
+     */
+    public Turno cancelar(Long turnoId, Set<Integer> versionesAceptadas) {
         Usuario quien = usuarioDAO.buscarPorEmail(contexto.getCallerPrincipal().getName())
                 .orElseThrow(TurnoInexistenteException::new);
         // D-36: si otro lo está modificando (la autorización de la obra social, otra cancelación), se espera y se lee
@@ -65,6 +77,9 @@ public class ProcesoCancelacionTurno {
         Turno turno = turnoId == null ? null : turnoDAO.buscarPorIdParaActualizar(turnoId);
         if (turno == null || !puedeCancelar(quien, turno)) {
             throw new TurnoInexistenteException();
+        }
+        if (versionesAceptadas != null && !versionesAceptadas.contains(turno.getVersion())) {
+            throw new PrecondicionFallidaException();
         }
         LocalDateTime ahora = LocalDateTime.now();
         // State: sólo CONFIRMADO y antes de la hora del turno -> CANCELADO; si no, TransicionInvalidaException (409)

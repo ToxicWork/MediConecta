@@ -1,10 +1,13 @@
 package ar.edu.mediconecta.web;
 
+import ar.edu.mediconecta.api.Problemas;
 import ar.edu.mediconecta.modelo.Rol;
 import ar.edu.mediconecta.modelo.Usuario;
 import ar.edu.mediconecta.negocio.ServicioDeUsuarios;
+import ar.edu.mediconecta.seguridad.ControlDeIngresos;
 import jakarta.enterprise.context.SessionScoped;
 import jakarta.faces.application.FacesMessage;
+import jakarta.faces.context.ExternalContext;
 import jakarta.faces.context.FacesContext;
 import jakarta.inject.Inject;
 import jakarta.inject.Named;
@@ -35,6 +38,9 @@ public class LoginBean implements Serializable {
 
     @Inject
     private ServicioDeUsuarios servicioDeUsuarios;
+
+    @Inject
+    private ControlDeIngresos controlDeIngresos;
 
     private String email;
     private String password;
@@ -68,6 +74,13 @@ public class LoginBean implements Serializable {
         }
         FacesContext.getCurrentInstance().addMessage(null,
                 new FacesMessage(FacesMessage.SEVERITY_ERROR, "Credenciales inválidas", null));
+        // Fuerza bruta: el mismo mensaje genérico, pero con 429 y Retry-After, como la API. Vale igual para un email
+        // que no existe, así que tampoco revela qué cuentas hay.
+        controlDeIngresos.esperaPorIntentos(email).ifPresent(espera -> {
+            ExternalContext externo = FacesContext.getCurrentInstance().getExternalContext();
+            externo.setResponseStatus(429);
+            externo.setResponseHeader("Retry-After", String.valueOf(Problemas.segundosParaReintentar(espera)));
+        });
         return null;
     }
 

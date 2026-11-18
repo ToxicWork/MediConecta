@@ -1,8 +1,10 @@
 """Pruebas de seguridad del diseño (tarjetas SEC-* del tablero) sobre la app desplegada.
 
-  W01. Bloqueo tras 5 intentos fallidos: la cuenta rechaza incluso la contraseña correcta, con la misma respuesta
-       que ante una contraseña incorrecta (web y API); un ingreso correcto pone el contador en cero; el
-       administrativo la desbloquea desde Usuarios.
+  W01. Bloqueo tras 5 intentos fallidos: la cuenta rechaza incluso la contraseña correcta, con 429 y Retry-After
+       (web y API, Eje D); un email que no existe recibe exactamente lo mismo, así el 429 no revela qué cuentas
+       hay; un ingreso correcto pone el contador en cero; el administrativo la desbloquea desde Usuarios.
+  C01. Errores de la API en Problem Details (RFC 9457): 400, 401, 403, 404, 405, 415 y 422 con
+       application/problem+json, type, title, detail e instance, sin trazas ni nombres internos.
   W04. Cookie de sesión con HttpOnly, Secure y SameSite=Lax; toda la app por HTTPS (http redirige a https, también
        la API) y la cookie no es legible desde JavaScript.
   W06. Login resistente a inyección SQL: los ataques típicos en el email y la contraseña (web y API) reciben el
@@ -17,6 +19,7 @@
   D02. Logs sin datos sensibles: en todo lo que esta corrida escribió en el log del servidor no aparece el email
        completo, el nombre, la contraseña ni el diagnóstico de los usuarios de prueba; los emails se ven
        enmascarados (se***@mediconecta.test), también en el alta de un usuario por el administrativo.
+       D-34: los rechazos esperados de la API (401, 403, 404, 429) no dejan errores con traza en el log.
 
 Requisitos: WildFly levantado (perfil standalone-full) con mediconecta.war y externos.war desplegados, Google
 Chrome (o Edge con NAVEGADOR=msedge),  pip install playwright  y la variable WILDFLY_HOME apuntando a la
@@ -109,6 +112,21 @@ def login_api(email, clave):
     return http(B + "api/v1/auth/login", "POST", {"email": email, "password": clave})
 
 
+def api(ruta, metodo="GET", cuerpo=None, token=None, tipo="application/json", crudo=None):
+    """Pedido a la API con sus cabeceras: (estado, cabeceras, cuerpo)."""
+    datos = crudo if crudo is not None else (None if cuerpo is None else json.dumps(cuerpo).encode())
+    pedido = urllib.request.Request(B + "api/v1/" + ruta, method=metodo, data=datos)
+    if datos is not None:
+        pedido.add_header("Content-Type", tipo)
+    if token:
+        pedido.add_header("Authorization", "Bearer " + token)
+    try:
+        with urllib.request.urlopen(pedido, timeout=10) as r:
+            return r.status, dict(r.headers), r.read().decode("utf-8")
+    except urllib.error.HTTPError as e:
+        return e.code, dict(e.headers), e.read().decode("utf-8")
+
+
 def sin_fecha(respuesta):
     """Estado y cuerpo de error sin la marca de tiempo, que es lo único que cambia entre dos respuestas."""
     estado, cuerpo = respuesta
@@ -130,6 +148,18 @@ def login_web(br, email, clave):
     with pg.expect_navigation():
         pg.click("#formLogin button:has-text('Ingresar')")
     return pg, "login.xhtml" not in pg.url
+
+
+def login_web_con_estado(br, email, clave):
+    """Como login_web, y además el código HTTP con que respondió el envío del formulario."""
+    pg = pagina(br)
+    pg.goto(B + "login.xhtml")
+    pg.fill("#formLogin\\:email", email)
+    pg.fill("#formLogin\\:password", clave)
+    with pg.expect_response(lambda r: r.request.method == "POST" and "login.xhtml" in r.url) as respuesta:
+        with pg.expect_navigation():
+            pg.click("#formLogin button:has-text('Ingresar')")
+    return pg, "login.xhtml" not in pg.url, respuesta.value.status
 
 
 def registrar_paciente(br, email, clave, nombre="Paciente Seguridad"):
@@ -231,16 +261,25 @@ with sync_playwright() as p:
 
     for _ in range(4):
         login_api(email, "incorrecta")
-    web, ingreso = login_web(br, email, "incorrecta")  # quinto fallo, por la web: los dos caminos suman
+    web, ingreso, estado_web = login_web_con_estado(br, email, "incorrecta")  # quinto fallo, por la web: los dos caminos suman
     check("W01. el login correcto puso el contador en cero (4 fallos más no bloquean)", not ingreso)
+    check("W01. el quinto fallo seguido, por la web, ya responde 429 con el mensaje genérico (%d)" % estado_web,
+          estado_web == 429 and "Credenciales inválidas" in web.content())
     web.context.close()
 
-    bloqueada = login_api(email, clave)
-    check("W01. tras 5 fallos la API rechaza la contraseña correcta (401)", bloqueada[0] == 401)
-    check("W01. y responde exactamente lo mismo que ante una contraseña incorrecta", sin_fecha(bloqueada) == sin_fecha(respuesta_incorrecta))
-    web, ingreso = login_web(br, email, clave)
-    check("W01. la web también rechaza la contraseña correcta, con el mensaje genérico",
-          not ingreso and "Credenciales inválidas" in web.content() and "bloque" not in web.inner_text(".ui-messages, .ui-growl, form").lower())
+    bloqueada = api("auth/login", "POST", {"email": email, "password": clave})
+    check("W01. tras 5 fallos la API rechaza hasta la contraseña correcta: 429 con Retry-After (%d, %s)"
+          % (bloqueada[0], bloqueada[1].get("Retry-After")),
+          bloqueada[0] == 429 and int(bloqueada[1].get("Retry-After") or 0) > 0)
+    inexistente = "no.existe.bloqueo.%d@mediconecta.test" % sufijo
+    for _ in range(5):
+        login_api(inexistente, "incorrecta")
+    check("W01. un email que no existe recibe exactamente lo mismo tras 5 fallos: el 429 no revela qué cuentas existen",
+          sin_fecha((bloqueada[0], bloqueada[2])) == sin_fecha(login_api(inexistente, "incorrecta")))
+    web, ingreso, estado_web = login_web_con_estado(br, email, clave)
+    check("W01. la web también rechaza la contraseña correcta, con el mensaje genérico y 429 (%d)" % estado_web,
+          not ingreso and estado_web == 429 and "Credenciales inválidas" in web.content()
+          and "bloque" not in web.inner_text(".ui-messages, .ui-growl, form").lower())
     check("W01. el login avisa la regla a todos (5 intentos, 15 minutos)",
           "5 intentos fallidos" in web.content() and "15 minutos" in web.content())
     web.context.close()
@@ -259,6 +298,33 @@ with sync_playwright() as p:
     web, ingreso = login_web(br, email, clave)
     check("W01. y por la web", ingreso)
     web.context.close()
+
+    # ---- C01. Errores de la API en Problem Details (RFC 9457) -----------------------------------
+    print("-- C01. Errores de la API en Problem Details (RFC 9457)")
+    tk_pac = json.loads(login_api(email, clave)[1])["token"]
+    tk_adm = json.loads(login_api(ADMINISTRATIVO, "demo1234")[1])["token"]
+    casos = [("sin token", api("turnos"), 401, "no_autenticado"),
+             ("token adulterado", api("turnos", token="eyJhbGciOiJIUzI1NiJ9.e30.firma"), 401, "token_invalido"),
+             ("rol sin permiso (administrativo)", api("turnos", token=tk_adm), 403, "prohibido"),
+             ("turno inexistente", api("turnos/999999", token=tk_pac), 404, "no_encontrado"),
+             ("método no admitido", api("turnos", "DELETE", token=tk_pac), 405, "metodo_no_permitido"),
+             ("JSON mal formado", api("auth/login", "POST", crudo=b'{"email": "x@x.test", '), 400, "pedido_invalido"),
+             ("JSON sin datos", api("auth/login", "POST", {}), 422, "datos_invalidos"),
+             ("cuerpo en texto plano", api("auth/login", "POST", crudo=b"hola", tipo="text/plain"), 415, "tipo_no_soportado")]
+    # Variables propias del ciclo (caso_*): nombre, estado o cuerpo son del resto de la prueba y no se pueden pisar.
+    for caso_nombre, (caso_estado, caso_cabeceras, caso_cuerpo), caso_esperado, caso_codigo in casos:
+        datos = json.loads(caso_cuerpo)
+        check("C01. %s: %d %s en application/problem+json, con type, title, detail e instance (%d %s)"
+              % (caso_nombre, caso_esperado, caso_codigo, caso_estado, datos.get("error")),
+              caso_estado == caso_esperado and caso_cabeceras.get("Content-Type", "").startswith("application/problem+json")
+              and datos.get("status") == caso_esperado and datos.get("error") == caso_codigo
+              and datos.get("type", "").endswith("problemas.md#" + caso_codigo) and datos.get("title") and datos.get("detail")
+              and datos.get("instance", "").startswith("/mediconecta/api/v1/"))
+    internos = [caso[0] for caso in casos if re.search(r"Exception|ar\.edu|RESTEASY|line no|column", caso[1][2])]
+    check("C01. ningún error muestra trazas ni nombres internos%s" % ("" if not internos else " (" + ", ".join(internos) + ")"),
+          not internos)
+    check("C01. todo 401 trae el desafío WWW-Authenticate: Bearer",
+          all("Bearer" in caso[1][1].get("WWW-Authenticate", "") for caso in casos if caso[2] == 401))
 
     # ---- W06. Inyección SQL en el login -------------------------------------------------------
     print("-- W06. Login resistente a inyección SQL")
@@ -453,6 +519,9 @@ with sync_playwright() as p:
             archivo.seek(inicio_corrida)
             escrito = archivo.read()
         lineas = len(escrito.splitlines())
+        ruido = [l for l in escrito.splitlines() if "WFLYEJB0034" in l and re.search(r"(Turnos|Auth|Profesionales)Resource", l)]
+        check("D-34. los rechazos esperados de la API (401, 403, 404 y 429) no dejan errores con traza en el log%s"
+              % ("" if not ruido else " (" + ruido[0][:120] + ")"), not ruido)
         sensibles = {"email del paciente de prueba": email, "email del paciente con nombre raro": email_raro,
                      "email dado de alta": email_alta, "email del administrativo": ADMINISTRATIVO,
                      "email de la profesional": PROFESIONAL, "nombre del paciente": nombre,

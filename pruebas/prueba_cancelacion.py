@@ -13,6 +13,11 @@
      (Tarda unos 2 minutos más que el resto: hay que esperar a que llegue la hora del turno.)
   F. D-36: el paciente y la profesional cancelan el mismo turno por la API al mismo tiempo: uno gana (200) y el otro
      recibe 409; nunca un error 500 (antes el bloqueo optimista hacía fallar el commit del segundo).
+  G. Eje C, ETag: el GET de un turno trae su ETag (y 304 con If-None-Match). La profesional y el paciente leen la
+     misma; ella cancela con If-Match (200 y ETag nueva) y el paciente, con la ETag vieja, recibe 412 y nada cambia.
+  H. Eje C, Idempotency-Key: el reintento con la misma clave recibe exactamente la misma respuesta (marcada
+     Idempotent-Replayed) en lugar de un 409; dos pedidos simultáneos con la misma clave cancelan una sola vez; la
+     misma clave en otro pedido da 422, y una clave con formato inválido, 400.
 
 Requisitos: WildFly levantado (perfil standalone-full) con mediconecta.war y externos.war desplegados, Google
 Chrome (o Edge con NAVEGADOR=msedge) y  pip install playwright
@@ -20,7 +25,7 @@ Uso:  python pruebas/prueba_cancelacion.py
 Deja en la base un paciente de prueba por corrida (cancelacion.NNNNN@mediconecta.test) y sus turnos cancelados con
 la Dra. Ana Lopez (más el horario que vuelve a ofrecerse en C y el turno ya pasado y confirmado de E).
 """
-import json, os, random, ssl, sys, time, urllib.error, urllib.request
+import json, os, random, ssl, sys, time, urllib.error, urllib.request, uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from playwright.sync_api import sync_playwright
@@ -59,6 +64,21 @@ def api(ruta, metodo="GET", cuerpo=None, token=None):
             return r.status, json.loads(r.read().decode() or "null")
     except urllib.error.HTTPError as e:
         return e.code, json.loads(e.read().decode() or "null")
+
+
+def api_completo(ruta, metodo="GET", token=None, cabeceras=None):
+    """Pedido a la API con cabeceras propias: (estado, cabeceras de la respuesta, cuerpo como texto)."""
+    pedido = urllib.request.Request(B + "api/v1/" + ruta, method=metodo, data=b"" if metodo == "POST" else None)
+    pedido.add_header("Content-Type", "application/json")
+    if token:
+        pedido.add_header("Authorization", "Bearer " + token)
+    for nombre, valor in (cabeceras or {}).items():
+        pedido.add_header(nombre, valor)
+    try:
+        with urllib.request.urlopen(pedido, timeout=15) as r:
+            return r.status, dict(r.headers), r.read().decode()
+    except urllib.error.HTTPError as e:
+        return e.code, dict(e.headers), e.read().decode()
 
 
 def token(email):
@@ -312,6 +332,58 @@ with sync_playwright() as p:
         estados = sorted(estado for estado, _ in respuestas)
         check("F%d. el paciente y la profesional cancelan a la vez: uno gana y el otro recibe 409, nunca 500 (%s)"
               % (vuelta, estados), estados == [200, 409])
+
+    # ---- G. ETag e If-Match: actualización concurrente con una ETag desactualizada (Eje C) -------------
+    print("-- G. ETag e If-Match")
+    f8 = publicar_libre(prof)
+    check("G. el paciente confirma un turno (%s)" % f8, reservar_y_pagar(pac, f8))
+    id8 = turno_id(tk_pac, f8)
+    estado, cabeceras, _ = api_completo("turnos/%d" % id8, token=tk_pac)
+    etag = cabeceras.get("ETag")
+    check("G. el GET del turno trae su ETag (%s)" % etag, estado == 200 and bool(etag) and etag.startswith('"'))
+    estado, _, cuerpo = api_completo("turnos/%d" % id8, token=tk_pac, cabeceras={"If-None-Match": etag})
+    check("G. con If-None-Match y la misma ETag: 304, sin cuerpo (%d)" % estado, estado == 304 and not cuerpo)
+    estado_prof, cabeceras_prof, _ = api_completo("turnos/%d" % id8, token=tk_prof)
+    check("G. la profesional lee la misma ETag que el paciente", estado_prof == 200 and cabeceras_prof.get("ETag") == etag)
+    estado, cabeceras, cuerpo = api_completo("turnos/%d/cancelacion" % id8, "POST", token=tk_prof, cabeceras={"If-Match": etag})
+    check("G. la profesional cancela con If-Match: 200, CANCELADO y una ETag nueva (%d, %s)" % (estado, cabeceras.get("ETag")),
+          estado == 200 and json.loads(cuerpo)["estado"] == "CANCELADO" and cabeceras.get("ETag") not in (None, etag))
+    estado, _, cuerpo = api_completo("turnos/%d/cancelacion" % id8, "POST", token=tk_pac, cabeceras={"If-Match": etag})
+    check("G. el paciente, con la ETag vieja: 412 precondicion_fallida, no 409 (%d %s)" % (estado, json.loads(cuerpo).get("error")),
+          estado == 412 and json.loads(cuerpo).get("error") == "precondicion_fallida")
+
+    # ---- H. Idempotency-Key: el reintento recibe la misma respuesta (Eje C) ----------------------------
+    print("-- H. Idempotency-Key")
+    f9 = publicar_libre(prof)
+    check("H. el paciente confirma un turno (%s)" % f9, reservar_y_pagar(pac, f9))
+    id9 = turno_id(tk_pac, f9)
+    clave = str(uuid.uuid4())
+    primera = api_completo("turnos/%d/cancelacion" % id9, "POST", token=tk_pac, cabeceras={"Idempotency-Key": clave})
+    check("H. el primer pedido con la clave cancela (%d)" % primera[0], primera[0] == 200)
+    segunda = api_completo("turnos/%d/cancelacion" % id9, "POST", token=tk_pac, cabeceras={"Idempotency-Key": clave})
+    check("H. el reintento con la misma clave recibe exactamente la misma respuesta, marcada como repetida, y no un 409 (%d)"
+          % segunda[0], segunda[0] == 200 and segunda[2] == primera[2] and segunda[1].get("Idempotent-Replayed") == "true"
+          and segunda[1].get("ETag") == primera[1].get("ETag"))
+    sin_clave = api("turnos/%d/cancelacion" % id9, "POST", token=tk_pac)
+    check("H. sin la clave, el mismo pedido es una segunda cancelación: 409 (%d)" % sin_clave[0], sin_clave[0] == 409)
+    otra = api_completo("turnos/%d/cancelacion" % id8, "POST", token=tk_pac, cabeceras={"Idempotency-Key": clave})
+    check("H. la misma clave en otro pedido: 422 clave_reutilizada (%d)" % otra[0],
+          otra[0] == 422 and json.loads(otra[2]).get("error") == "clave_reutilizada")
+    mala = api_completo("turnos/%d/cancelacion" % id9, "POST", token=tk_pac, cabeceras={"Idempotency-Key": "dos palabras"})
+    check("H. una clave con formato inválido: 400 (%d)" % mala[0], mala[0] == 400)
+    check("H. el pago se reintegró (una sola cancelación)", reembolsado(pac, f9))
+
+    f10 = publicar_libre(prof)
+    check("H. el paciente confirma otro turno (%s)" % f10, reservar_y_pagar(pac, f10))
+    id10 = turno_id(tk_pac, f10)
+    clave2 = str(uuid.uuid4())
+    with ThreadPoolExecutor(2) as pool:
+        juntas = list(pool.map(lambda _: api_completo("turnos/%d/cancelacion" % id10, "POST", token=tk_pac,
+                                                      cabeceras={"Idempotency-Key": clave2}), range(2)))
+    repetidas = sum(1 for r in juntas if r[1].get("Idempotent-Replayed") == "true")
+    check("H. dos pedidos simultáneos con la misma clave: los dos 200 con la misma respuesta y uno solo hizo la "
+          "cancelación (%s, %d repetida)" % ([r[0] for r in juntas], repetidas),
+          [r[0] for r in juntas] == [200, 200] and juntas[0][2] == juntas[1][2] and repetidas == 1)
 
     prof.context.close()
     pac.context.close()
