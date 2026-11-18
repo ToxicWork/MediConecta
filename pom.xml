@@ -17,6 +17,28 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>17</maven.compiler.release>
+
+        <jacoco.version>0.8.16</jacoco.version>
+        <pitest.version>1.30.1</pitest.version>
+
+        <!--
+          Umbrales que verifica el build (mvn verify y PIT), sobre la capa de negocio y dominio
+          (paquetes modelo y negocio). Los mínimos del Eje B de los criterios de testing son 80 % de
+          líneas, 70 % de ramas y 60 % de mutantes muertos en el paquete de dominio. Hasta llegar a
+          ellos, cada umbral es el valor alcanzado (18/11: 30 % de líneas, 34 % de ramas y 43 % de
+          mutantes): sólo se sube, así ningún cambio empeora la cobertura.
+        -->
+        <cobertura.lineas.minima>0.30</cobertura.lineas.minima>
+        <cobertura.ramas.minima>0.34</cobertura.ramas.minima>
+        <mutacion.minima>43</mutacion.minima>
+
+        <!-- Análisis estático en SonarCloud: lo corre el pipeline cuando el repositorio tiene el secreto SONAR_TOKEN. -->
+        <sonar.host.url>https://sonarcloud.io</sonar.host.url>
+        <sonar.organization>toxicwork</sonar.organization>
+        <sonar.projectKey>ToxicWork_MediConecta</sonar.projectKey>
+        <sonar.coverage.jacoco.xmlReportPaths>${project.build.directory}/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+        <!-- El cliente SOAP lo genera wsimport a partir del WSDL: no es código del equipo. -->
+        <sonar.exclusions>**/integracion/obrasocial/soap/**</sonar.exclusions>
     </properties>
 
     <dependencies>
@@ -99,6 +121,99 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.2.5</version>
+            </plugin>
+
+            <!--
+              Cobertura de las pruebas unitarias. El reporte (target/site/jacoco) abarca todo el código
+              del equipo; el control de umbrales, sólo la capa de negocio y dominio.
+            -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco.version}</version>
+                <configuration>
+                    <excludes>
+                        <exclude>ar/edu/mediconecta/integracion/obrasocial/soap/**</exclude>
+                    </excludes>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>agente</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>reporte</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>umbrales-negocio-y-dominio</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <includes>
+                                <include>ar/edu/mediconecta/modelo/**</include>
+                                <include>ar/edu/mediconecta/negocio/**</include>
+                            </includes>
+                            <rules>
+                                <rule>
+                                    <element>BUNDLE</element>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>${cobertura.lineas.minima}</minimum>
+                                        </limit>
+                                        <limit>
+                                            <counter>BRANCH</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>${cobertura.ramas.minima}</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!--
+              Pruebas de mutación sobre el paquete de dominio (modelo): entidades y patrón State.
+              No está atado a ninguna fase; se corre con
+              mvn test-compile org.pitest:pitest-maven:mutationCoverage
+            -->
+            <plugin>
+                <groupId>org.pitest</groupId>
+                <artifactId>pitest-maven</artifactId>
+                <version>${pitest.version}</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.pitest</groupId>
+                        <artifactId>pitest-junit5-plugin</artifactId>
+                        <version>1.2.3</version>
+                    </dependency>
+                </dependencies>
+                <configuration>
+                    <targetClasses>
+                        <param>ar.edu.mediconecta.modelo.*</param>
+                    </targetClasses>
+                    <targetTests>
+                        <param>ar.edu.mediconecta.*</param>
+                    </targetTests>
+                    <mutationThreshold>${mutacion.minima}</mutationThreshold>
+                    <outputFormats>
+                        <param>HTML</param>
+                        <param>XML</param>
+                    </outputFormats>
+                    <timestampedReports>false</timestampedReports>
+                    <threads>4</threads>
+                </configuration>
             </plugin>
 
         </plugins>

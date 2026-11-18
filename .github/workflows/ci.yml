@@ -1,0 +1,180 @@
+# Integración continua de MediConecta.
+#
+# Corre en cada push (a cualquier rama y a los tags v*), en cada pull request a main y a pedido (workflow_dispatch).
+# Los trabajos corren en paralelo; cada uno deja su resumen en la página del run y sus reportes como artefactos.
+#   - Compilación, pruebas y análisis estático: compila los dos proyectos Maven, corre las pruebas unitarias con
+#     cobertura (JaCoCo, con umbrales sobre la capa de negocio y dominio) y, si el repositorio tiene el secreto
+#     SONAR_TOKEN, el análisis estático de SonarCloud con su Quality Gate.
+#   - Pruebas de mutación (PIT) sobre el paquete de dominio, con umbral.
+#   - Estabilidad: la suite unitaria tres veces seguidas, que tiene que dar lo mismo las tres veces.
+#   - Secretos: gitleaks sobre todos los commits de todas las ramas.
+#   - Dependencias: Trivy; falla si hay vulnerabilidades altas o críticas.
+# Las herramientas que no son de GitHub se descargan de su release oficial y se verifican por SHA-256.
+# Quedan para más adelante las pruebas de integración con Testcontainers y las de punta a punta (Playwright): las dos
+# necesitan la aplicación completa levantada en el pipeline (esperan la respuesta de la cátedra sobre Docker).
+name: CI
+
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash  # explícito: así cada paso corre con -eo pipefail y falla si falla cualquier comando de una tubería
+
+env:
+  TZ: America/Argentina/Buenos_Aires  # el mismo huso horario que el servidor
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pruebas:
+    name: Compilación, pruebas y análisis estático
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0  # SonarCloud usa la historia para distinguir el código nuevo
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - name: Compilar y correr las pruebas unitarias con cobertura
+        run: mvn -B -ntp verify
+      - name: Compilar los sistemas externos simulados
+        run: mvn -B -ntp -f sistemas-externos/pom.xml verify
+      - name: Resumen de cobertura
+        if: always()
+        run: |
+          if [ -f target/site/jacoco/jacoco.csv ]; then
+            python3 .github/scripts/resumen_cobertura.py target/site/jacoco/jacoco.csv >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Análisis estático y Quality Gate (SonarCloud)
+        if: env.SONAR_TOKEN != ''
+        run: mvn -B -ntp org.sonarsource.scanner.maven:sonar-maven-plugin:5.8.0.7211:sonar -Dsonar.qualitygate.wait=true
+      - name: Aviso si falta configurar SonarCloud
+        if: env.SONAR_TOKEN == ''
+        run: echo "::warning::El análisis de SonarCloud no corrió porque el repositorio no tiene el secreto SONAR_TOKEN."
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: reportes-pruebas
+          path: |
+            target/site/jacoco/
+            target/surefire-reports/
+          if-no-files-found: ignore
+
+  mutacion:
+    name: Pruebas de mutación del dominio (PIT)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - name: Correr PIT sobre el paquete de dominio
+        run: mvn -B -ntp test-compile org.pitest:pitest-maven:mutationCoverage
+      - name: Resumen de mutación
+        if: always()
+        run: |
+          if [ -f target/pit-reports/mutations.xml ]; then
+            python3 .github/scripts/resumen_mutacion.py target/pit-reports/mutations.xml >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: reporte-mutacion
+          path: target/pit-reports/
+          if-no-files-found: ignore
+
+  estabilidad:
+    name: Estabilidad de la suite (tres corridas)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - name: Correr la suite unitaria tres veces seguidas
+        run: |
+          mvn -B -ntp -q test-compile
+          for corrida in 1 2 3; do
+            echo "::group::Corrida $corrida"
+            mvn -B -ntp test
+            echo "::endgroup::"
+            python3 .github/scripts/resultado_suite.py target/surefire-reports > "corrida-$corrida.txt"
+            echo "Corrida $corrida: $(head -1 corrida-$corrida.txt)"
+          done
+          cmp corrida-1.txt corrida-2.txt && cmp corrida-1.txt corrida-3.txt
+          { echo "## Estabilidad de la suite unitaria"; echo
+            echo "Tres corridas seguidas con el mismo resultado, prueba por prueba: $(head -1 corrida-1.txt)."; } >> "$GITHUB_STEP_SUMMARY"
+
+  secretos:
+    name: Secretos en todo el historial (gitleaks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0  # todos los commits de todas las ramas
+      - name: Instalar gitleaks 8.30.1
+        run: |
+          curl -sSfL -o gitleaks.tar.gz https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz
+          echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  gitleaks.tar.gz" | sha256sum -c -
+          tar -xzf gitleaks.tar.gz gitleaks
+      - name: Escanear todos los commits
+        # --redact: si encuentra algo, el log muestra dónde está pero nunca el valor.
+        run: ./gitleaks git --redact --verbose --log-opts="--all" --report-format json --report-path gitleaks.json .
+      - name: Resumen de secretos
+        if: always()
+        run: |
+          commits=$(git rev-list --all --count)
+          hallazgos=$(python3 -c "import json; print(len(json.load(open('gitleaks.json'))))" 2>/dev/null || echo "sin reporte")
+          { echo "## Secretos en el historial (gitleaks 8.30.1)"; echo
+            echo "Commits revisados: $commits, de todas las ramas. Hallazgos: $hallazgos."; } >> "$GITHUB_STEP_SUMMARY"
+
+  dependencias:
+    name: Dependencias con vulnerabilidades conocidas (Trivy)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - name: Instalar Trivy 0.76.1
+        run: |
+          curl -sSfL -o trivy.tar.gz https://github.com/aquasecurity/trivy/releases/download/v0.76.1/trivy_0.76.1_Linux-64bit.tar.gz
+          echo "c7cbe3137fb8a48a17574bede3dd6beb16742d1e9772929940fc90082c39d9c0  trivy.tar.gz" | sha256sum -c -
+          tar -xzf trivy.tar.gz trivy
+      - name: Escanear las dependencias de los dos proyectos Maven
+        id: escaneo
+        run: ./trivy fs --scanners vuln --severity HIGH,CRITICAL --exit-code 1 --format table . | tee trivy.txt
+      - name: Resumen de dependencias
+        if: always()
+        env:
+          RESULTADO: ${{ steps.escaneo.outcome }}
+        run: |
+          { echo "## Dependencias con vulnerabilidades altas o críticas (Trivy 0.76.1)"; echo
+            if [ "$RESULTADO" = "success" ]; then
+              echo "Sin vulnerabilidades altas ni críticas en las dependencias de los dos proyectos."; echo
+            else
+              echo "**El escaneo falló:** vulnerabilidades altas o críticas, o un error de Trivy (ver el detalle)."; echo
+            fi
+            if [ -s trivy.txt ]; then echo '```'; cat trivy.txt; echo '```'; fi; } >> "$GITHUB_STEP_SUMMARY"
