@@ -32,6 +32,7 @@ public class ProcesadorAvisoProfesional extends ProcesadorNotificacion {
             case AUTORIZACION_RECHAZADA -> aviso(evento, "Autorización rechazada",
                     evento.obraSocial() + " no autorizó el turno de " + evento.pacienteNombre() + " del " + fecha + ": "
                             + evento.motivoAutorizacion());
+            case SALA_ABIERTA -> null; // la abrió el propio profesional: el aviso es sólo para el paciente
         };
     }
 

@@ -45,6 +45,7 @@ public class FilaMonitorDTO implements Serializable {
             case "TURNO_CANCELADO" -> "Cancelado";
             case "TURNO_AUTORIZADO" -> "Autorizado";
             case "AUTORIZACION_RECHAZADA" -> "Autorización rechazada";
+            case "SALA_ABIERTA" -> "Sala de videoconsulta abierta";
             default -> tipoEvento;
         };
     }

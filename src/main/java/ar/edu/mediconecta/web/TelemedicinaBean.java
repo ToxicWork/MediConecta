@@ -39,7 +39,20 @@ public class TelemedicinaBean {
             servicioDeTelemedicina.iniciarVideoconsulta(turnoId);
             turnos = null;
             FacesContext.getCurrentInstance().addMessage(null, new FacesMessage(FacesMessage.SEVERITY_INFO,
-                    "Sala creada en el proveedor de videoconsulta. Ya podés entrar; el paciente ve el enlace en su pantalla.", null));
+                    "Abriste la sala. Ya podés entrar; le avisamos a tu paciente.", null));
+        } catch (ErrorDeNegocioException e) {
+            FacesContext.getCurrentInstance().addMessage(null,
+                    new FacesMessage(FacesMessage.SEVERITY_ERROR, e.getMessage(), null));
+        }
+    }
+
+    /** D-14: el profesional termina la consulta y cierra la sala. */
+    public void finalizar(Long turnoId) {
+        try {
+            Turno turno = servicioDeTelemedicina.finalizarVideoconsulta(turnoId);
+            turnos = null;
+            FacesContext.getCurrentInstance().addMessage(null, new FacesMessage(FacesMessage.SEVERITY_INFO,
+                    "Finalizaste la videoconsulta con " + turno.getPaciente().getNombreCompleto() + ". La sala quedó cerrada.", null));
         } catch (ErrorDeNegocioException e) {
             FacesContext.getCurrentInstance().addMessage(null,
                     new FacesMessage(FacesMessage.SEVERITY_ERROR, e.getMessage(), null));

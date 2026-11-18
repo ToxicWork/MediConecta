@@ -27,8 +27,8 @@
                         <div>
                             <h3>Turno reservado temporalmente</h3>
                             <div class="subtle">
-                                Confirmalo antes de que venza el hold de 5 minutos
-                                <h:outputText value=" (vence a las #{agendaBean.turnoEnHold.holdVenceEn.toLocalTime().withNano(0)})"
+                                Te lo guardamos 5 minutos
+                                <h:outputText value=": confirmalo antes de las #{agendaBean.horaLimite}"
                                               rendered="#{agendaBean.turnoEnHold.holdVenceEn != null}"/>
                             </div>
                         </div>
@@ -80,90 +80,69 @@
                     <h:panelGroup layout="block" rendered="#{agendaBean.cotizacion.requierePago}">
                         <h3 style="margin:4px 0 8px;">Pago con tarjeta</h3>
                         <p class="tarjetas-prueba">
-                            Pasarela de prueba: <code>4111 1111 1111 1111</code> se aprueba ·
+                            Ambiente de prueba: <code>4111 1111 1111 1111</code> se aprueba ·
                             <code>4000 0000 0000 0002</code> se rechaza por fondos insuficientes.
                             No guardamos el número de tu tarjeta.
                         </p>
                         <div class="field">
                             <label for="formConfirmacion:titular">Titular de la tarjeta</label>
-                            <p:inputText id="titular" value="#{agendaBean.datosPago.titular}" label="Titular" autocomplete="cc-name"/>
+                            <p:inputText id="titular" value="#{agendaBean.datosPago.titular}" label="Titular" autocomplete="cc-name">
+                                <f:validateBean disabled="true"/>
+                            </p:inputText>
                         </div>
                         <div class="field-row-3">
                             <div class="field">
                                 <label for="formConfirmacion:numeroTarjeta">Número de tarjeta</label>
                                 <p:inputText id="numeroTarjeta" value="#{agendaBean.datosPago.numeroTarjeta}" label="Número de tarjeta"
-                                             placeholder="4111 1111 1111 1111" autocomplete="cc-number"/>
+                                             placeholder="4111 1111 1111 1111" autocomplete="cc-number" inputmode="numeric">
+                                    <f:validateBean disabled="true"/>
+                                </p:inputText>
                             </div>
                             <div class="field">
                                 <label for="formConfirmacion:vencimiento">Vencimiento</label>
-                                <p:inputText id="vencimiento" value="#{agendaBean.datosPago.vencimiento}" label="Vencimiento"
-                                             placeholder="MM/AA" autocomplete="cc-exp"/>
+                                <p:inputMask id="vencimiento" value="#{agendaBean.datosPago.vencimiento}" label="Vencimiento"
+                                             mask="99/99" slotChar="MM/AA" placeholder="MM/AA" autocomplete="cc-exp" inputmode="numeric">
+                                    <f:validateBean disabled="true"/>
+                                </p:inputMask>
                             </div>
                             <div class="field">
                                 <label for="formConfirmacion:codigoSeguridad">Código</label>
                                 <p:password id="codigoSeguridad" value="#{agendaBean.datosPago.codigoSeguridad}" label="Código de seguridad"
-                                            feedback="false" placeholder="CVV" autocomplete="cc-csc"/>
+                                            feedback="false" placeholder="CVV" autocomplete="cc-csc" inputmode="numeric">
+                                    <f:validateBean disabled="true"/>
+                                </p:password>
                             </div>
                         </div>
                     </h:panelGroup>
 
                     <div class="acciones">
-                        <p:commandButton id="btnConfirmar" value="#{agendaBean.cotizacion.requierePago ? 'Pagar y confirmar turno' : 'Confirmar turno'}"
+                        <!-- Con copago, primero se revisa la tarjeta (un único mensaje si falta algo) y después se pide
+                             confirmar el importe: recién "Sí, pagar" cobra. Sin copago se confirma directo. -->
+                        <p:commandButton id="btnConfirmar" value="Pagar y confirmar turno" rendered="#{agendaBean.cotizacion.requierePago}"
+                                         action="#{agendaBean.revisarPago}" process="@form"
+                                         update=":mensajes detallePago titular numeroTarjeta vencimiento"
+                                         oncomplete="if (args &amp;&amp; args.pagoListo) PF('confirmarPago').show()"
+                                         styleClass="btn btn-primary"/>
+                        <p:commandButton id="btnConfirmarSinPago" value="Confirmar turno" rendered="#{not agendaBean.cotizacion.requierePago}"
                                          action="#{agendaBean.confirmar}" ajax="false" styleClass="btn btn-primary"/>
-                        <p:commandButton value="Volver a consultar cobertura" action="#{agendaBean.cotizar}" ajax="false"
-                                         immediate="true" styleClass="btn btn-secondary"/>
+                        <p:commandButton value="Consultar de nuevo a tu obra social" action="#{agendaBean.reconsultarCobertura}" ajax="false"
+                                         immediate="true" styleClass="btn btn-secondary"
+                                         rendered="#{agendaBean.cotizacion.cobertura.estado == 'PENDIENTE'}"/>
                         <p:commandButton value="Liberar turno" action="#{agendaBean.liberarHold}" ajax="false"
                                          immediate="true" styleClass="btn btn-danger"/>
                     </div>
+
+                    <p:confirmDialog id="dialogoPago" widgetVar="confirmarPago" header="Confirmá el pago" responsive="true" width="440">
+                        <f:facet name="message">
+                            <h:panelGroup id="detallePago">#{agendaBean.resumenDelPago}</h:panelGroup>
+                        </f:facet>
+                        <p:commandButton value="Sí, pagar" action="#{agendaBean.confirmar}" ajax="false" styleClass="btn btn-primary"/>
+                        <p:commandButton value="Revisar los datos" type="button" onclick="PF('confirmarPago').hide()" styleClass="btn btn-secondary"/>
+                    </p:confirmDialog>
                 </div>
             </h:form>
 
             <h:form id="formAgenda">
-
-                <div class="card">
-                    <div class="card-header">
-                        <div>
-                            <h3>Mis turnos</h3>
-                            <div class="subtle">#{agendaBean.misTurnos.size()} turno(s) confirmado(s)</div>
-                        </div>
-                    </div>
-
-                    <h:panelGroup layout="block" styleClass="table-wrap" rendered="#{not empty agendaBean.misTurnos}">
-                        <p:dataTable id="tablaMisTurnos" value="#{agendaBean.misTurnos}" var="turno">
-                            <p:column headerText="Fecha y hora">
-                                <h:outputText value="#{turno.fechaHora}">
-                                    <f:convertDateTime pattern="EEEE dd/MM/yyyy · HH:mm 'hs'" type="localDateTime"/>
-                                </h:outputText>
-                            </p:column>
-                            <p:column headerText="Profesional">
-                                #{turno.profesional.nombreCompleto} · #{turno.profesional.especialidad}
-                            </p:column>
-                            <p:column headerText="Modalidad">
-                                <span class="tag #{turno.telemedicina ? 'tag-info' : 'tag-neutral'}">#{turno.modalidad.etiqueta}</span>
-                            </p:column>
-                            <p:column headerText="Cobertura">
-                                <h:outputText rendered="#{turno.cobertura == null}" value="—" styleClass="texto-tenue"/>
-                                <h:panelGroup rendered="#{turno.cobertura != null}">
-                                    <span class="tag #{turno.cobertura == 'CUBIERTA' ? 'tag-success' : (turno.cobertura == 'PENDIENTE' ? 'tag-warning' : 'tag-neutral')}">#{turno.cobertura.etiqueta}</span>
-                                    <h:outputText rendered="#{turno.estadoAutorizacion == 'PENDIENTE'}" value="Autorización en trámite" styleClass="tag tag-warning" style="margin-left:4px;"/>
-                                    <h:outputText rendered="#{turno.estadoAutorizacion == 'AUTORIZADA'}" value="Autorizada" styleClass="tag tag-success" style="margin-left:4px;" title="#{turno.codigoAutorizacion}"/>
-                                    <h:outputText rendered="#{turno.estadoAutorizacion == 'RECHAZADA'}" value="No autorizada" styleClass="tag tag-danger" style="margin-left:4px;" title="#{turno.motivoAutorizacion}"/>
-                                </h:panelGroup>
-                            </p:column>
-                            <p:column headerText="A tu cargo">
-                                <h:outputText styleClass="importe" value="#{turno.importePaciente}" rendered="#{turno.importePaciente != null}"><f:convertNumber type="currency" currencySymbol="$ " locale="es_AR"/></h:outputText>
-                                <h:outputText value="—" rendered="#{turno.importePaciente == null}" styleClass="texto-tenue"/>
-                            </p:column>
-                            <p:column headerText="" style="text-align:right;width:130px;">
-                                <p:commandButton value="Cancelar" action="#{agendaBean.cancelar(turno.id)}" ajax="false" styleClass="btn btn-danger btn-sm"/>
-                            </p:column>
-                        </p:dataTable>
-                    </h:panelGroup>
-
-                    <div class="empty-state" style="#{empty agendaBean.misTurnos ? '' : 'display:none;'}">
-                        No tenés turnos confirmados todavía.
-                    </div>
-                </div>
 
                 <div class="card">
                     <div class="card-header">
@@ -215,6 +194,58 @@
                     </div>
                 </div>
 
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h3>Mis turnos</h3>
+                            <div class="subtle">#{agendaBean.misTurnos.size()} turno(s) confirmado(s) por delante</div>
+                        </div>
+                    </div>
+
+                    <h:panelGroup layout="block" styleClass="table-wrap" rendered="#{not empty agendaBean.misTurnos}">
+                        <p:dataTable id="tablaMisTurnos" value="#{agendaBean.misTurnos}" var="turno">
+                            <p:column headerText="Fecha y hora">
+                                <h:outputText value="#{turno.fechaHora}">
+                                    <f:convertDateTime pattern="EEEE dd/MM/yyyy · HH:mm 'hs'" type="localDateTime"/>
+                                </h:outputText>
+                            </p:column>
+                            <p:column headerText="Profesional">
+                                #{turno.profesional.nombreCompleto} · #{turno.profesional.especialidad}
+                            </p:column>
+                            <p:column headerText="Modalidad">
+                                <span class="tag #{turno.telemedicina ? 'tag-info' : 'tag-neutral'}">#{turno.modalidad.etiqueta}</span>
+                            </p:column>
+                            <p:column headerText="Cobertura">
+                                <h:outputText rendered="#{turno.cobertura == null}" value="—" styleClass="texto-tenue"/>
+                                <h:panelGroup rendered="#{turno.cobertura != null}">
+                                    <span class="tag #{turno.cobertura == 'CUBIERTA' ? 'tag-success' : (turno.cobertura == 'PENDIENTE' ? 'tag-warning' : 'tag-neutral')}">#{turno.cobertura.etiqueta}</span>
+                                    <h:outputText rendered="#{turno.estadoAutorizacion == 'PENDIENTE'}" value="Autorización en trámite" styleClass="tag tag-warning" style="margin-left:4px;"/>
+                                    <h:outputText rendered="#{turno.estadoAutorizacion == 'AUTORIZADA'}" value="Autorizada" styleClass="tag tag-success" style="margin-left:4px;" title="#{turno.codigoAutorizacion}"/>
+                                    <h:outputText rendered="#{turno.estadoAutorizacion == 'RECHAZADA'}" value="No autorizada" styleClass="tag tag-danger" style="margin-left:4px;" title="#{turno.motivoAutorizacion}"/>
+                                </h:panelGroup>
+                            </p:column>
+                            <p:column headerText="A tu cargo">
+                                <h:outputText styleClass="importe" value="#{turno.importePaciente}" rendered="#{turno.importePaciente != null}"><f:convertNumber type="currency" currencySymbol="$ " locale="es_AR"/></h:outputText>
+                                <h:outputText value="—" rendered="#{turno.importePaciente == null}" styleClass="texto-tenue"/>
+                            </p:column>
+                            <p:column headerText="" style="text-align:right;width:130px;">
+                                <p:commandButton value="Cancelar" action="#{agendaBean.cancelar(turno.id)}" ajax="false" styleClass="btn btn-danger btn-sm">
+                                    <p:confirm header="Cancelar turno"
+                                               message="¿Cancelar tu turno con #{turno.profesional.nombreCompleto} del #{agendaBean.formatear(turno.fechaHora)}?#{turno.importePaciente != null and turno.importePaciente.signum() > 0 ? ' Te reintegramos lo que pagaste.' : ''}"/>
+                                </p:commandButton>
+                            </p:column>
+                        </p:dataTable>
+                    </h:panelGroup>
+                    <p:confirmDialog global="true" responsive="true" width="420">
+                        <p:commandButton value="Sí, cancelar el turno" type="button" styleClass="ui-confirmdialog-yes btn btn-danger"/>
+                        <p:commandButton value="No" type="button" styleClass="ui-confirmdialog-no btn btn-secondary"/>
+                    </p:confirmDialog>
+
+                    <div class="empty-state" style="#{empty agendaBean.misTurnos ? '' : 'display:none;'}">
+                        No tenés turnos confirmados por delante.
+                    </div>
+                </div>
+
             </h:form>
         </h:panelGroup>
 
@@ -225,8 +256,8 @@
                 <div class="card">
                     <div class="card-header">
                         <div>
-                            <h3>Turnos confirmados</h3>
-                            <div class="subtle">#{agendaBean.turnosConfirmadosProfesional.size()} turno(s) · cobertura y autorización de la obra social</div>
+                            <h3>Próximos turnos</h3>
+                            <div class="subtle">#{agendaBean.turnosConfirmadosProfesional.size()} turno(s) confirmado(s) por delante</div>
                         </div>
                     </div>
                     <h:form id="formTurnosProfesional">
@@ -266,7 +297,7 @@
                     </p:confirmDialog>
                     </h:form>
                     <h:panelGroup layout="block" styleClass="empty-state" rendered="#{empty agendaBean.turnosConfirmadosProfesional}">
-                        Todavía no te confirmaron turnos.
+                        No tenés turnos confirmados por delante.
                     </h:panelGroup>
                 </div>
 

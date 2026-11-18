@@ -139,10 +139,15 @@ def pagar(pac, tarjeta="4111 1111 1111 1111"):
     if pac.locator("#formConfirmacion\\:numeroTarjeta").count():
         pac.fill("#formConfirmacion\\:titular", "Juan Perez")
         pac.fill("#formConfirmacion\\:numeroTarjeta", tarjeta)
-        pac.fill("#formConfirmacion\\:vencimiento", "12/29")
+        pac.fill("#formConfirmacion\\:vencimiento", ""); pac.fill("#formConfirmacion\\:vencimiento", "12/29")
         pac.fill("#formConfirmacion\\:codigoSeguridad", "123")
-    pac.click("#formConfirmacion\\:btnConfirmar")
-    pac.wait_for_load_state()
+        # Con copago se paga en dos pasos: el botón revisa la tarjeta y abre el diálogo con el importe (D-29).
+        pac.click("#formConfirmacion\\:btnConfirmar")
+        with pac.expect_navigation():
+            pac.click(".ui-confirm-dialog:visible button:has-text('Sí, pagar')")
+    else:
+        with pac.expect_navigation():
+            pac.click("#formConfirmacion\\:btnConfirmarSinPago")
     return " ".join(pac.locator(".ui-growl-message").all_inner_texts())
 
 
@@ -157,7 +162,16 @@ def esperar(pg, url, condicion, segundos):
 
 
 def fecha_al_azar(dia):
-    return "%s/12/2026 %02d:%02d" % (dia, random.randint(7, 19), random.choice([5, 15, 25, 35, 45, 55]))
+    return "%s/12/2026 %02d:%02d" % (dia, random.randint(7, 19), random.randint(0, 59))
+
+
+def publicar_libre(prof, dia, modalidad="PRESENCIAL"):
+    """Publica un horario libre de ese día: si ya existe uno igual de otra corrida (D-23 no lo deja repetir), elige otro."""
+    for _ in range(15):
+        fecha = fecha_al_azar(dia)
+        if publicar(prof, fecha, modalidad):
+            return fecha
+    raise AssertionError("no se encontró un horario libre el %s/12" % dia)
 
 
 consola(obraSocial="EN_LINEA", autorizaciones="APROBAR", pasarela="EN_LINEA", videoconsulta="EN_LINEA")
@@ -204,8 +218,9 @@ with sync_playwright() as p:
 
     # ---- L. Roles: el administrativo sólo ve Pagos y el profesional ya no tiene Pagos ------------
     menu = adm.inner_text(".sidebar .nav")
-    check("L. el administrativo entra directo a Pagos y su menú tiene Pagos, Usuarios y Mi perfil",
-          "pagos.xhtml" in adm.url and "Pagos" in menu and "Usuarios" in menu and "Mi perfil" in menu
+    check("L. el administrativo entra directo a Pagos, su menú tiene Pagos y Usuarios, y el perfil está en su tarjeta",
+          "pagos.xhtml" in adm.url and "Pagos" in menu and "Usuarios" in menu
+          and adm.locator(".sidebar .user-chip[title='Mi perfil']").count() == 1
           and "Agenda" not in menu and "Notificaciones" not in menu)
     adm.goto(B + "agenda.xhtml")
     check("L. si el administrativo escribe la URL de la Agenda, vuelve a Pagos", "pagos.xhtml" in adm.url)
@@ -216,12 +231,12 @@ with sync_playwright() as p:
     check("L. la API REST de turnos rechaza al administrativo (403, @RolesAllowed)", estado == 403)
 
     # ---- C. Flujo crítico con pago rechazado y aprobado -----------------------------------
-    f1 = fecha_al_azar("01")
-    check("C. el profesional publica un horario presencial (" + f1 + ")", publicar(prof, f1))
+    f1 = publicar_libre(prof, "01")
+    check("C. el profesional publica un horario presencial (" + f1 + ")", True)
     reservar(pac, f1)
     contenido = pac.content()
     check("C. la cotización consulta la cobertura por SOAP (OSDE, copago del 30 %)",
-          "Consultada en línea al sistema de la obra social (SOAP)" in contenido and "Copago del 30" in contenido)
+          "Consultada en línea a tu obra social" in contenido and "Copago del 30" in contenido)
     msg = pagar(pac, "4000 0000 0000 0002")
     check("C. tarjeta rechazada: se informa y el turno sigue en espera", "Pago rechazado" in msg
           and "Turno reservado temporalmente" in pac.content())
@@ -239,8 +254,7 @@ with sync_playwright() as p:
     adm.click("button:has-text('Armar falla antes del commit')")
     adm.wait_for_selector("text=Falla armada")
     check("F. el administrativo arma la falla de demostración desde Pagos", "Falla armada" in adm.content())
-    f2 = fecha_al_azar("02")
-    publicar(prof, f2)
+    f2 = publicar_libre(prof, "02")
     confirmados = lambda: sum(1 for t in json.loads(http(B + "api/v1/turnos", token=TOKEN)[1]) if t["estado"] == "CONFIRMADO")
     antes = confirmados()
     reservar(pac, f2)
@@ -261,8 +275,7 @@ with sync_playwright() as p:
 
     # ---- G. Legado caído: fallback de cobertura -------------------------------------------
     consola(obraSocial="CAIDO")
-    f3 = fecha_al_azar("03")
-    publicar(prof, f3)
+    f3 = publicar_libre(prof, "03")
     reservar(pac, f3)
     contenido = pac.content()
     check("G. con el legado caído la cotización usa el fallback (caché o cobertura pendiente)",
@@ -299,15 +312,15 @@ with sync_playwright() as p:
     # ---- H. Cancelación con reintegro asincrónico -------------------------------------------
     pac.goto(B + "agenda.xhtml")
     pac.locator("#formAgenda\\:tablaMisTurnos tr", has_text=f1.replace(" ", " · ")).locator("button:has-text('Cancelar')").click()
-    pac.wait_for_load_state()
+    with pac.expect_navigation():
+        pac.locator(".ui-confirm-dialog:visible button:has-text('Sí, cancelar el turno')").click()
     check("H. cancelación aceptada, con aviso del reintegro", "reintegro" in pac.content())
     check("H. Facturación reintegra el pago por REST (estado Reembolsado)",
           esperar(pac, B + "pagos.xhtml", lambda c: "Reembolsado" in c, 20))
     check("H. y anula el reclamo a la obra social", esperar(adm, B + "pagos.xhtml", lambda c: "Anulado" in c, 15))
 
     # ---- I. Telemedicina -------------------------------------------------------------------
-    f4 = fecha_al_azar("04")
-    publicar(prof, f4, "TELEMEDICINA")
+    f4 = publicar_libre(prof, "04", "TELEMEDICINA")
     reservar(pac, f4)
     estado, cuerpo, _ = http(B + "api/v1/turnos/%s/cancelacion" % turno_id(f4), metodo="POST", token=TOKEN)
     check("N. cancelar un turno que todavía está en espera (HOLD): 409", estado == 409 and "en espera" in cuerpo)
@@ -317,7 +330,7 @@ with sync_playwright() as p:
     prof.locator("#formTelemedicina\\:tablaTeleconsultas tr", has_text=f4.split(" ")[0]).locator(
         "button:has-text('Iniciar videoconsulta')").first.click()
     prof.wait_for_load_state()
-    check("I. el profesional crea la sala en el proveedor externo (REST)", "Sala creada" in prof.content()
+    check("I. el profesional crea la sala en el proveedor externo (REST)", "Abriste la sala" in prof.content()
           and "Entrar a la sala" in prof.content())
     pac.goto(B + "telemedicina.xhtml")
     check("I. el paciente ve el enlace para unirse", "Unirme a la consulta" in pac.content())
@@ -387,8 +400,9 @@ with sync_playwright() as p:
     check("M. con contraseña temporal el login de la API no entrega token (403)", estado == 403)
     doc = login(br, email_prof, "perfil.xhtml", "Temporal.2026")
     menu = doc.inner_text(".sidebar .nav")
-    check("M. con contraseña temporal, el primer ingreso va a Mi perfil y el menú sólo ofrece Mi perfil",
-          "Elegí tu contraseña para continuar" in doc.content() and "Agenda" not in menu and "Mi perfil" in menu)
+    check("M. con contraseña temporal, el primer ingreso va a Mi perfil y el menú no ofrece nada más",
+          "Elegí tu contraseña para continuar" in doc.content() and "Agenda" not in menu
+          and doc.locator(".sidebar .user-chip[title='Mi perfil']").count() == 1)
     doc.goto(B + "agenda.xhtml")
     check("M. hasta cambiarla no puede entrar a otra pantalla", "perfil.xhtml" in doc.url)
     doc.fill("#formPassword\\:actual", "Temporal.2026")

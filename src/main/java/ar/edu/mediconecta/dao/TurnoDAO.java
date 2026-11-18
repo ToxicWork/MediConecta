@@ -5,6 +5,7 @@ import ar.edu.mediconecta.modelo.Modalidad;
 import ar.edu.mediconecta.modelo.Turno;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
 import jakarta.persistence.PersistenceContext;
 
 import java.time.LocalDateTime;
@@ -24,6 +25,20 @@ public class TurnoDAO {
         return em.find(Turno.class, id);
     }
 
+    /**
+     * Lee el turno y bloquea su fila hasta el fin de la transacción (SELECT ... FOR UPDATE). Lo usan las operaciones
+     * que lo modifican: si otra lo está modificando, ésta espera y lee la versión nueva, en lugar de chocar al hacer el
+     * commit con el bloqueo optimista (@Version) y terminar en un error 500 (D-36).
+     */
+    public Turno buscarPorIdParaActualizar(Long id) {
+        return em.find(Turno.class, id, LockModeType.PESSIMISTIC_WRITE);
+    }
+
+    /** Relee un turno ya cargado y bloquea su fila: después de una llamada externa larga, justo antes de escribir (D-36). */
+    public void refrescarParaActualizar(Turno turno) {
+        em.refresh(turno, LockModeType.PESSIMISTIC_WRITE);
+    }
+
     public Turno actualizar(Turno turno) {
         return em.merge(turno);
     }
@@ -39,12 +54,18 @@ public class TurnoDAO {
                 .getResultList();
     }
 
-    public List<Turno> buscarConfirmadosDePaciente(Long pacienteId) {
+    /**
+     * Agenda del paciente y del profesional: los turnos confirmados en los que participa el usuario y que todavía no
+     * empezaron, del más próximo al más lejano. Los que ya empezaron no se pueden cancelar (patrón State) y salen de
+     * la agenda; siguen en la base como historial (pagos, historia clínica, API).
+     */
+    public List<Turno> buscarProximosConfirmadosDeUsuario(Long usuarioId, LocalDateTime ahora) {
         return em.createQuery(
-                        "SELECT t FROM Turno t WHERE t.paciente.id = :pacienteId "
-                                + "AND t.estado = :estado ORDER BY t.fechaHora DESC", Turno.class)
-                .setParameter("pacienteId", pacienteId)
+                        "SELECT t FROM Turno t WHERE (t.paciente.id = :usuarioId OR t.profesional.id = :usuarioId) "
+                                + "AND t.estado = :estado AND t.fechaHora > :ahora ORDER BY t.fechaHora, t.id", Turno.class)
+                .setParameter("usuarioId", usuarioId)
                 .setParameter("estado", EstadoTurno.CONFIRMADO)
+                .setParameter("ahora", ahora)
                 .getResultList();
     }
 
@@ -82,14 +103,19 @@ public class TurnoDAO {
                 .getResultList();
     }
 
-    /** Turnos de telemedicina confirmados en los que participa el usuario (como paciente o profesional). */
-    public List<Turno> buscarVirtualesConfirmadosDeUsuario(Long usuarioId) {
+    /**
+     * Turnos de telemedicina confirmados en los que participa el usuario (como paciente o profesional) que todavía
+     * importan: los de {@code desde} en adelante y los anteriores con la sala abierta. Los de sala cerrada ya terminaron.
+     */
+    public List<Turno> buscarVirtualesConfirmadosDeUsuario(Long usuarioId, LocalDateTime desde) {
         return em.createQuery(
                         "SELECT t FROM Turno t WHERE (t.paciente.id = :usuarioId OR t.profesional.id = :usuarioId) "
-                                + "AND t.estado = :estado AND t.modalidad = :modalidad ORDER BY t.fechaHora", Turno.class)
+                                + "AND t.estado = :estado AND t.modalidad = :modalidad AND t.salaCerradaEn IS NULL "
+                                + "AND (t.fechaHora >= :desde OR t.salaId IS NOT NULL) ORDER BY t.fechaHora", Turno.class)
                 .setParameter("usuarioId", usuarioId)
                 .setParameter("estado", EstadoTurno.CONFIRMADO)
                 .setParameter("modalidad", Modalidad.TELEMEDICINA)
+                .setParameter("desde", desde)
                 .getResultList();
     }
 
@@ -154,5 +180,18 @@ public class TurnoDAO {
                 .setParameter("estado", EstadoTurno.HOLD)
                 .setParameter("ahora", ahora)
                 .getResultList();
+    }
+
+    /**
+     * Regla "sin horarios repetidos" al publicar (D-23): otro turno vigente del profesional en la misma fecha y hora.
+     * Los cancelados no cuentan: si el profesional canceló, puede volver a ofrecer ese horario.
+     */
+    public boolean profesionalTieneHorarioEn(Long profesionalId, LocalDateTime fechaHora) {
+        return em.createQuery("SELECT COUNT(t) FROM Turno t WHERE t.profesional.id = :profesionalId "
+                        + "AND t.fechaHora = :fechaHora AND t.estado <> :cancelado", Long.class)
+                .setParameter("profesionalId", profesionalId)
+                .setParameter("fechaHora", fechaHora)
+                .setParameter("cancelado", EstadoTurno.CANCELADO)
+                .getSingleResult() > 0;
     }
 }

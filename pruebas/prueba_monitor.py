@@ -100,17 +100,21 @@ with sync_playwright() as p:
     sufijo = random.randint(10000, 99999)
     email = "monitor.%d@mediconecta.test" % sufijo
     registrar(br, email, "Paciente Monitor %d" % sufijo)
-    fecha = "%02d/12/2026 %02d:%02d" % (random.randint(20, 28), random.randint(7, 19), random.choice(range(5, 60, 10)))
-    dia, hora = fecha.split(" ")
 
     # ---- 1. Aviso procesado, con latencia ------------------------------------------------------
     prof = login(br, PROFESIONAL)
     check("1. la profesional tiene el Monitor de eventos en el menú", prof.locator("a.nav-item", has_text="Monitor de eventos").count() == 1)
-    prof.goto(B + "agenda.xhtml")
-    prof.fill("#formPublicar\\:fecha_input", fecha)
-    prof.keyboard.press("Escape")
-    with prof.expect_navigation():
-        prof.locator("#formPublicar button:has-text('Publicar')").evaluate("boton => boton.click()")
+    # Un horario libre: si ya existe uno igual de otra corrida (D-23 no lo deja repetir), se elige otro.
+    for _ in range(15):
+        fecha = "%02d/12/2026 %02d:%02d" % (random.randint(20, 28), random.randint(7, 19), random.randint(0, 59))
+        prof.goto(B + "agenda.xhtml")
+        prof.fill("#formPublicar\\:fecha_input", fecha)
+        prof.keyboard.press("Escape")
+        with prof.expect_navigation():
+            prof.locator("#formPublicar button:has-text('Publicar')").evaluate("boton => boton.click()")
+        if "Disponibilidad publicada" in prof.content():
+            break
+    dia, hora = fecha.split(" ")
 
     pac = login(br, email)
     pac.goto(B + "monitor.xhtml")
@@ -125,10 +129,11 @@ with sync_playwright() as p:
         pac.locator("#formAgenda\\:tablaTurnos tr", has_text=dia + " · " + hora).locator("button:has-text('Reservar')").first.click()
     pac.fill("#formConfirmacion\\:titular", "Paciente Monitor")
     pac.fill("#formConfirmacion\\:numeroTarjeta", "4111 1111 1111 1111")
-    pac.fill("#formConfirmacion\\:vencimiento", "12/29")
+    pac.fill("#formConfirmacion\\:vencimiento", ""); pac.fill("#formConfirmacion\\:vencimiento", "12/29")
     pac.fill("#formConfirmacion\\:codigoSeguridad", "123")
+    pac.click("#formConfirmacion\\:btnConfirmar")
     with pac.expect_navigation():
-        pac.click("#formConfirmacion\\:btnConfirmar")
+        pac.click(".ui-confirm-dialog:visible button:has-text('Sí, pagar')")
     check("1. el paciente confirma un turno (%s)" % fecha, "Turno confirmado" in pac.content())
 
     fila = esperar_fila(pac, lambda f: "Confirmado" in f and f.count(" ms") >= 2)
@@ -144,8 +149,9 @@ with sync_playwright() as p:
         try:
             check("2. se frena el MDB de Auditoría (jboss-cli stop-delivery)", "success" in jboss_cli(MDB_AUDITORIA + ":stop-delivery"))
             pac.goto(B + "agenda.xhtml")
+            pac.locator("#formAgenda\\:tablaMisTurnos tr", has_text=dia + " · " + hora).locator("button:has-text('Cancelar')").first.click()
             with pac.expect_navigation():
-                pac.locator("#formAgenda\\:tablaMisTurnos tr", has_text=dia + " · " + hora).locator("button:has-text('Cancelar')").first.click()
+                pac.locator(".ui-confirm-dialog:visible button:has-text('Sí, cancelar el turno')").click()
             fila = esperar_fila(pac, lambda f: "Cancelado" in f and f.count(" ms") >= 2)
             print("     fila:", fila)
             check("2. con Auditoría frenada, el aviso de cancelación figura Pendiente en Auditoría y procesado en las otras dos",

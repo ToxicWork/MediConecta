@@ -20,7 +20,11 @@
   button { border:0; border-radius:22px; padding:10px 18px; font-weight:700; cursor:pointer; background:#1f2937; color:#e2e8f0; }
   button.colgar { background:#dc2626; }
   button.activa { background:#e2e8f0; color:#0b1120; }
-  .nota { color:#94a3b8; font-size:12px; text-align:center; padding:0 22px 12px; }
+  .indicador { position:absolute; right:12px; bottom:10px; display:flex; align-items:center; gap:6px; background:rgba(0,0,0,.55); padding:4px 10px; border-radius:8px; font-size:12px; }
+  .nivel { width:44px; height:6px; border-radius:3px; background:#334155; overflow:hidden; }
+  .nivel span { display:block; height:100%; width:0; background:#22c55e; transition:width .08s linear; }
+  .aviso { text-align:center; padding:14px 22px; font-size:14px; color:#fca5a5; }
+  button:disabled { opacity:.45; cursor:default; }
 </style>
 </head>
 <body>
@@ -29,14 +33,16 @@
   <span id="estado" class="chip">…</span>
 </header>
 <main>
-  <div class="video" id="local"><div class="avatar" id="avatarLocal">?</div><span class="nombre" id="nombreLocal">Vos</span></div>
+  <div class="video" id="local"><div class="avatar" id="avatarLocal">?</div><span class="nombre" id="nombreLocal">Vos</span>
+    <span class="indicador" id="indicadorMicrofono" hidden><span id="textoMicrofono">Micrófono activado</span><span class="nivel"><span id="nivel"></span></span></span></div>
   <div class="video"><div class="avatar" id="avatarRemoto">?</div><span class="nombre" id="nombreRemoto">Esperando al otro participante…</span></div>
 </main>
 <footer>
   <button id="camara">Activar cámara</button>
+  <button id="microfono">Activar micrófono</button>
   <button class="colgar" id="salir">Salir</button>
 </footer>
-<div class="nota">Sala provista por el proveedor externo de videoconsulta (simulado). MediConecta la creó por REST y sólo guarda el enlace.</div>
+<div class="aviso" id="finalizada" hidden>El profesional finalizó la consulta. Ya podés cerrar esta ventana.</div>
 <script>
   const params = new URLSearchParams(location.search);
   const rol = params.get('rol') === 'profesional' ? 'profesional' : 'paciente';
@@ -44,8 +50,9 @@
   fetch('api/video/v1/salas/' + encodeURIComponent(params.get('id'))).then(r => r.json()).then(sala => {
     document.getElementById('titulo').textContent = sala.titulo || 'Sala de videoconsulta';
     const estado = document.getElementById('estado');
-    estado.textContent = sala.estado === 'ABIERTA' ? 'En curso' : 'Sala cerrada';
+    estado.textContent = sala.estado === 'ABIERTA' ? 'En curso' : 'Consulta finalizada';
     estado.classList.toggle('cerrada', sala.estado !== 'ABIERTA');
+    if (sala.estado !== 'ABIERTA') { setTimeout(terminar, 0); }
     const yo = rol === 'profesional' ? sala.profesional : sala.paciente;
     const otro = rol === 'profesional' ? sala.paciente : sala.profesional;
     document.getElementById('nombreLocal').textContent = (yo || 'Vos') + ' (vos)';
@@ -89,8 +96,86 @@
       botonCamara.textContent = 'Cámara no disponible · reintentar';
     } finally { ocupado = false; }
   });
-  window.addEventListener('pagehide', apagarCamara);
-  document.getElementById('salir').addEventListener('click', () => { apagarCamara(); window.close(); });
+  // Micrófono: el primer clic pide permiso y lo activa; después el mismo botón lo silencia y le devuelve el sonido
+  // (se deshabilita la pista, sin volver a pedir permiso). El medidor muestra que el micrófono capta sonido.
+  const botonMicrofono = document.getElementById('microfono');
+  const indicador = document.getElementById('indicadorMicrofono');
+  const textoMicrofono = document.getElementById('textoMicrofono');
+  const nivel = document.getElementById('nivel');
+  let audio = null, contexto = null, medidor = null;
+
+  function mostrarMicrofono() {
+    const activo = audio && audio.getAudioTracks()[0].enabled;
+    botonMicrofono.textContent = activo ? 'Silenciar micrófono' : 'Activar micrófono';
+    botonMicrofono.classList.toggle('activa', !!activo);
+    botonMicrofono.setAttribute('aria-pressed', activo ? 'true' : 'false');
+    indicador.hidden = !audio;
+    textoMicrofono.textContent = activo ? 'Micrófono activado' : 'Micrófono silenciado';
+    if (!activo) { nivel.style.width = '0'; }
+  }
+
+  function medir(analizador) {
+    const datos = new Uint8Array(analizador.fftSize);
+    medidor = setInterval(() => {
+      if (!audio || !audio.getAudioTracks()[0].enabled) { return; }
+      analizador.getByteTimeDomainData(datos);
+      const pico = datos.reduce((max, v) => Math.max(max, Math.abs(v - 128)), 0);
+      nivel.style.width = Math.min(100, pico * 2) + '%';
+    }, 100);
+  }
+
+  async function encenderMicrofono() {
+    audio = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    try {
+      contexto = new AudioContext();
+      const analizador = contexto.createAnalyser();
+      contexto.createMediaStreamSource(audio).connect(analizador);
+      medir(analizador);
+    } catch (e) { /* sin medidor: el micrófono funciona igual */ }
+  }
+
+  function apagarMicrofono() {
+    if (medidor) { clearInterval(medidor); medidor = null; }
+    if (contexto) { contexto.close(); contexto = null; }
+    if (audio) { audio.getTracks().forEach(t => t.stop()); audio = null; }
+    mostrarMicrofono();
+  }
+
+  botonMicrofono.setAttribute('aria-pressed', 'false');
+  botonMicrofono.addEventListener('click', async () => {
+    if (ocupado) return;
+    ocupado = true;
+    try {
+      if (!audio) { await encenderMicrofono(); }
+      else { const pista = audio.getAudioTracks()[0]; pista.enabled = !pista.enabled; }
+      mostrarMicrofono();
+    } catch (e) {
+      apagarMicrofono();
+      botonMicrofono.textContent = 'Micrófono no disponible · reintentar';
+    } finally { ocupado = false; }
+  });
+
+  // Cuando el profesional finaliza la consulta (MediConecta cierra la sala en el proveedor), la sala se apaga sola.
+  const consultaEstado = setInterval(() => {
+    fetch('api/video/v1/salas/' + encodeURIComponent(params.get('id'))).then(r => r.json()).then(sala => {
+      if (sala.estado !== 'ABIERTA') { terminar(); }
+    }).catch(() => {});
+  }, 5000);
+
+  function terminar() {
+    clearInterval(consultaEstado);
+    apagarCamara();
+    apagarMicrofono();
+    const estado = document.getElementById('estado');
+    estado.textContent = 'Consulta finalizada';
+    estado.classList.add('cerrada');
+    botonCamara.disabled = true;
+    botonMicrofono.disabled = true;
+    document.getElementById('finalizada').hidden = false;
+  }
+
+  window.addEventListener('pagehide', () => { apagarCamara(); apagarMicrofono(); });
+  document.getElementById('salir').addEventListener('click', () => { apagarCamara(); apagarMicrofono(); window.close(); });
 </script>
 </body>
 </html>

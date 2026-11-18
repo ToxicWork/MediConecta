@@ -63,8 +63,8 @@
                 <h:link outcome="/notificaciones.xhtml" styleClass="nav-item #{activePage == 'notificaciones' ? 'active' : ''}">
                     <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 5.5-2 7-2 7h16s-2-1.5-2-7"/><path d="M10.5 20a1.5 1.5 0 0 0 3 0"/></svg>
                     Notificaciones
-                    <h:outputText value="#{notificacionesBean.noLeidas}" styleClass="count-badge"
-                                  rendered="#{notificacionesBean.noLeidas > 0}"/>
+                    <h:panelGroup id="badgeNotificaciones"><h:outputText value="#{notificacionesBean.noLeidas}" styleClass="count-badge"
+                                  rendered="#{notificacionesBean.noLeidas > 0}"/></h:panelGroup>
                 </h:link>
             </li>
             <li>
@@ -89,17 +89,10 @@
             </li>
             </ui:fragment>
             </ui:fragment>
-            <li class="nav-section">Mi cuenta</li>
-            <li>
-                <h:link outcome="/perfil.xhtml" styleClass="nav-item #{activePage == 'perfil' ? 'active' : ''}">
-                    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c1.2-3.8 4-5.8 7-5.8s5.8 2 7 5.8"/></svg>
-                    Mi perfil
-                </h:link>
-            </li>
         </ul>
 
         <div class="sidebar-footer">
-            <h:link outcome="/perfil.xhtml" styleClass="user-chip" title="Mi perfil">
+            <h:link outcome="/perfil.xhtml" styleClass="user-chip #{activePage == 'perfil' ? 'active' : ''}" title="Mi perfil">
                 <span class="avatar">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c1.2-3.8 4-5.8 7-5.8s5.8 2 7 5.8"/></svg>
                 </span>

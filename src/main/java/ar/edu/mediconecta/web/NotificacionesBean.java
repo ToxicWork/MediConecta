@@ -42,6 +42,16 @@ public class NotificacionesBean {
         return noLeidas;
     }
 
+    /** D-16: marca una sola. El usuario sale de la sesión, nunca del pedido, y el servicio verifica que sea suya. */
+    public void marcarLeida(Long notificacionId) {
+        Usuario usuario = loginBean.getUsuarioActual();
+        if (usuario != null) {
+            servicioDeNotificaciones.marcarLeida(usuario.getId(), notificacionId);
+        }
+        notificaciones = null;
+        noLeidas = null;
+    }
+
     public void marcarTodasLeidas() {
         Usuario usuario = loginBean.getUsuarioActual();
         if (usuario != null) {

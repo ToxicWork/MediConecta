@@ -60,7 +60,7 @@ class CancelacionPorRolTest {
     @Test
     void quedaRegistradoQuienCancelo() {
         Turno turno = confirmado(AHORA.plusDays(3));
-        turno.cancelar(Rol.PROFESIONAL);
+        turno.cancelar(Rol.PROFESIONAL, AHORA);
         assertEquals(EstadoTurno.CANCELADO, turno.getEstado());
         assertEquals(Rol.PROFESIONAL, turno.getCanceladoPor());
     }
@@ -68,27 +68,50 @@ class CancelacionPorRolTest {
     @Test
     void elHorarioSeVuelveAOfrecerSoloSiCanceloElPacienteYNoPaso() {
         Turno porPaciente = confirmado(AHORA.plusDays(3));
-        porPaciente.cancelar(Rol.PACIENTE);
+        porPaciente.cancelar(Rol.PACIENTE, AHORA);
         assertTrue(porPaciente.liberaElHorario(AHORA));
 
         Turno porProfesional = confirmado(AHORA.plusDays(3));
-        porProfesional.cancelar(Rol.PROFESIONAL);
+        porProfesional.cancelar(Rol.PROFESIONAL, AHORA);
         assertFalse(porProfesional.liberaElHorario(AHORA), "si cancela el profesional no se vuelve a ofrecer");
 
         Turno porAdministrativo = confirmado(AHORA.plusDays(3));
-        porAdministrativo.cancelar(Rol.ADMINISTRATIVO);
+        porAdministrativo.cancelar(Rol.ADMINISTRATIVO, AHORA);
         assertFalse(porAdministrativo.liberaElHorario(AHORA), "si cancela la administración no se vuelve a ofrecer");
 
         Turno pasado = confirmado(AHORA.plusDays(3));
-        pasado.cancelar(Rol.PACIENTE);
+        pasado.cancelar(Rol.PACIENTE, AHORA);
         assertFalse(pasado.liberaElHorario(AHORA.plusDays(4)), "un horario que ya pasó no se ofrece");
     }
 
     @Test
     void cualquieraSeaElRolElPatronStateRechazaCancelarDosVeces() {
         Turno turno = confirmado(AHORA.plusDays(3));
-        turno.cancelar(Rol.ADMINISTRATIVO);
-        assertThrows(TransicionInvalidaException.class, () -> turno.cancelar(Rol.PROFESIONAL));
+        turno.cancelar(Rol.ADMINISTRATIVO, AHORA);
+        assertThrows(TransicionInvalidaException.class, () -> turno.cancelar(Rol.PROFESIONAL, AHORA));
         assertEquals(Rol.ADMINISTRATIVO, turno.getCanceladoPor(), "un intento fallido no cambia quién canceló");
+    }
+
+    /** D-22: el motivo del reintegro (lo ve la pasarela y queda en el pago) dice quién canceló. */
+    @Test
+    void elMotivoDelReintegroDiceQuienCancelo() {
+        assertEquals("Cancelación del turno por el paciente", ServicioDeFacturacionBean.motivoDeReintegro(Rol.PACIENTE));
+        assertEquals("Cancelación del turno por el profesional", ServicioDeFacturacionBean.motivoDeReintegro(Rol.PROFESIONAL));
+        assertEquals("Cancelación del turno por la administración", ServicioDeFacturacionBean.motivoDeReintegro(Rol.ADMINISTRATIVO));
+        assertEquals("Cancelación del turno", ServicioDeFacturacionBean.motivoDeReintegro(null),
+                "turnos cancelados antes de registrar quién");
+    }
+
+    /** D-13: ningún rol cancela un turno que ya empezó (sería reintegrar el copago de una consulta realizada). */
+    @Test
+    void ningunRolCancelaUnTurnoQueYaEmpezo() {
+        for (Rol rol : Rol.values()) {
+            Turno turno = confirmado(AHORA.plusHours(1));
+            assertThrows(TransicionInvalidaException.class, () -> turno.cancelar(rol, AHORA.plusHours(1)),
+                    rol + " no puede cancelar a la hora del turno");
+            assertThrows(TransicionInvalidaException.class, () -> turno.cancelar(rol, AHORA.plusDays(20)),
+                    rol + " no puede cancelar un turno de hace días");
+            assertEquals(EstadoTurno.CONFIRMADO, turno.getEstado());
+        }
     }
 }

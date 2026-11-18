@@ -24,16 +24,16 @@
                 <div class="card-header">
                     <div>
                         <h3>Seleccionar paciente</h3>
-                        <div class="subtle">Solo se listan pacientes con turno confirmado (el servicio también lo verifica)</div>
+                        <div class="subtle">Pacientes con los que tenés o tuviste un turno confirmado</div>
                     </div>
                 </div>
                 <div class="field-row">
                     <div class="field" style="margin-bottom:0;">
-                        <label for="formSeleccion:paciente">Paciente / turno</label>
+                        <label for="formSeleccion:paciente">Paciente</label>
                         <h:selectOneMenu id="paciente" value="#{historiaBean.pacienteId}">
                             <f:selectItem itemLabel="Seleccioná un paciente..." itemValue="" noSelectionOption="true"/>
-                            <f:selectItems value="#{historiaBean.turnosDelProfesional}" var="t"
-                                           itemLabel="#{t.paciente.nombreCompleto} · #{historiaBean.formatear(t.fechaHora)}" itemValue="#{t.paciente.id}"/>
+                            <f:selectItems value="#{historiaBean.pacientesDelProfesional}" var="p"
+                                           itemLabel="#{p.nombreCompleto}#{empty p.obraSocial ? '' : ' · '.concat(p.obraSocial)}" itemValue="#{p.id}"/>
                         </h:selectOneMenu>
                     </div>
                     <div style="align-self:end;">
@@ -120,8 +120,8 @@
             <h:panelGroup layout="block" styleClass="card" rendered="#{loginBean.paciente}">
                 <div class="card-header">
                     <div>
-                        <h3>Quién accedió a tu historia</h3>
-                        <div class="subtle">Cada consulta o carga de un profesional queda registrada (interceptor de auditoría, Ley 26.529)</div>
+                        <h3>Quién vio tu historia clínica</h3>
+                        <div class="subtle">Cada vez que un profesional abre tu historia o le agrega algo, queda anotado acá</div>
                     </div>
                 </div>
                 <h:panelGroup layout="block" styleClass="table-wrap" rendered="#{not empty historiaBean.accesos}">
@@ -137,7 +137,7 @@
                     </p:dataTable>
                 </h:panelGroup>
                 <h:panelGroup layout="block" styleClass="empty-state" rendered="#{empty historiaBean.accesos}">
-                    Ningún profesional accedió todavía a tu historia clínica.
+                    Ningún profesional vio tu historia clínica todavía.
                 </h:panelGroup>
             </h:panelGroup>
         </h:form>

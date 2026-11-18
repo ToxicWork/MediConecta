@@ -8,14 +8,21 @@
   C. Control: cuando cancela el paciente, el horario SÍ se vuelve a ofrecer.
   D. API REST: el profesional cancela un turno de su agenda (200, y 409 si repite), un paciente ajeno recibe 404,
      el administrativo cancela cualquiera (200) y sigue sin poder listar turnos (403).
+  E. D-13: un turno que ya empezó no se cancela. Se publica uno para dentro de 2 minutos, el paciente lo confirma y
+     lo paga, y pasada la hora sale de las agendas, la API responde 409 a los tres roles y el pago no se reintegra.
+     (Tarda unos 2 minutos más que el resto: hay que esperar a que llegue la hora del turno.)
+  F. D-36: el paciente y la profesional cancelan el mismo turno por la API al mismo tiempo: uno gana (200) y el otro
+     recibe 409; nunca un error 500 (antes el bloqueo optimista hacía fallar el commit del segundo).
 
 Requisitos: WildFly levantado (perfil standalone-full) con mediconecta.war y externos.war desplegados, Google
 Chrome (o Edge con NAVEGADOR=msedge) y  pip install playwright
 Uso:  python pruebas/prueba_cancelacion.py
 Deja en la base un paciente de prueba por corrida (cancelacion.NNNNN@mediconecta.test) y sus turnos cancelados con
-la Dra. Ana Lopez (más el horario que vuelve a ofrecerse en C).
+la Dra. Ana Lopez (más el horario que vuelve a ofrecerse en C y el turno ya pasado y confirmado de E).
 """
 import json, os, random, ssl, sys, time, urllib.error, urllib.request
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timedelta
 from playwright.sync_api import sync_playwright
 
 # MediConecta corre por HTTPS con el certificado autofirmado que WildFly genera para localhost: se acepta sin validar.
@@ -78,12 +85,9 @@ def mensaje(pg):
     return " ".join(pg.locator(".ui-growl-message").all_inner_texts())
 
 
-def fechas_libres(cantidad):
-    """Horarios distintos de diciembre, lejos de los días que usan las otras pruebas."""
-    elegidas = set()
-    while len(elegidas) < cantidad:
-        elegidas.add("%02d/12/2026 %02d:%02d" % (random.randint(14, 19), random.randint(7, 19), random.choice(range(5, 60, 10))))
-    return sorted(elegidas)
+def fecha_al_azar():
+    """Un horario de diciembre, lejos de los días que usan las otras pruebas."""
+    return "%02d/12/2026 %02d:%02d" % (random.randint(14, 19), random.randint(7, 19), random.randint(0, 59))
 
 
 def publicar(prof, fecha):
@@ -92,6 +96,16 @@ def publicar(prof, fecha):
     prof.keyboard.press("Escape")
     with prof.expect_navigation():
         prof.locator("#formPublicar button:has-text('Publicar')").evaluate("boton => boton.click()")
+    return "Disponibilidad publicada" in mensaje(prof)
+
+
+def publicar_libre(prof):
+    """Un horario libre publicado: si ya existe uno igual de otra corrida (D-23 no lo deja repetir), elige otro."""
+    for _ in range(15):
+        fecha = fecha_al_azar()
+        if publicar(prof, fecha):
+            return fecha
+    raise AssertionError("no se encontró un horario libre en diciembre")
 
 
 def ofrecido(pac, fecha):
@@ -112,10 +126,11 @@ def reservar_y_pagar(pac, fecha):
         pac.locator("#formAgenda\\:tablaTurnos tr", has_text=dia + " · " + hora).locator("button:has-text('Reservar')").first.click()
     pac.fill("#formConfirmacion\\:titular", "Paciente Cancelacion")
     pac.fill("#formConfirmacion\\:numeroTarjeta", "4111 1111 1111 1111")
-    pac.fill("#formConfirmacion\\:vencimiento", "12/29")
+    pac.fill("#formConfirmacion\\:vencimiento", ""); pac.fill("#formConfirmacion\\:vencimiento", "12/29")
     pac.fill("#formConfirmacion\\:codigoSeguridad", "123")
+    pac.click("#formConfirmacion\\:btnConfirmar")
     with pac.expect_navigation():
-        pac.click("#formConfirmacion\\:btnConfirmar")
+        pac.click(".ui-confirm-dialog:visible button:has-text('Sí, pagar')")
     return "Turno confirmado" in pac.content()
 
 
@@ -156,10 +171,8 @@ with sync_playwright() as p:
         nuevo.click("#formRegistro button:has-text('Registrarme')")
     nuevo.context.close()
 
-    f1, f2, f3, f4, f5 = fechas_libres(5)
     prof = login(br, PROFESIONAL)
-    for f in (f1, f2, f3, f4, f5):
-        publicar(prof, f)
+    f1, f2, f3, f4, f5 = sorted(publicar_libre(prof) for _ in range(5))
     pac = login(br, email)
 
     # ---- A. Cancela el profesional desde su Agenda ----------------------------------------------
@@ -235,8 +248,13 @@ with sync_playwright() as p:
     print("-- C. Cancela el paciente")
     check("C. el paciente confirma un turno (%s)" % f3, reservar_y_pagar(pac, f3))
     pac.goto(B + "agenda.xhtml")
+    pac.locator("#formAgenda\\:tablaMisTurnos tr", has_text=f3.replace(" ", " · ")).locator("button:has-text('Cancelar')").first.click()
+    dialogo = pac.locator(".ui-confirm-dialog:visible")
+    dialogo.wait_for()
+    check("C. el paciente también confirma, y el diálogo nombra a la profesional y la fecha (D-21)",
+          "Ana Lopez" in dialogo.inner_text() and f3 in dialogo.inner_text())
     with pac.expect_navigation():
-        pac.locator("#formAgenda\\:tablaMisTurnos tr", has_text=f3.replace(" ", " · ")).locator("button:has-text('Cancelar')").first.click()
+        pac.locator(".ui-confirm-dialog:visible button:has-text('Sí, cancelar el turno')").click()
     check("C. el paciente cancela", "Turno cancelado" in mensaje(pac))
     check("C. cuando cancela el paciente, el horario SÍ se vuelve a ofrecer", ofrecido(pac, f3))
 
@@ -256,6 +274,44 @@ with sync_playwright() as p:
     check("D. y no recibe el enlace a la sala de videoconsulta", cuerpo.get("salaVideoconsulta") in (None, ""))
     check("D. el administrativo sigue sin poder listar turnos por la API: 403", api("turnos", token=tk_adm)[0] == 403)
     check("D. los horarios cancelados por la API tampoco se vuelven a ofrecer", not ofrecido(pac, f4) and not ofrecido(pac, f5))
+
+    # ---- E. D-13: un turno que ya empezó no se cancela -------------------------------------------
+    print("-- E. Un turno que ya empezó no se cancela (D-13)")
+    inicio = (datetime.now() + timedelta(minutes=3)).replace(second=0, microsecond=0)
+    f6 = inicio.strftime("%d/%m/%Y %H:%M")
+    publicar(prof, f6)
+    check("E. el paciente confirma y paga un turno que empieza a las %s" % f6[-5:], reservar_y_pagar(pac, f6))
+    id6 = turno_id(tk_pac, f6)
+    en_agenda = lambda pg, tabla: pg.locator(tabla + " tr", has_text=f6.replace(" ", " · ") if "MisTurnos" in tabla else f6).count()
+    pac.goto(B + "agenda.xhtml")
+    check("E. antes de la hora figura en los próximos turnos del paciente", en_agenda(pac, "#formAgenda\\:tablaMisTurnos") == 1)
+    time.sleep(max(0.0, (inicio - datetime.now()).total_seconds()) + 3)
+    pac.goto(B + "agenda.xhtml")
+    check("E. pasada la hora sale de la agenda del paciente", en_agenda(pac, "#formAgenda\\:tablaMisTurnos") == 0)
+    prof.goto(B + "agenda.xhtml")
+    check("E. y de la agenda de la profesional", en_agenda(prof, "#formTurnosProfesional\\:tablaConfirmadosProfesional") == 0)
+    for quien, tk in (("el paciente", tk_pac), ("la profesional", tk_prof), ("el administrativo", tk_adm)):
+        estado, cuerpo = api("turnos/%d/cancelacion" % id6, "POST", token=tk)
+        check("E. %s intenta cancelarlo por la API: 409 (%d, %s)" % (quien, estado, (cuerpo or {}).get("mensaje")),
+              estado == 409 and "ya empezó" in cuerpo["mensaje"])
+    estado, cuerpo = api("turnos/%d" % id6, token=tk_pac)
+    check("E. el turno sigue CONFIRMADO (%s)" % (cuerpo or {}).get("estado"), estado == 200 and cuerpo["estado"] == "CONFIRMADO")
+    time.sleep(5)
+    pac.goto(B + "pagos.xhtml")
+    fila6 = pac.locator("[id$='tablaPagos'] tr", has_text=f6)
+    check("E. el pago sigue cobrado: no hubo reintegro", fila6.count() > 0 and "Reembolsado" not in fila6.first.inner_text())
+
+    # ---- F. D-36: dos cancelaciones simultáneas ----------------------------------------------------
+    print("-- F. Dos cancelaciones al mismo tiempo (D-36)")
+    for vuelta in (1, 2):
+        f7 = publicar_libre(prof)
+        check("F%d. el paciente confirma un turno (%s)" % (vuelta, f7), reservar_y_pagar(pac, f7))
+        id7 = turno_id(tk_pac, f7)
+        with ThreadPoolExecutor(2) as pool:
+            respuestas = list(pool.map(lambda tk: api("turnos/%d/cancelacion" % id7, "POST", token=tk), (tk_pac, tk_prof)))
+        estados = sorted(estado for estado, _ in respuestas)
+        check("F%d. el paciente y la profesional cancelan a la vez: uno gana y el otro recibe 409, nunca 500 (%s)"
+              % (vuelta, estados), estados == [200, 409])
 
     prof.context.close()
     pac.context.close()

@@ -26,6 +26,7 @@ import jakarta.inject.Inject;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -47,6 +48,8 @@ import java.util.logging.Logger;
 @StatefulTimeout(value = 5, unit = TimeUnit.MINUTES)
 @DeclareRoles({"PACIENTE", "PROFESIONAL"})
 public class ServicioDeTurnosBean implements ServicioDeTurnos {
+
+    private static final DateTimeFormatter FORMATO_HORARIO = DateTimeFormatter.ofPattern("dd/MM/yyyy 'a las' HH:mm");
 
     private static final Logger LOG = Logger.getLogger(ServicioDeTurnosBean.class.getName());
     static final Duration DURACION_HOLD = Duration.ofMinutes(5);
@@ -80,6 +83,13 @@ public class ServicioDeTurnosBean implements ServicioDeTurnos {
         if (fechaHora == null || !fechaHora.isAfter(LocalDateTime.now())) {
             throw new TurnoNoDisponibleException("Elegí una fecha y hora futura.");
         }
+        // D-23: con la fila del profesional bloqueada, dos publicaciones simultáneas (doble clic) no pasan las dos
+        // la verificación: la segunda espera el commit de la primera y ve el horario ya publicado.
+        usuarioDAO.bloquear(profesionalId);
+        if (turnoDAO.profesionalTieneHorarioEn(profesionalId, fechaHora)) {
+            throw new TurnoNoDisponibleException("Ya tenés publicado un horario el "
+                    + FORMATO_HORARIO.format(fechaHora) + " hs.");
+        }
         Turno turno = new Turno(usuarioDAO.obtenerReferenciaProfesional(profesionalId), fechaHora, modalidad);
         turnoDAO.guardar(turno);
         return turno;
@@ -99,7 +109,9 @@ public class ServicioDeTurnosBean implements ServicioDeTurnos {
             throw new TurnoNoDisponibleException("Ya tenés un turno en espera: confirmalo o liberalo antes de reservar otro.");
         }
         LocalDateTime ahora = LocalDateTime.now();
-        Turno turno = turnoDAO.buscarPorId(turnoId);
+        // D-36: si dos pacientes reservan el mismo horario a la vez, el segundo espera y la cadena de validación le
+        // dice que ya no está disponible (antes recibía un error 500 al hacer el commit).
+        Turno turno = turnoId == null ? null : turnoDAO.buscarPorIdParaActualizar(turnoId);
         validaciones.paraReservar().validar(new SolicitudReserva(turno, pacienteId, ahora)); // Chain of Responsibility
         turno.reservar(usuarioDAO.obtenerReferenciaPaciente(pacienteId), ahora.plus(DURACION_HOLD)); // State
         turnoDAO.actualizar(turno);
@@ -139,7 +151,7 @@ public class ServicioDeTurnosBean implements ServicioDeTurnos {
     @RolesAllowed("PACIENTE")
     public void liberarHold() {
         if (turnoEnHoldId != null) {
-            Turno turno = turnoDAO.buscarPorId(turnoEnHoldId);
+            Turno turno = turnoDAO.buscarPorIdParaActualizar(turnoEnHoldId);
             if (turno != null && turno.getEstado() == EstadoTurno.HOLD && turno.perteneceAPaciente(pacienteDelHoldId)) {
                 turno.liberar();
                 turnoDAO.actualizar(turno);
@@ -157,9 +169,9 @@ public class ServicioDeTurnosBean implements ServicioDeTurnos {
     }
 
     @Override
-    @RolesAllowed("PACIENTE")
-    public List<Turno> buscarConfirmadosDePaciente(Long pacienteId) {
-        return turnoDAO.buscarConfirmadosDePaciente(pacienteId);
+    @RolesAllowed({"PACIENTE", "PROFESIONAL"})
+    public List<Turno> buscarProximosConfirmados(Long usuarioId) {
+        return turnoDAO.buscarProximosConfirmadosDeUsuario(usuarioId, LocalDateTime.now());
     }
 
     @Override
@@ -208,10 +220,17 @@ public class ServicioDeTurnosBean implements ServicioDeTurnos {
         LOG.info("Reactivando conversación de reserva (turno en hold: " + turnoEnHoldId + ").");
     }
 
+    /**
+     * D-33: el contenedor llama a este callback sin transacción (para un bean con estado, por defecto
+     * NOT_SUPPORTED), y actualizar el turno la necesita: sin REQUIRES_NEW fallaba siempre (WFLYEE0006) y el turno
+     * lo terminaba liberando {@link LiberadorDeHolds}. EJB 3.2 admite REQUIRES_NEW en los callbacks de ciclo de vida
+     * de un bean con estado.
+     */
     @PreDestroy
+    @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
     void liberarHoldSiQuedoPendiente() {
         if (turnoEnHoldId != null) {
-            Turno turno = turnoDAO.buscarPorId(turnoEnHoldId);
+            Turno turno = turnoDAO.buscarPorIdParaActualizar(turnoEnHoldId);
             if (turno != null && turno.getEstado() == EstadoTurno.HOLD) {
                 turno.liberar();
                 turnoDAO.actualizar(turno);

@@ -78,6 +78,35 @@ public class VideoconsultaRestAdapter implements VideoconsultaGateway {
     }
 
     @Override
+    public void cerrarSala(String salaId) {
+        long inicio = System.nanoTime();
+        try {
+            circuito.ejecutar(() -> {
+                try (Response respuesta = cliente.target(config.urlVideoconsulta()).path("salas").path(salaId)
+                        .request(MediaType.APPLICATION_JSON)
+                        .header("X-Api-Key", config.claveVideoconsulta())
+                        .delete()) {
+                    // 404: el proveedor ya no la tiene (vencida o cerrada antes): para MediConecta está cerrada igual.
+                    if (respuesta.getStatus() != 200 && respuesta.getStatus() != 404) {
+                        throw new IntegracionNoDisponibleException("El proveedor de video respondió HTTP "
+                                + respuesta.getStatus(), respuesta.getStatus() >= 500);
+                    }
+                    return null;
+                } catch (ProcessingException sinRespuesta) {
+                    throw new IntegracionNoDisponibleException("El proveedor de video no respondió", true, sinRespuesta);
+                }
+            });
+            registro.registrar(SistemaExterno.VIDEOCONSULTA, "DELETE /salas", salaId, RegistroIntegraciones.OK,
+                    "sala cerrada", milis(inicio));
+        } catch (IntegracionNoDisponibleException falla) {
+            registro.registrar(SistemaExterno.VIDEOCONSULTA, "DELETE /salas", salaId,
+                    falla instanceof CircuitoAbiertoException ? RegistroIntegraciones.CIRCUITO_ABIERTO : RegistroIntegraciones.ERROR,
+                    falla.getMessage(), milis(inicio));
+            throw falla;
+        }
+    }
+
+    @Override
     public EstadoCircuito estadoCircuito() {
         return circuito.instantanea();
     }

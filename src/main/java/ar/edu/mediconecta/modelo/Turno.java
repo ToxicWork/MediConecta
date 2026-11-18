@@ -95,6 +95,10 @@ public class Turno implements Serializable {
     @Column(name = "sala_url_paciente", length = 300)
     private String salaUrlPaciente;
 
+    /** Cuándo el profesional cerró la sala al terminar la videoconsulta (D-14); null mientras esté abierta o sin abrir. */
+    @Column(name = "sala_cerrada_en")
+    private LocalDateTime salaCerradaEn;
+
     @Column(name = "confirmado_en")
     private LocalDateTime confirmadoEn;
 
@@ -133,14 +137,19 @@ public class Turno implements Serializable {
         estado = estado.comportamiento().confirmar(this, datos);
     }
 
-    public void cancelar() {
-        estado = estado.comportamiento().cancelar(this);
+    /**
+     * Cancela y registra quién lo hizo. Lo decide el patrón State: sólo un turno confirmado que todavía no empezó;
+     * cualquier otro caso lanza {@link TransicionInvalidaException} (409 en la API). {@code ahora} lo pasa quien
+     * cancela: el reloj del servidor en producción, uno fijo en las pruebas.
+     */
+    public void cancelar(Rol quien, LocalDateTime ahora) {
+        estado = estado.comportamiento().cancelar(this, ahora);
+        this.canceladoPor = quien;
     }
 
-    /** Cancela (patrón State: sólo un turno confirmado) y registra quién lo hizo. */
-    public void cancelar(Rol quien) {
-        cancelar();
-        this.canceladoPor = quien;
+    /** Si en este momento se puede cancelar (misma regla que {@link #cancelar}): la vista ofrece el botón sólo entonces. */
+    public boolean admiteCancelacion(LocalDateTime ahora) {
+        return estado.comportamiento().admiteCancelacion(this, ahora);
     }
 
     /**
@@ -186,8 +195,8 @@ public class Turno implements Serializable {
         this.confirmadoEn = LocalDateTime.now();
     }
 
-    void marcarCancelado() {
-        this.canceladoEn = LocalDateTime.now();
+    void marcarCancelado(LocalDateTime ahora) {
+        this.canceladoEn = ahora;
     }
 
     // ---- Datos que llegan de las integraciones -----------------------------------------------
@@ -215,6 +224,27 @@ public class Turno implements Serializable {
     }
 
     // ---- Consultas ---------------------------------------------------------------------------
+
+    /**
+     * El profesional termina la videoconsulta: la sala se cierra y el turno sale de la lista de Telemedicina (D-14).
+     * No cambia el estado del turno (sigue confirmado): la sala es un recurso del proveedor de video, no del turno.
+     */
+    public void cerrarSala(LocalDateTime ahora) {
+        if (salaId == null) {
+            throw new TransicionInvalidaException("La videoconsulta de este turno no se inició.");
+        }
+        if (salaCerradaEn == null) {
+            salaCerradaEn = ahora;
+        }
+    }
+
+    public boolean isSalaAbierta() {
+        return salaId != null && salaCerradaEn == null;
+    }
+
+    public LocalDateTime getSalaCerradaEn() {
+        return salaCerradaEn;
+    }
 
     public boolean perteneceAPaciente(Long pacienteId) {
         return paciente != null && paciente.getId().equals(pacienteId);

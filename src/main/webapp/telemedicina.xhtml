@@ -14,8 +14,8 @@
 
     <ui:define name="content">
         <p class="page-subtitle">
-            Las salas de videoconsulta las provee un servicio externo: MediConecta las crea por REST cuando el
-            profesional inicia la consulta y guarda sólo los enlaces.
+            Tus teleconsultas de hoy y las próximas. El profesional abre la sala a la hora del turno y la cierra al
+            terminar.
         </p>
 
         <h:form id="formTelemedicina">
@@ -36,14 +36,19 @@
                             #{loginBean.profesional ? turno.paciente.nombreCompleto : turno.profesional.nombreCompleto.concat(' · ').concat(turno.profesional.especialidad)}
                         </p:column>
                         <p:column headerText="Sala">
-                            <span class="tag #{turno.salaId != null ? 'tag-success' : 'tag-neutral'}">#{turno.salaId != null ? 'Abierta' : 'Sin abrir'}</span>
-                            <h:outputText rendered="#{turno.salaId != null}" value=" #{turno.salaId}" styleClass="mono-id"/>
+                            <span class="tag #{turno.salaAbierta ? 'tag-success' : 'tag-neutral'}">#{turno.salaAbierta ? 'Abierta' : 'Sin abrir'}</span>
                         </p:column>
-                        <p:column headerText="" style="text-align:right;width:220px;">
+                        <p:column headerText="" style="text-align:right;width:300px;">
                             <p:commandButton value="Iniciar videoconsulta" action="#{telemedicinaBean.iniciar(turno.id)}" ajax="false"
                                              styleClass="btn btn-primary btn-sm" rendered="#{loginBean.profesional and turno.salaId == null}"/>
                             <h:outputLink value="#{telemedicinaBean.enlace(turno)}" target="_blank" styleClass="btn btn-primary btn-sm"
-                                          rendered="#{turno.salaId != null}">#{loginBean.profesional ? 'Entrar a la sala' : 'Unirme a la consulta'}</h:outputLink>
+                                          rendered="#{turno.salaAbierta}">#{loginBean.profesional ? 'Entrar a la sala' : 'Unirme a la consulta'}</h:outputLink>
+                            <p:commandButton value="Finalizar consulta" action="#{telemedicinaBean.finalizar(turno.id)}" ajax="false"
+                                             styleClass="btn btn-secondary btn-sm" style="margin-left:6px;"
+                                             rendered="#{loginBean.profesional and turno.salaAbierta}">
+                                <p:confirm header="Finalizar la videoconsulta"
+                                           message="¿Terminaste la consulta con #{turno.paciente.nombreCompleto}? Se cierra la sala para los dos."/>
+                            </p:commandButton>
                             <h:outputText rendered="#{loginBean.paciente and turno.salaId == null}" value="Esperando que el profesional abra la sala" styleClass="texto-tenue"/>
                         </p:column>
                     </p:dataTable>
@@ -52,6 +57,10 @@
                     No hay teleconsultas confirmadas. #{loginBean.profesional ? 'Publicá disponibilidad con modalidad Telemedicina en la Agenda.' : 'Reservá un horario con modalidad Telemedicina en la Agenda.'}
                 </h:panelGroup>
             </h:panelGroup>
+            <p:confirmDialog global="true" responsive="true" width="420">
+                <p:commandButton value="Sí, finalizar" type="button" styleClass="ui-confirmdialog-yes btn btn-primary"/>
+                <p:commandButton value="No" type="button" styleClass="ui-confirmdialog-no btn btn-secondary"/>
+            </p:confirmDialog>
         </h:form>
     </ui:define>
 </ui:composition>

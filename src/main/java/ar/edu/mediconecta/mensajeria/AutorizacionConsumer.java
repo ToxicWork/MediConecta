@@ -98,6 +98,14 @@ public class AutorizacionConsumer implements MessageListener {
             return;
         }
 
+        // D-36: la obra social pudo tardar; mientras tanto el paciente o el profesional pudieron cancelar el turno o
+        // abrir la sala. Se relee bloqueado y recién ahí se escribe, así nadie pisa a nadie ni termina en un 500.
+        turnoDAO.refrescarParaActualizar(turno);
+        if (turno.getEstado() != EstadoTurno.CONFIRMADO) {
+            solicitud.anular("El turno se canceló antes de que respondiera la obra social.", intento, consumidor);
+            LOG.info("Solicitud " + pedido.idSolicitud() + " anulada: el turno se canceló mientras respondía la obra social.");
+            return;
+        }
         solicitud.resolver(resultado.autorizada(), resultado.codigoAutorizacion(), resultado.motivo(), intento, consumidor);
         turno.registrarAutorizacion(resultado.autorizada(), resultado.codigoAutorizacion(), resultado.motivo());
         publicador.publicar(EventoTurno.builder()

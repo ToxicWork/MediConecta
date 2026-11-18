@@ -67,8 +67,10 @@ public class ServicioDePagosBean implements ServicioDePagos {
     public Pago cobrar(Turno turno, BigDecimal importe, DatosPago datosPago) {
         Set<ConstraintViolation<DatosPago>> violaciones = validador.validate(datosPago);
         if (!violaciones.isEmpty()) {
+            // Mismo mensaje que muestra la pantalla (D-19); el de Bean Validation queda de respaldo.
             ConstraintViolation<DatosPago> primera = violaciones.iterator().next();
-            throw new DatosDePagoInvalidosException(primera.getPropertyPath() + " " + primera.getMessage());
+            throw new DatosDePagoInvalidosException(datosPago.mensajeDeError()
+                    .orElse("Revisá los datos de la tarjeta: " + primera.getMessage() + "."));
         }
         ResultadoCobro resultado;
         try {

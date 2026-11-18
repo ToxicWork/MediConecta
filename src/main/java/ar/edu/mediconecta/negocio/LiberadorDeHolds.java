@@ -1,6 +1,7 @@
 package ar.edu.mediconecta.negocio;
 
 import ar.edu.mediconecta.dao.TurnoDAO;
+import ar.edu.mediconecta.modelo.EstadoTurno;
 import ar.edu.mediconecta.modelo.Turno;
 import jakarta.ejb.Schedule;
 import jakarta.ejb.Singleton;
@@ -26,7 +27,13 @@ public class LiberadorDeHolds {
     @Schedule(hour = "*", minute = "*", persistent = false)
     void liberarVencidos() {
         List<Turno> vencidos = turnoDAO.buscarHoldsVencidos(LocalDateTime.now());
+        LocalDateTime ahora = LocalDateTime.now();
         for (Turno turno : vencidos) {
+            // D-36: se relee bloqueado; si en el medio el paciente lo confirmó o lo liberó, ya no hay nada que hacer.
+            turnoDAO.refrescarParaActualizar(turno);
+            if (turno.getEstado() != EstadoTurno.HOLD || turno.getHoldVenceEn() == null || turno.getHoldVenceEn().isAfter(ahora)) {
+                continue;
+            }
             turno.liberar();
             LOG.info("Hold vencido del turno " + turno.getId() + " liberado por el temporizador.");
         }

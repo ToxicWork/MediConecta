@@ -33,6 +33,19 @@ public class NotificacionDAO {
                 .getSingleResult();
     }
 
+    /**
+     * Marca una notificación como leída sólo si es del usuario: la condición sobre el destinatario va en el mismo
+     * UPDATE, así una notificación ajena (otro id) no se toca y no hace falta consultarla antes (D-16, BOLA).
+     */
+    public boolean marcarLeida(Long usuarioId, Long notificacionId) {
+        return em.createQuery(
+                        "UPDATE Notificacion n SET n.leida = true WHERE n.id = :id AND n.destinatarioId = :usuarioId "
+                                + "AND n.leida = false")
+                .setParameter("id", notificacionId)
+                .setParameter("usuarioId", usuarioId)
+                .executeUpdate() == 1;
+    }
+
     public int marcarLeidas(Long usuarioId) {
         return em.createQuery(
                         "UPDATE Notificacion n SET n.leida = true WHERE n.destinatarioId = :usuarioId "

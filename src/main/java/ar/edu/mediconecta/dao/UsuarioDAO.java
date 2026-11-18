@@ -69,4 +69,12 @@ public class UsuarioDAO {
     public Profesional obtenerReferenciaProfesional(Long id) {
         return em.getReference(Profesional.class, id);
     }
+
+    /**
+     * Bloquea la fila del usuario hasta el fin de la transacción (SELECT ... FOR UPDATE). Serializa las operaciones
+     * "verificar y después insertar" de un mismo usuario, como publicar un horario con doble clic.
+     */
+    public void bloquear(Long usuarioId) {
+        em.find(Usuario.class, usuarioId, LockModeType.PESSIMISTIC_WRITE);
+    }
 }

@@ -32,8 +32,8 @@ import java.time.LocalDateTime;
  * Un turno ajeno se informa igual que uno inexistente ({@link TurnoInexistenteException}), para no revelar ids.
  *
  * <p>Si el turno se puede cancelar o no lo decide el <b>patrón State</b>, no este servicio: si el estado actual no
- * admite la operación (ya cancelado, todavía en espera), el estado lanza {@code TransicionInvalidaException}, la
- * transacción se revierte y la API responde 409.
+ * admite la operación (ya cancelado, todavía en espera, o confirmado pero ya empezado), el estado lanza
+ * {@code TransicionInvalidaException}, la transacción se revierte y la API responde 409.
  *
  * <p>El turno cancelado queda como historial (con su pago, su autorización y quién lo canceló). El horario se
  * vuelve a ofrecer sólo si canceló el paciente ({@link Turno#liberaElHorario}). El reembolso, si hubo cobro, lo
@@ -60,13 +60,17 @@ public class ProcesoCancelacionTurno {
     public Turno cancelar(Long turnoId) {
         Usuario quien = usuarioDAO.buscarPorEmail(contexto.getCallerPrincipal().getName())
                 .orElseThrow(TurnoInexistenteException::new);
-        Turno turno = turnoId == null ? null : turnoDAO.buscarPorId(turnoId);
+        // D-36: si otro lo está modificando (la autorización de la obra social, otra cancelación), se espera y se lee
+        // la versión nueva: una cancelación repetida recibe 409, nunca un error 500.
+        Turno turno = turnoId == null ? null : turnoDAO.buscarPorIdParaActualizar(turnoId);
         if (turno == null || !puedeCancelar(quien, turno)) {
             throw new TurnoInexistenteException();
         }
-        turno.cancelar(quien.getRol()); // State: sólo CONFIRMADO -> CANCELADO; otro estado lanza TransicionInvalidaException
+        LocalDateTime ahora = LocalDateTime.now();
+        // State: sólo CONFIRMADO y antes de la hora del turno -> CANCELADO; si no, TransicionInvalidaException (409)
+        turno.cancelar(quien.getRol(), ahora);
         turnoDAO.actualizar(turno);
-        if (turno.liberaElHorario(LocalDateTime.now())) {
+        if (turno.liberaElHorario(ahora)) {
             turnoDAO.guardar(turno.horarioLiberado());
         }
         publicadorEventos.publicar(EventoTurno.builder()

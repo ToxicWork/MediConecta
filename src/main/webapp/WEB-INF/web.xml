@@ -7,6 +7,12 @@
 
   <display-name>MediConecta</display-name>
 
+  <!-- Los comentarios de las páginas son para el equipo: no se envían al navegador (exponían detalles internos). -->
+  <context-param>
+    <param-name>jakarta.faces.FACELETS_SKIP_COMMENTS</param-name>
+    <param-value>true</param-value>
+  </context-param>
+
   <welcome-file-list>
     <welcome-file>login.xhtml</welcome-file>
   </welcome-file-list>
