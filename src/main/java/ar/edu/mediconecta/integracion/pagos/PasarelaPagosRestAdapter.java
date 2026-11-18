@@ -49,7 +49,7 @@ public class PasarelaPagosRestAdapter implements PagosGateway {
     void iniciar() {
         cliente = ClientBuilder.newBuilder()
                 .connectTimeout(2, TimeUnit.SECONDS)
-                .readTimeout(4, TimeUnit.SECONDS)
+                .readTimeout(3, TimeUnit.SECONDS) // 2 s + 3 s: ningún intento espera más de 5 s (Eje C)
                 .build();
     }
 

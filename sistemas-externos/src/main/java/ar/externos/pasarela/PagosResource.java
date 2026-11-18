@@ -95,6 +95,7 @@ public class PagosResource {
         }
         if (p.getEstado() == Pago.Estado.APROBADO) { // idempotente: reembolsar dos veces no hace nada nuevo
             p.reembolsar(pedido == null ? null : pedido.motivo());
+            registro.actualizar(p);
         }
         estado.registrar("Pasarela (REST)", "POST /pagos/" + id + "/reembolso", "200 REEMBOLSADO");
         return Response.ok(p).build();

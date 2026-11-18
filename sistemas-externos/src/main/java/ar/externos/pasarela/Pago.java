@@ -1,10 +1,13 @@
 package ar.externos.pasarela;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /** Estado de un pago en la pasarela. Nunca guarda el número completo de la tarjeta: sólo los últimos 4. */
-public class Pago {
+public class Pago implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     public enum Estado { APROBADO, RECHAZADO, REEMBOLSADO }
 

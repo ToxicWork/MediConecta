@@ -74,6 +74,10 @@ public class CoberturaSoapAdapter implements CoberturaGateway {
             registro.registrar(SistemaExterno.OBRA_SOCIAL, "validarCobertura", referencia, RegistroIntegraciones.OK,
                     resultado.resumen(), milis(inicio));
             return resultado;
+        } catch (RechazoDelLegadoException rechazo) {
+            registro.registrar(SistemaExterno.OBRA_SOCIAL, "validarCobertura", referencia, RegistroIntegraciones.RECHAZO,
+                    "SOAP Fault de negocio " + rechazo.getCodigo() + " -> sin cobertura, sin reintentos", milis(inicio));
+            return ResultadoCobertura.rechazadaPorLaObraSocial(FaultsDelLegado.mensajeParaElUsuario(rechazo.getCodigo()));
         } catch (IntegracionNoDisponibleException falla) {
             String causa = (falla instanceof CircuitoAbiertoException ? "circuito abierto" : "sin respuesta")
                     + ": " + falla.getMessage();
@@ -99,6 +103,12 @@ public class CoberturaSoapAdapter implements CoberturaGateway {
                     RegistroIntegraciones.OK, (resultado.autorizada() ? "AUTORIZADA " + resultado.codigoAutorizacion()
                             : "RECHAZADA: " + resultado.motivo()), milis(inicio));
             return resultado;
+        } catch (RechazoDelLegadoException rechazo) {
+            // Un rechazo de negocio es una respuesta: la autorización queda rechazada, sin reintentos ni DLQ.
+            String motivo = FaultsDelLegado.mensajeParaElUsuario(rechazo.getCodigo());
+            registro.registrar(SistemaExterno.OBRA_SOCIAL, "solicitarAutorizacion", pedido.idSolicitud(),
+                    RegistroIntegraciones.RECHAZO, "SOAP Fault de negocio " + rechazo.getCodigo(), milis(inicio));
+            return new ResultadoAutorizacion(false, null, motivo, null);
         } catch (IntegracionNoDisponibleException falla) {
             registro.registrar(SistemaExterno.OBRA_SOCIAL, "solicitarAutorizacion", pedido.idSolicitud(),
                     falla instanceof CircuitoAbiertoException ? RegistroIntegraciones.CIRCUITO_ABIERTO : RegistroIntegraciones.ERROR,
@@ -143,11 +153,19 @@ public class CoberturaSoapAdapter implements CoberturaGateway {
                 respuesta.getCodigoAutorizacion(), respuesta.getMotivo(), respuesta.getNroTransaccion());
     }
 
-    /** Toda falla de JAX-WS (timeout, conexión rechazada, SOAP Fault) es una falla técnica para el circuito. */
+    /**
+     * Un SOAP Fault de negocio (Client/Sender) es un rechazo del legado: {@link RechazoDelLegadoException}, que no se
+     * reintenta ni abre el circuito. Toda otra falla de JAX-WS (timeout, conexión rechazada, Fault del servidor o de
+     * WS-Security) es técnica: {@link IntegracionNoDisponibleException}.
+     */
     private static <T> T invocar(java.util.function.Supplier<T> llamada) {
         try {
             return llamada.get();
         } catch (SOAPFaultException fault) {
+            if (fault.getFault() != null && FaultsDelLegado.esDeNegocio(fault.getFault().getFaultCodeAsQName())) {
+                throw new RechazoDelLegadoException(FaultsDelLegado.codigoDelDetalle(fault.getFault()),
+                        fault.getFault().getFaultString(), fault);
+            }
             boolean credenciales = fault.getFault() != null && fault.getFault().getFaultCode() != null
                     && fault.getFault().getFaultCode().contains("FailedAuthentication");
             throw new IntegracionNoDisponibleException("SOAP Fault del legado: " + fault.getMessage(), !credenciales, fault);

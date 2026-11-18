@@ -23,6 +23,7 @@
   .EN_LINEA, .APROBAR, .APROBADO, .ABIERTA { background:#052e1a; color:var(--ok); }
   .LENTO { background:#3a2604; color:var(--warn); }
   .CAIDO, .RECHAZAR, .RECHAZADO { background:#3b0a0a; color:var(--mal); }
+  .AFILIADO_DE_BAJA { background:#3a2604; color:var(--warn); }
   .REEMBOLSADO, .CERRADA { background:#1e293b; color:var(--tenue); }
   table { width:100%; border-collapse:collapse; font-size:12.5px; }
   th, td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--borde); vertical-align:top; }
@@ -49,6 +50,7 @@
       <button data-campo="obraSocial" data-valor="EN_LINEA">En línea</button>
       <button data-campo="obraSocial" data-valor="LENTO">Lento (8 s)</button>
       <button data-campo="obraSocial" data-valor="CAIDO">Caído</button>
+      <button data-campo="obraSocial" data-valor="AFILIADO_DE_BAJA">Fault de negocio</button>
     </div>
     <div>Auditoría médica: <span id="autorizaciones" class="estado">…</span></div>
     <div class="botones">
