@@ -5,6 +5,9 @@
        hay; un ingreso correcto pone el contador en cero; el administrativo la desbloquea desde Usuarios.
   C01. Errores de la API en Problem Details (RFC 9457): 400, 401, 403, 404, 405, 415 y 422 con
        application/problem+json, type, title, detail e instance, sin trazas ni nombres internos.
+  H01. Cabeceras de seguridad: HSTS, nosniff, X-Frame-Options y Referrer-Policy en páginas y API; CSP con un nonce
+       por respuesta y sin 'unsafe-inline' en script-src; la API con default-src 'none', no-store y sin CORS; y en
+       las pantallas de los tres roles el navegador no rechaza ningún script.
   W04. Cookie de sesión con HttpOnly, Secure y SameSite=Lax; toda la app por HTTPS (http redirige a https, también
        la API) y la cookie no es legible desde JavaScript.
   W06. Login resistente a inyección SQL: los ataques típicos en el email y la contraseña (web y API) reciben el
@@ -125,6 +128,15 @@ def api(ruta, metodo="GET", cuerpo=None, token=None, tipo="application/json", cr
             return r.status, dict(r.headers), r.read().decode("utf-8")
     except urllib.error.HTTPError as e:
         return e.code, dict(e.headers), e.read().decode("utf-8")
+
+
+def cabeceras_de(ruta):
+    """Las cabeceras de la respuesta a un GET por HTTPS."""
+    conexion = cliente_http.HTTPSConnection("localhost", 8443, timeout=10, context=ssl._create_unverified_context())
+    conexion.request("GET", "/mediconecta/" + ruta)
+    respuesta = conexion.getresponse()
+    respuesta.read()
+    return dict(respuesta.getheaders())
 
 
 def sin_fecha(respuesta):
@@ -393,6 +405,40 @@ with sync_playwright() as p:
     check("W04. y el navegador la guarda como HttpOnly, Secure y Lax",
           cookie["httpOnly"] and cookie["secure"] and cookie["sameSite"] == "Lax")
     pac.context.close()
+
+    # ---- H01. Cabeceras de seguridad ----------------------------------------------------------
+    print("-- H01. Cabeceras de seguridad")
+    de_pagina, de_api = cabeceras_de("login.xhtml"), cabeceras_de("api/v1/profesionales")
+    for donde, cab in (("página", de_pagina), ("API", de_api)):
+        check("H01. %s: HSTS, nosniff, X-Frame-Options DENY y Referrer-Policy" % donde,
+              cab.get("Strict-Transport-Security", "").startswith("max-age=") and cab.get("X-Content-Type-Options") == "nosniff"
+              and cab.get("X-Frame-Options") == "DENY" and bool(cab.get("Referrer-Policy")))
+    csp = de_pagina.get("Content-Security-Policy", "")
+    script_src = csp.split("script-src", 1)[1] if "script-src" in csp else ""
+    check("H01. página: CSP con nonce en script-src, sin 'unsafe-inline' ni 'unsafe-eval', sin marcos ni plugins",
+          re.search(r"script-src 'self' 'nonce-[^']+'", csp) is not None and "'unsafe-inline'" not in script_src
+          and "unsafe-eval" not in csp and "frame-ancestors 'none'" in csp and "object-src 'none'" in csp)
+    otro_nonce = re.search(r"'nonce-([^']+)'", cabeceras_de("login.xhtml").get("Content-Security-Policy", ""))
+    check("H01. cada respuesta trae un nonce distinto",
+          otro_nonce is not None and otro_nonce.group(1) not in csp)
+    check("H01. API: CSP default-src 'none' y Cache-Control: no-store",
+          de_api.get("Content-Security-Policy", "").startswith("default-src 'none'") and de_api.get("Cache-Control") == "no-store")
+    check("H01. sin CORS: la API no publica Access-Control-Allow-Origin", "Access-Control-Allow-Origin" not in de_api)
+    rechazos = []
+    for quien, (usuario, contrasena), paginas in (
+            ("paciente", (email, clave), ["agenda", "historia", "telemedicina", "notificaciones", "pagos", "perfil"]),
+            ("profesional", (PROFESIONAL, "demo1234"), ["agenda", "historia", "telemedicina", "notificaciones", "perfil"]),
+            ("administrativo", (ADMINISTRATIVO, "demo1234"), ["pagos", "turnos", "usuarios", "monitor", "perfil"])):
+        vista, _ = login_web(br, usuario, contrasena)
+        vista.on("console", lambda m, q=quien: rechazos.append((q, m.text[:120]))
+                 if "Content Security Policy" in m.text or "Refused to" in m.text else None)
+        vista.on("pageerror", lambda error, q=quien: rechazos.append((q, str(error)[:120])))
+        for nombre_pagina in paginas:
+            vista.goto(B + nombre_pagina + ".xhtml")
+            vista.wait_for_load_state("networkidle")
+        vista.context.close()
+    check("H01. en 16 pantallas de los tres roles el navegador no rechaza ningún script ni hay errores de JavaScript%s"
+          % ("" if not rechazos else " (" + str(rechazos[:2]) + ")"), not rechazos)
 
     # ---- D01. Historia clínica sólo con turno confirmado --------------------------------------
     print("-- D01. Historia clínica sólo con turno confirmado")
