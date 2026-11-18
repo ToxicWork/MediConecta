@@ -6,6 +6,9 @@
       xmlns:ui="jakarta.faces.facelets"
       xmlns:p="http://primefaces.org/ui"
       lang="es-AR" data-tema="#{temaBean.actual}">
+<!-- Los metadatos de la página (f:metadata, con su f:viewAction) tienen que ser hijos directos de la vista: dentro de
+     h:body funcionaban, pero cada pedido dejaba un aviso JSF1103 en el log del servidor (D-37). -->
+<ui:insert name="metadata"/>
 <h:head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
@@ -16,7 +19,6 @@
     <h:outputScript library="js" name="tema.js" target="head"/>
 </h:head>
 <h:body>
-    <ui:insert name="metadata"/>
     <div class="auth-shell">
 
         <div class="auth-brand">
