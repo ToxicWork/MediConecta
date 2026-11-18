@@ -25,6 +25,9 @@ def main(ruta, commits):
     else:
         resumen += ["Commits revisados: %s, de todas las ramas. **Hallazgos: %d.**" % (commits, len(hallazgos)), "",
                     "| Regla | Archivo | Línea | Commit | Fecha |", "|---|---|---|---|---|"]
+        # GitHub muestra hasta 10 anotaciones de error por paso: la primera trae todas las huellas juntas (el formato
+        # de .gitleaksignore), así ninguna queda afuera; después va una por hallazgo.
+        print("::error title=gitleaks: %d hallazgos::%s" % (len(hallazgos), "%0A".join(h.get("Fingerprint", "?") for h in hallazgos)))
         for h in hallazgos:
             commit = (h.get("Commit") or "")[:8]
             fecha = (h.get("Date") or "")[:10]
