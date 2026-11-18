@@ -84,6 +84,7 @@ public class AgendaBean implements Serializable {
     }
 
     /**
+     * Próximos turnos del paciente: los que ya empezaron no se pueden cancelar y salen de esta pantalla (D-13).
      * Se evalúa varias veces por página: se guarda en el request y se invalida en las acciones que cambian
      * los turnos del paciente (la tabla lo lee antes de la acción).
      */
@@ -95,7 +96,7 @@ public class AgendaBean implements Serializable {
         }
         Map<String, Object> request = FacesContext.getCurrentInstance().getExternalContext().getRequestMap();
         return (List<Turno>) request.computeIfAbsent(MIS_TURNOS,
-                clave -> servicioDeTurnos.buscarConfirmadosDePaciente(usuario.getId()));
+                clave -> servicioDeTurnos.buscarProximosConfirmados(usuario.getId()));
     }
 
     @SuppressWarnings("unchecked")
@@ -106,7 +107,7 @@ public class AgendaBean implements Serializable {
         }
         Map<String, Object> request = FacesContext.getCurrentInstance().getExternalContext().getRequestMap();
         return (List<Turno>) request.computeIfAbsent(TURNOS_PROFESIONAL,
-                clave -> servicioDeTurnos.buscarConfirmadosDeProfesional(usuario.getId()));
+                clave -> servicioDeTurnos.buscarProximosConfirmados(usuario.getId()));
     }
 
     private void invalidarMisTurnos() {

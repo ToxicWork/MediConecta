@@ -157,9 +157,9 @@ public class ServicioDeTurnosBean implements ServicioDeTurnos {
     }
 
     @Override
-    @RolesAllowed("PACIENTE")
-    public List<Turno> buscarConfirmadosDePaciente(Long pacienteId) {
-        return turnoDAO.buscarConfirmadosDePaciente(pacienteId);
+    @RolesAllowed({"PACIENTE", "PROFESIONAL"})
+    public List<Turno> buscarProximosConfirmados(Long usuarioId) {
+        return turnoDAO.buscarProximosConfirmadosDeUsuario(usuarioId, LocalDateTime.now());
     }
 
     @Override

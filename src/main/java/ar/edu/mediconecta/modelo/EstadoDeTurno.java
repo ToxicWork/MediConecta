@@ -18,7 +18,12 @@ interface EstadoDeTurno {
         throw invalida("confirmar");
     }
 
-    default EstadoTurno cancelar(Turno turno) {
+    /** Si en este momento el turno admite la cancelación (las pantallas lo usan para ofrecer o no el botón). */
+    default boolean admiteCancelacion(Turno turno, LocalDateTime ahora) {
+        return false;
+    }
+
+    default EstadoTurno cancelar(Turno turno, LocalDateTime ahora) {
         throw invalida("cancelar");
     }
 

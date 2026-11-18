@@ -8,14 +8,18 @@
   C. Control: cuando cancela el paciente, el horario SÍ se vuelve a ofrecer.
   D. API REST: el profesional cancela un turno de su agenda (200, y 409 si repite), un paciente ajeno recibe 404,
      el administrativo cancela cualquiera (200) y sigue sin poder listar turnos (403).
+  E. D-13: un turno que ya empezó no se cancela. Se publica uno para dentro de 2 minutos, el paciente lo confirma y
+     lo paga, y pasada la hora sale de las agendas, la API responde 409 a los tres roles y el pago no se reintegra.
+     (Tarda unos 2 minutos más que el resto: hay que esperar a que llegue la hora del turno.)
 
 Requisitos: WildFly levantado (perfil standalone-full) con mediconecta.war y externos.war desplegados, Google
 Chrome (o Edge con NAVEGADOR=msedge) y  pip install playwright
 Uso:  python pruebas/prueba_cancelacion.py
 Deja en la base un paciente de prueba por corrida (cancelacion.NNNNN@mediconecta.test) y sus turnos cancelados con
-la Dra. Ana Lopez (más el horario que vuelve a ofrecerse en C).
+la Dra. Ana Lopez (más el horario que vuelve a ofrecerse en C y el turno ya pasado y confirmado de E).
 """
 import json, os, random, ssl, sys, time, urllib.error, urllib.request
+from datetime import datetime, timedelta
 from playwright.sync_api import sync_playwright
 
 # MediConecta corre por HTTPS con el certificado autofirmado que WildFly genera para localhost: se acepta sin validar.
@@ -256,6 +260,32 @@ with sync_playwright() as p:
     check("D. y no recibe el enlace a la sala de videoconsulta", cuerpo.get("salaVideoconsulta") in (None, ""))
     check("D. el administrativo sigue sin poder listar turnos por la API: 403", api("turnos", token=tk_adm)[0] == 403)
     check("D. los horarios cancelados por la API tampoco se vuelven a ofrecer", not ofrecido(pac, f4) and not ofrecido(pac, f5))
+
+    # ---- E. D-13: un turno que ya empezó no se cancela -------------------------------------------
+    print("-- E. Un turno que ya empezó no se cancela (D-13)")
+    inicio = (datetime.now() + timedelta(minutes=3)).replace(second=0, microsecond=0)
+    f6 = inicio.strftime("%d/%m/%Y %H:%M")
+    publicar(prof, f6)
+    check("E. el paciente confirma y paga un turno que empieza a las %s" % f6[-5:], reservar_y_pagar(pac, f6))
+    id6 = turno_id(tk_pac, f6)
+    en_agenda = lambda pg, tabla: pg.locator(tabla + " tr", has_text=f6.replace(" ", " · ") if "MisTurnos" in tabla else f6).count()
+    pac.goto(B + "agenda.xhtml")
+    check("E. antes de la hora figura en los próximos turnos del paciente", en_agenda(pac, "#formAgenda\\:tablaMisTurnos") == 1)
+    time.sleep(max(0.0, (inicio - datetime.now()).total_seconds()) + 3)
+    pac.goto(B + "agenda.xhtml")
+    check("E. pasada la hora sale de la agenda del paciente", en_agenda(pac, "#formAgenda\\:tablaMisTurnos") == 0)
+    prof.goto(B + "agenda.xhtml")
+    check("E. y de la agenda de la profesional", en_agenda(prof, "#formTurnosProfesional\\:tablaConfirmadosProfesional") == 0)
+    for quien, tk in (("el paciente", tk_pac), ("la profesional", tk_prof), ("el administrativo", tk_adm)):
+        estado, cuerpo = api("turnos/%d/cancelacion" % id6, "POST", token=tk)
+        check("E. %s intenta cancelarlo por la API: 409 (%d, %s)" % (quien, estado, (cuerpo or {}).get("mensaje")),
+              estado == 409 and "ya empezó" in cuerpo["mensaje"])
+    estado, cuerpo = api("turnos/%d" % id6, token=tk_pac)
+    check("E. el turno sigue CONFIRMADO (%s)" % (cuerpo or {}).get("estado"), estado == 200 and cuerpo["estado"] == "CONFIRMADO")
+    time.sleep(5)
+    pac.goto(B + "pagos.xhtml")
+    fila6 = pac.locator("[id$='tablaPagos'] tr", has_text=f6)
+    check("E. el pago sigue cobrado: no hubo reintegro", fila6.count() > 0 and "Reembolsado" not in fila6.first.inner_text())
 
     prof.context.close()
     pac.context.close()

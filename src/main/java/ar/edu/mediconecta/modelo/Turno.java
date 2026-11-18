@@ -133,14 +133,19 @@ public class Turno implements Serializable {
         estado = estado.comportamiento().confirmar(this, datos);
     }
 
-    public void cancelar() {
-        estado = estado.comportamiento().cancelar(this);
+    /**
+     * Cancela y registra quién lo hizo. Lo decide el patrón State: sólo un turno confirmado que todavía no empezó;
+     * cualquier otro caso lanza {@link TransicionInvalidaException} (409 en la API). {@code ahora} lo pasa quien
+     * cancela: el reloj del servidor en producción, uno fijo en las pruebas.
+     */
+    public void cancelar(Rol quien, LocalDateTime ahora) {
+        estado = estado.comportamiento().cancelar(this, ahora);
+        this.canceladoPor = quien;
     }
 
-    /** Cancela (patrón State: sólo un turno confirmado) y registra quién lo hizo. */
-    public void cancelar(Rol quien) {
-        cancelar();
-        this.canceladoPor = quien;
+    /** Si en este momento se puede cancelar (misma regla que {@link #cancelar}): la vista ofrece el botón sólo entonces. */
+    public boolean admiteCancelacion(LocalDateTime ahora) {
+        return estado.comportamiento().admiteCancelacion(this, ahora);
     }
 
     /**
@@ -186,8 +191,8 @@ public class Turno implements Serializable {
         this.confirmadoEn = LocalDateTime.now();
     }
 
-    void marcarCancelado() {
-        this.canceladoEn = LocalDateTime.now();
+    void marcarCancelado(LocalDateTime ahora) {
+        this.canceladoEn = ahora;
     }
 
     // ---- Datos que llegan de las integraciones -----------------------------------------------

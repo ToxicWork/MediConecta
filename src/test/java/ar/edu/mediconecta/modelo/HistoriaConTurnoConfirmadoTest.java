@@ -49,7 +49,7 @@ class HistoriaConTurnoConfirmadoTest {
                 "turno disponible, sin paciente");
         assertFalse(turnoEnHold().habilitaHistoriaClinica(PROFESIONAL, PACIENTE), "turno en espera (hold)");
         Turno cancelado = turnoConfirmado();
-        cancelado.cancelar();
+        cancelado.cancelar(Rol.PACIENTE, LocalDateTime.now());
         assertFalse(cancelado.habilitaHistoriaClinica(PROFESIONAL, PACIENTE), "turno cancelado");
     }
 }

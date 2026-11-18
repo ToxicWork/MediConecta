@@ -7,6 +7,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -14,7 +15,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /** Patrón State: transiciones válidas e inválidas del turno. */
 class TurnoEstadoTest {
 
-    private static final LocalDateTime MANANA = LocalDateTime.now().plusDays(1);
+    private static final LocalDateTime AHORA = LocalDateTime.of(2026, 11, 17, 10, 0);
+    private static final LocalDateTime MANANA = AHORA.plusDays(1);
 
     private static DatosConfirmacion confirmacion() {
         return new DatosConfirmacion(EstadoCobertura.CUBIERTA, "OSDE 210", "210", "420101",
@@ -35,7 +37,7 @@ class TurnoEstadoTest {
         assertEquals(new BigDecimal("9600"), turno.getImportePaciente());
         assertNull(turno.getHoldVenceEn());
 
-        turno.cancelar();
+        turno.cancelar(Rol.PACIENTE, AHORA);
         assertEquals(EstadoTurno.CANCELADO, turno.getEstado());
         assertTrue(turno.perteneceAPaciente(7L), "el cancelado conserva al paciente como historial");
     }
@@ -57,12 +59,12 @@ class TurnoEstadoTest {
         Turno disponible = Fixtures.turno(MANANA);
         assertInvalida(() -> disponible.confirmar(confirmacion()), "No se puede confirmar un turno disponible.");
         assertInvalida(disponible::liberar, "No se puede liberar un turno disponible.");
-        assertInvalida(disponible::cancelar, "No se puede cancelar un turno disponible.");
+        assertInvalida(() -> disponible.cancelar(Rol.PACIENTE, AHORA), "No se puede cancelar un turno disponible.");
 
         Turno enHold = Fixtures.turno(MANANA);
         enHold.reservar(Fixtures.paciente(7, null), MANANA);
         assertInvalida(() -> enHold.reservar(otro, MANANA), "No se puede reservar un turno en espera.");
-        assertInvalida(enHold::cancelar, "No se puede cancelar un turno en espera.");
+        assertInvalida(() -> enHold.cancelar(Rol.PACIENTE, AHORA), "No se puede cancelar un turno en espera.");
 
         Turno confirmado = Fixtures.turno(MANANA);
         confirmado.reservar(Fixtures.paciente(7, null), MANANA);
@@ -71,11 +73,11 @@ class TurnoEstadoTest {
         assertInvalida(() -> confirmado.confirmar(confirmacion()), "No se puede confirmar un turno confirmado.");
         assertInvalida(confirmado::liberar, "No se puede liberar un turno confirmado.");
 
-        confirmado.cancelar();
+        confirmado.cancelar(Rol.PACIENTE, AHORA);
         assertInvalida(() -> confirmado.reservar(otro, MANANA), "No se puede reservar un turno cancelado.");
         assertInvalida(() -> confirmado.confirmar(confirmacion()), "No se puede confirmar un turno cancelado.");
         assertInvalida(confirmado::liberar, "No se puede liberar un turno cancelado.");
-        assertInvalida(confirmado::cancelar, "No se puede cancelar un turno cancelado.");
+        assertInvalida(() -> confirmado.cancelar(Rol.PACIENTE, AHORA), "No se puede cancelar un turno cancelado.");
         assertEquals(EstadoTurno.CANCELADO, confirmado.getEstado(), "una transición inválida no cambia el estado");
     }
 
@@ -86,14 +88,14 @@ class TurnoEstadoTest {
     @Test
     void transicionesInvalidasSonImposibles() {
         Turno disponible = Fixtures.turno(MANANA);
-        assertThrows(TransicionInvalidaException.class, disponible::cancelar);
+        assertThrows(TransicionInvalidaException.class, () -> disponible.cancelar(Rol.PACIENTE, AHORA));
         assertThrows(TransicionInvalidaException.class, () -> disponible.confirmar(confirmacion()));
 
         Turno cancelado = Fixtures.turno(MANANA);
         cancelado.reservar(Fixtures.paciente(7, null), MANANA);
         cancelado.confirmar(confirmacion());
-        cancelado.cancelar();
-        assertThrows(TransicionInvalidaException.class, cancelado::cancelar);
+        cancelado.cancelar(Rol.PACIENTE, AHORA);
+        assertThrows(TransicionInvalidaException.class, () -> cancelado.cancelar(Rol.PACIENTE, AHORA));
         assertThrows(TransicionInvalidaException.class, cancelado::liberar);
         assertThrows(TransicionInvalidaException.class, () -> cancelado.reservar(Fixtures.paciente(8, null), MANANA));
     }
@@ -118,5 +120,45 @@ class TurnoEstadoTest {
         assertEquals(EstadoTurno.DISPONIBLE, nuevo.getEstado());
         assertEquals(turno.getFechaHora(), nuevo.getFechaHora());
         assertEquals(turno.getModalidad(), nuevo.getModalidad());
+    }
+
+    /** D-13: un turno confirmado se cancela sólo antes de su hora; desde la hora de inicio en adelante, nunca. */
+    @Test
+    void unTurnoConfirmadoSoloSeCancelaAntesDeSuHora() {
+        Turno turno = confirmadoPara(MANANA);
+        assertTrue(turno.admiteCancelacion(MANANA.minusMinutes(1)), "un minuto antes todavía se puede");
+        assertFalse(turno.admiteCancelacion(MANANA), "a la hora exacta ya empezó");
+        assertFalse(turno.admiteCancelacion(MANANA.plusDays(15)), "un turno de hace dos semanas tampoco");
+
+        assertInvalida(() -> turno.cancelar(Rol.PACIENTE, MANANA), "El turno ya empezó: no se puede cancelar.");
+        assertInvalida(() -> turno.cancelar(Rol.PROFESIONAL, MANANA.plusMinutes(10)), "El turno ya empezó: no se puede cancelar.");
+        assertInvalida(() -> turno.cancelar(Rol.ADMINISTRATIVO, MANANA.plusDays(15)), "El turno ya empezó: no se puede cancelar.");
+        assertEquals(EstadoTurno.CONFIRMADO, turno.getEstado(), "el intento rechazado no cambia el estado");
+        assertNull(turno.getCanceladoPor(), "ni registra quién canceló");
+        assertNull(turno.getCanceladoEn());
+
+        turno.cancelar(Rol.PACIENTE, MANANA.minusMinutes(1));
+        assertEquals(EstadoTurno.CANCELADO, turno.getEstado());
+        assertEquals(MANANA.minusMinutes(1), turno.getCanceladoEn(), "la cancelación queda fechada con el reloj recibido");
+    }
+
+    /** Sólo un turno confirmado admite cancelación, aunque falte mucho para su hora. */
+    @Test
+    void ningunOtroEstadoAdmiteCancelacion() {
+        Turno disponible = Fixtures.turno(MANANA);
+        Turno enHold = Fixtures.turno(MANANA);
+        enHold.reservar(Fixtures.paciente(7, null), MANANA);
+        Turno cancelado = confirmadoPara(MANANA);
+        cancelado.cancelar(Rol.PACIENTE, AHORA);
+        assertFalse(disponible.admiteCancelacion(AHORA));
+        assertFalse(enHold.admiteCancelacion(AHORA));
+        assertFalse(cancelado.admiteCancelacion(AHORA));
+    }
+
+    private static Turno confirmadoPara(LocalDateTime fechaHora) {
+        Turno turno = Fixtures.turno(fechaHora);
+        turno.reservar(Fixtures.paciente(7, "OSDE"), fechaHora.minusHours(1));
+        turno.confirmar(confirmacion());
+        return turno;
     }
 }

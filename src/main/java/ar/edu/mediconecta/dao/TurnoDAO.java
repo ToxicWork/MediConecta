@@ -39,12 +39,18 @@ public class TurnoDAO {
                 .getResultList();
     }
 
-    public List<Turno> buscarConfirmadosDePaciente(Long pacienteId) {
+    /**
+     * Agenda del paciente y del profesional: los turnos confirmados en los que participa el usuario y que todavía no
+     * empezaron, del más próximo al más lejano. Los que ya empezaron no se pueden cancelar (patrón State) y salen de
+     * la agenda; siguen en la base como historial (pagos, historia clínica, API).
+     */
+    public List<Turno> buscarProximosConfirmadosDeUsuario(Long usuarioId, LocalDateTime ahora) {
         return em.createQuery(
-                        "SELECT t FROM Turno t WHERE t.paciente.id = :pacienteId "
-                                + "AND t.estado = :estado ORDER BY t.fechaHora DESC", Turno.class)
-                .setParameter("pacienteId", pacienteId)
+                        "SELECT t FROM Turno t WHERE (t.paciente.id = :usuarioId OR t.profesional.id = :usuarioId) "
+                                + "AND t.estado = :estado AND t.fechaHora > :ahora ORDER BY t.fechaHora, t.id", Turno.class)
+                .setParameter("usuarioId", usuarioId)
                 .setParameter("estado", EstadoTurno.CONFIRMADO)
+                .setParameter("ahora", ahora)
                 .getResultList();
     }
 

@@ -28,7 +28,8 @@ public interface ServicioDeTurnos {
 
     Turno getTurnoEnHold();
 
-    List<Turno> buscarConfirmadosDePaciente(Long pacienteId);
+    /** Agenda: los turnos confirmados del usuario (paciente o profesional) que todavía no empezaron. */
+    List<Turno> buscarProximosConfirmados(Long usuarioId);
 
     List<Turno> buscarConfirmadosDeProfesional(Long profesionalId);
 

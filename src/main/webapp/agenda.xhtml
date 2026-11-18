@@ -124,7 +124,7 @@
                     <div class="card-header">
                         <div>
                             <h3>Mis turnos</h3>
-                            <div class="subtle">#{agendaBean.misTurnos.size()} turno(s) confirmado(s)</div>
+                            <div class="subtle">#{agendaBean.misTurnos.size()} turno(s) confirmado(s) por delante</div>
                         </div>
                     </div>
 
@@ -161,7 +161,7 @@
                     </h:panelGroup>
 
                     <div class="empty-state" style="#{empty agendaBean.misTurnos ? '' : 'display:none;'}">
-                        No tenés turnos confirmados todavía.
+                        No tenés turnos confirmados por delante.
                     </div>
                 </div>
 
@@ -225,8 +225,8 @@
                 <div class="card">
                     <div class="card-header">
                         <div>
-                            <h3>Turnos confirmados</h3>
-                            <div class="subtle">#{agendaBean.turnosConfirmadosProfesional.size()} turno(s) · cobertura y autorización de la obra social</div>
+                            <h3>Próximos turnos</h3>
+                            <div class="subtle">#{agendaBean.turnosConfirmadosProfesional.size()} turno(s) confirmado(s) por delante</div>
                         </div>
                     </div>
                     <h:form id="formTurnosProfesional">
@@ -266,7 +266,7 @@
                     </p:confirmDialog>
                     </h:form>
                     <h:panelGroup layout="block" styleClass="empty-state" rendered="#{empty agendaBean.turnosConfirmadosProfesional}">
-                        Todavía no te confirmaron turnos.
+                        No tenés turnos confirmados por delante.
                     </h:panelGroup>
                 </div>
 
