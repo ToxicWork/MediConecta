@@ -85,7 +85,7 @@ class ServicioDePagosBeanTest {
 
         assertEquals("pay_1", pago.getIdPasarela());
         assertEquals(EstadoPago.APROBADO, pago.getEstado());
-        verify(pasarela).cobrar(argThat(p -> p.referencia().equals("turno-10") && p.importe().equals(IMPORTE)
+        verify(pasarela).cobrar(argThat(p -> p.referencia().equals("turno-10") && p.importe().compareTo(IMPORTE) == 0
                 && p.numeroTarjeta().equals("4111 1111 1111 1111") && p.moneda().equals("ARS")));
         verify(pagoDAO).guardar(pago);
         verify(transaccion).registerInterposedSynchronization(any(CompensacionDePago.class));

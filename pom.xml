@@ -38,6 +38,13 @@
         <sonar.coverage.jacoco.xmlReportPaths>${project.build.directory}/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
         <!-- El cliente SOAP lo genera wsimport a partir del WSDL: no es código del equipo. -->
         <sonar.exclusions>**/integracion/obrasocial/soap/**</sonar.exclusions>
+        <!--
+          La cobertura que mide Sonar (y la que exige su Quality Gate en el código nuevo) es la de la capa de negocio y
+          dominio, la misma del umbral del Eje B en JaCoCo. Las pantallas, la API, los DAO, las integraciones, la
+          mensajería y la seguridad se prueban de punta a punta (pruebas/*.py), no con pruebas unitarias. La cobertura
+          de todo el código igual queda en el resumen de cada run del pipeline.
+        -->
+        <sonar.coverage.exclusions>**/web/**,**/api/**,**/dao/**,**/integracion/**,**/mensajeria/**,**/notificaciones/**,**/seguridad/**,**/auditoria/**</sonar.coverage.exclusions>
     </properties>
 
     <dependencies>
