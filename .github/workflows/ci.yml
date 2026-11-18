@@ -115,18 +115,36 @@ jobs:
           java-version: '25'
           cache: maven
       - name: Correr la suite unitaria tres veces seguidas
+        # Cada prueba que falla y cada diferencia entre corridas queda como anotación del run: se ve sin abrir el log.
         run: |
           mvn -B -ntp -q test-compile
+          fallo=0
           for corrida in 1 2 3; do
             echo "::group::Corrida $corrida"
-            mvn -B -ntp test
+            mvn -B -ntp test || fallo=1
             echo "::endgroup::"
             python3 .github/scripts/resultado_suite.py target/surefire-reports > "corrida-$corrida.txt"
             echo "Corrida $corrida: $(head -1 corrida-$corrida.txt)"
+            tail -n +2 "corrida-$corrida.txt" | { grep -v '^ok ' || true; } | while read -r estado prueba; do
+              echo "::error title=Corrida $corrida: $estado::$prueba"
+            done
           done
-          cmp corrida-1.txt corrida-2.txt && cmp corrida-1.txt corrida-3.txt
+          for corrida in 2 3; do
+            if ! cmp -s corrida-1.txt "corrida-$corrida.txt"; then
+              fallo=1
+              diff corrida-1.txt "corrida-$corrida.txt" | head -20 | while read -r linea; do
+                echo "::error title=La corrida $corrida no dio lo mismo que la 1::$linea"
+              done
+            fi
+          done
           { echo "## Estabilidad de la suite unitaria"; echo
-            echo "Tres corridas seguidas con el mismo resultado, prueba por prueba: $(head -1 corrida-1.txt)."; } >> "$GITHUB_STEP_SUMMARY"
+            if [ "$fallo" = 0 ]; then
+              echo "Tres corridas seguidas con el mismo resultado, prueba por prueba: $(head -1 corrida-1.txt)."
+            else
+              echo "**Las tres corridas no dieron lo mismo o alguna prueba falló** (ver las anotaciones)."
+              for corrida in 1 2 3; do echo "- Corrida $corrida: $(head -1 corrida-$corrida.txt)"; done
+            fi; } >> "$GITHUB_STEP_SUMMARY"
+          exit "$fallo"
 
   secretos:
     name: Secretos en todo el historial (gitleaks)

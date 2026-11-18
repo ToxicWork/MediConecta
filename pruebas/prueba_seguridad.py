@@ -8,6 +8,10 @@
   H01. Cabeceras de seguridad: HSTS, nosniff, X-Frame-Options y Referrer-Policy en páginas y API; CSP con un nonce
        por respuesta y sin 'unsafe-inline' en script-src; la API con default-src 'none', no-store y sin CORS; y en
        las pantallas de los tres roles el navegador no rechaza ningún script.
+  M01. Mass assignment: un login que manda de más rol, estado o intentos fallidos los ignora; el token sale con el
+       rol real del usuario.
+  X01. XXE en el canal SOAP: un pedido al legado con DTD (entidad externa a un archivo local, entidad interna y
+       expansión en cadena) se rechaza con un SOAP Fault, sin expandir nada ni filtrar contenido.
   W04. Cookie de sesión con HttpOnly, Secure y SameSite=Lax; toda la app por HTTPS (http redirige a https, también
        la API) y la cookie no es legible desde JavaScript.
   W06. Login resistente a inyección SQL: los ataques típicos en el email y la contraseña (web y API) reciben el
@@ -32,7 +36,7 @@ Deja en la base dos pacientes de prueba por corrida (seguridad.NNNNN y seguridad
 turno cancelado de la Dra. Ana Lopez. No toca los usuarios de demo.
 """
 import http.client as cliente_http
-import json, os, random, re, subprocess, sys, time, urllib.error, urllib.request
+import base64, json, os, random, re, subprocess, sys, time, urllib.error, urllib.request
 from playwright.sync_api import sync_playwright
 import ssl
 # MediConecta corre por HTTPS con el certificado autofirmado que WildFly genera para localhost (SEC-W04):
@@ -439,6 +443,42 @@ with sync_playwright() as p:
         vista.context.close()
     check("H01. en 16 pantallas de los tres roles el navegador no rechaza ningún script ni hay errores de JavaScript%s"
           % ("" if not rechazos else " (" + str(rechazos[:2]) + ")"), not rechazos)
+
+    # ---- M01. Mass assignment --------------------------------------------------------------------
+    print("-- M01. Mass assignment")
+    estado_m, cuerpo_m = http(B + "api/v1/auth/login", "POST", {"email": email, "password": clave, "rol": "ADMINISTRATIVO",
+                                                               "estado": "ACTIVO", "intentosFallidos": 0, "id": 1})
+    datos_m = json.loads(cuerpo_m)
+    carga = datos_m.get("token", "..").split(".")[1]
+    reclamos_m = json.loads(base64.urlsafe_b64decode(carga + "=" * (-len(carga) % 4)))
+    check("M01. un login con rol, estado e id de más los ignora: el token sale con el rol real (%s / %s)"
+          % (datos_m.get("rol"), reclamos_m.get("rol")),
+          estado_m == 200 and datos_m.get("rol") == "PACIENTE" and reclamos_m.get("rol") == "PACIENTE"
+          and reclamos_m.get("sub") == email)
+
+    # ---- X01. XXE en el canal SOAP ----------------------------------------------------------
+    print("-- X01. XXE en el canal SOAP")
+    marca = "MARCA-XXE-%d" % sufijo
+    sobre = ('<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" '
+             'xmlns:v1="http://legado.obrasocial.ar/cobertura/v1"><soapenv:Body><v1:validarCobertura><consulta>'
+             '<obraSocial>%s</obraSocial><nroAfiliado>1</nroAfiliado><codigoPrestacion>420101</codigoPrestacion>'
+             '</consulta></v1:validarCobertura></soapenv:Body></soapenv:Envelope>')
+    ataques = {"entidad externa a un archivo local": '<!DOCTYPE e [<!ENTITY x SYSTEM "file:///C:/Windows/win.ini">]>' + sobre % "&x;",
+               "entidad interna": '<!DOCTYPE e [<!ENTITY x "%s">]>' % marca + sobre % "&x;",
+               "expansión en cadena": '<!DOCTYPE e [<!ENTITY a "aaaaaaaaaa"><!ENTITY b "&a;&a;&a;&a;&a;&a;&a;&a;&a;&a;">]>'
+                                      + sobre % "&b;"}
+    for nombre_ataque, xml in ataques.items():
+        pedido = urllib.request.Request(B.replace("/mediconecta/", "/externos/") + "CoberturaService", method="POST",
+                                        data=('<?xml version="1.0"?>' + xml).encode(),
+                                        headers={"Content-Type": "text/xml; charset=utf-8", "SOAPAction": '""'})
+        try:
+            with urllib.request.urlopen(pedido, timeout=10) as r:
+                estado_xxe, texto_xxe = r.status, r.read().decode(errors="replace")
+        except urllib.error.HTTPError as e:
+            estado_xxe, texto_xxe = e.code, e.read().decode(errors="replace")
+        filtrado = "[fonts]" in texto_xxe or marca in texto_xxe or "aaaaaaaaaa" in texto_xxe
+        check("X01. %s: SOAP Fault por la DTD, sin expandir ni filtrar nada (%d)" % (nombre_ataque, estado_xxe),
+              estado_xxe == 500 and "<faultstring>" in texto_xxe and "DTD" in texto_xxe and not filtrado)
 
     # ---- D01. Historia clínica sólo con turno confirmado --------------------------------------
     print("-- D01. Historia clínica sólo con turno confirmado")
