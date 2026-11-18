@@ -13,6 +13,21 @@
     <param-value>true</param-value>
   </context-param>
 
+  <!--
+    Content-Security-Policy de las páginas (Eje D). La pone PrimeFaces: genera un nonce por respuesta, se lo da a
+    sus scripts y pasa los manejadores de eventos (onclick, oncomplete y los de JSF) a scripts con ese nonce, así
+    no hace falta 'unsafe-inline' en script-src. PrimeFaces agrega el nonce al final de la política: por eso
+    script-src va último. Los estilos en línea sí se permiten (PrimeFaces los usa); las fuentes son de Google.
+  -->
+  <context-param>
+    <param-name>primefaces.CSP</param-name>
+    <param-value>true</param-value>
+  </context-param>
+  <context-param>
+    <param-name>primefaces.CSP_POLICY</param-name>
+    <param-value>default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; script-src 'self'</param-value>
+  </context-param>
+
   <welcome-file-list>
     <welcome-file>login.xhtml</welcome-file>
   </welcome-file-list>
