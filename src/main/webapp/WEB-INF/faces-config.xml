@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- La aplicación está en español de Argentina: es el idioma de las fechas ("viernes", no "Friday") y de los mensajes
+     de Jakarta Faces, cualquiera sea el idioma del navegador (D-18). -->
+<faces-config xmlns="https://jakarta.ee/xml/ns/jakartaee"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/web-facesconfig_4_0.xsd"
+              version="4.0">
+    <application>
+        <locale-config>
+            <default-locale>es_AR</default-locale>
+            <supported-locale>es_AR</supported-locale>
+        </locale-config>
+    </application>
+</faces-config>

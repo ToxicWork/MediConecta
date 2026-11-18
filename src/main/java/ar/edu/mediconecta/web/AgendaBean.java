@@ -1,6 +1,7 @@
 package ar.edu.mediconecta.web;
 
 import ar.edu.mediconecta.modelo.ErrorDeNegocioException;
+import ar.edu.mediconecta.modelo.EstadoCobertura;
 import ar.edu.mediconecta.modelo.Modalidad;
 import ar.edu.mediconecta.modelo.Profesional;
 import ar.edu.mediconecta.modelo.Turno;
@@ -14,24 +15,34 @@ import ar.edu.mediconecta.negocio.excepciones.PagoRequeridoException;
 import jakarta.ejb.EJBAccessException;
 import jakarta.enterprise.context.SessionScoped;
 import jakarta.faces.application.FacesMessage;
+import jakarta.faces.component.UIInput;
+import jakarta.faces.component.UIViewRoot;
 import jakarta.faces.context.FacesContext;
 import jakarta.inject.Inject;
 import jakarta.inject.Named;
+import org.primefaces.PrimeFaces;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
+import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 @Named
 @SessionScoped
 public class AgendaBean implements Serializable {
 
     private static final DateTimeFormatter FORMATO_FECHA = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+    private static final DateTimeFormatter FORMATO_HORA = DateTimeFormatter.ofPattern("HH:mm");
+    private static final Locale ES_AR = Locale.forLanguageTag("es-AR");
+    private static final DateTimeFormatter FORMATO_DIA = DateTimeFormatter.ofPattern("EEEE dd/MM 'a las' HH:mm", ES_AR);
     private static final String MIS_TURNOS = AgendaBean.class.getName() + ".misTurnos";
     private static final String TURNOS_PROFESIONAL = AgendaBean.class.getName() + ".turnosProfesional";
 
@@ -127,7 +138,7 @@ public class AgendaBean implements Serializable {
             Turno cancelado = servicioDeTurnos.cancelar(turnoId);
             invalidarMisTurnos();
             boolean habiaPago = cancelado.getImportePaciente() != null && cancelado.getImportePaciente().signum() > 0;
-            String reintegro = "$ " + (habiaPago ? cancelado.getImportePaciente().toPlainString() : "");
+            String reintegro = habiaPago ? pesos(cancelado.getImportePaciente()) : "";
             if (loginBean.isProfesional()) {
                 info("Cancelaste el turno de " + cancelado.getPaciente().getNombreCompleto() + " del "
                         + FORMATO_FECHA.format(cancelado.getFechaHora()) + ". Le avisamos al paciente"
@@ -163,11 +174,68 @@ public class AgendaBean implements Serializable {
         }
     }
 
+    /**
+     * Paso 1 del pago (D-19, D-29): revisa la tarjeta sin llamar a la pasarela. Si falta algo, un único mensaje dice
+     * todo lo que hay que corregir y marca los campos; si está completa, la vista abre el diálogo que pide confirmar
+     * el importe ("Sí, pagar" llama a {@link #confirmar()}).
+     */
+    public void revisarPago() {
+        Optional<String> problema = datosPago.mensajeDeError();
+        if (problema.isPresent()) {
+            marcarConError(datosPago.camposConError());
+            error(problema.get());
+            return;
+        }
+        PrimeFaces.current().ajax().addCallbackParam("pagoListo", true);
+    }
+
+    /** Lo que muestra el diálogo antes de cobrar (D-29): importe, tarjeta, día y profesional. */
+    public String getResumenDelPago() {
+        if (turnoEnHold == null || cotizacion == null) {
+            return "";
+        }
+        return "Vas a pagar " + pesos(cotizacion.getImporte().getImportePaciente()) + " con la tarjeta terminada en "
+                + datosPago.getUltimosDigitos() + " para confirmar tu turno del "
+                + FORMATO_DIA.format(turnoEnHold.getFechaHora()) + " hs con "
+                + turnoEnHold.getProfesional().getNombreCompleto() + ".";
+    }
+
+    /** Importe como lo leen los pacientes: "$ 9.600,00". */
+    static String pesos(BigDecimal importe) {
+        return NumberFormat.getCurrencyInstance(ES_AR).format(importe);
+    }
+
+    /** Hora hasta la que se guarda el turno en espera ("14:35"). */
+    public String getHoraLimite() {
+        return turnoEnHold == null || turnoEnHold.getHoldVenceEn() == null ? ""
+                : FORMATO_HORA.format(turnoEnHold.getHoldVenceEn());
+    }
+
+    /**
+     * Vuelve a preguntarle la cobertura a la obra social cuando la primera consulta quedó pendiente (D-20). Siempre
+     * informa el resultado, para que el botón no parezca no hacer nada.
+     */
+    public void reconsultarCobertura() {
+        cotizar();
+        if (cotizacion == null) {
+            return;
+        }
+        if (cotizacion.getCobertura().getEstado() == EstadoCobertura.PENDIENTE) {
+            info("Tu obra social todavía no responde. Podés confirmar igual: la cobertura se completa cuando conteste.");
+        } else {
+            info("Listo: tu obra social respondió y actualizamos la cobertura y el importe.");
+        }
+    }
+
     public void confirmar() {
         try {
             boolean conPago = cotizacion != null && cotizacion.isRequierePago();
-            String tarjeta = conPago && datosPago.getNumeroTarjeta() != null
-                    ? datosPago.getNumeroTarjeta().replaceAll("\\D", "") : "";
+            if (conPago && datosPago.mensajeDeError().isPresent()) {
+                marcarConError(datosPago.camposConError());
+                error(datosPago.mensajeDeError().get());
+                return;
+            }
+            String ultimos = conPago ? datosPago.getUltimosDigitos() : "";
             Turno confirmado = servicioDeTurnos.confirmar(conPago ? datosPago : null);
             invalidarMisTurnos();
             turnoEnHold = null;
@@ -176,9 +244,9 @@ public class AgendaBean implements Serializable {
             StringBuilder mensaje = new StringBuilder("Turno confirmado para el ")
                     .append(FORMATO_FECHA.format(confirmado.getFechaHora())).append(" hs.");
             if (confirmado.getImportePaciente() != null && confirmado.getImportePaciente().signum() > 0) {
-                mensaje.append(" Se cobraron $ ").append(confirmado.getImportePaciente().toPlainString());
-                if (tarjeta.length() >= 4) {
-                    mensaje.append(" con la tarjeta terminada en ").append(tarjeta.substring(tarjeta.length() - 4));
+                mensaje.append(" Se cobraron ").append(pesos(confirmado.getImportePaciente()));
+                if (!ultimos.isEmpty()) {
+                    mensaje.append(" con la tarjeta terminada en ").append(ultimos);
                 }
                 mensaje.append('.');
             }
@@ -225,6 +293,16 @@ public class AgendaBean implements Serializable {
             error("No tenés permiso para publicar disponibilidad.");
         } catch (ErrorDeNegocioException e) {
             error(e.getMessage());
+        }
+    }
+
+    /** Marca en rojo los campos de la tarjeta con problemas (la vista vuelve a dibujar sólo esos). */
+    private static void marcarConError(Set<String> campos) {
+        UIViewRoot raiz = FacesContext.getCurrentInstance().getViewRoot();
+        for (String campo : campos) {
+            if (raiz.findComponent("formConfirmacion:" + campo) instanceof UIInput entrada) {
+                entrada.setValid(false);
+            }
         }
     }
 

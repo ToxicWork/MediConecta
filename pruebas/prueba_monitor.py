@@ -125,10 +125,11 @@ with sync_playwright() as p:
         pac.locator("#formAgenda\\:tablaTurnos tr", has_text=dia + " · " + hora).locator("button:has-text('Reservar')").first.click()
     pac.fill("#formConfirmacion\\:titular", "Paciente Monitor")
     pac.fill("#formConfirmacion\\:numeroTarjeta", "4111 1111 1111 1111")
-    pac.fill("#formConfirmacion\\:vencimiento", "12/29")
+    pac.fill("#formConfirmacion\\:vencimiento", ""); pac.fill("#formConfirmacion\\:vencimiento", "12/29")
     pac.fill("#formConfirmacion\\:codigoSeguridad", "123")
+    pac.click("#formConfirmacion\\:btnConfirmar")
     with pac.expect_navigation():
-        pac.click("#formConfirmacion\\:btnConfirmar")
+        pac.click(".ui-confirm-dialog:visible button:has-text('Sí, pagar')")
     check("1. el paciente confirma un turno (%s)" % fecha, "Turno confirmado" in pac.content())
 
     fila = esperar_fila(pac, lambda f: "Confirmado" in f and f.count(" ms") >= 2)

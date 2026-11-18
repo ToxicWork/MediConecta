@@ -139,10 +139,15 @@ def pagar(pac, tarjeta="4111 1111 1111 1111"):
     if pac.locator("#formConfirmacion\\:numeroTarjeta").count():
         pac.fill("#formConfirmacion\\:titular", "Juan Perez")
         pac.fill("#formConfirmacion\\:numeroTarjeta", tarjeta)
-        pac.fill("#formConfirmacion\\:vencimiento", "12/29")
+        pac.fill("#formConfirmacion\\:vencimiento", ""); pac.fill("#formConfirmacion\\:vencimiento", "12/29")
         pac.fill("#formConfirmacion\\:codigoSeguridad", "123")
-    pac.click("#formConfirmacion\\:btnConfirmar")
-    pac.wait_for_load_state()
+        # Con copago se paga en dos pasos: el botón revisa la tarjeta y abre el diálogo con el importe (D-29).
+        pac.click("#formConfirmacion\\:btnConfirmar")
+        with pac.expect_navigation():
+            pac.click(".ui-confirm-dialog:visible button:has-text('Sí, pagar')")
+    else:
+        with pac.expect_navigation():
+            pac.click("#formConfirmacion\\:btnConfirmarSinPago")
     return " ".join(pac.locator(".ui-growl-message").all_inner_texts())
 
 
@@ -221,7 +226,7 @@ with sync_playwright() as p:
     reservar(pac, f1)
     contenido = pac.content()
     check("C. la cotización consulta la cobertura por SOAP (OSDE, copago del 30 %)",
-          "Consultada en línea al sistema de la obra social (SOAP)" in contenido and "Copago del 30" in contenido)
+          "Consultada en línea a tu obra social" in contenido and "Copago del 30" in contenido)
     msg = pagar(pac, "4000 0000 0000 0002")
     check("C. tarjeta rechazada: se informa y el turno sigue en espera", "Pago rechazado" in msg
           and "Turno reservado temporalmente" in pac.content())

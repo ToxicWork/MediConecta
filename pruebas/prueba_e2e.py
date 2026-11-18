@@ -57,7 +57,10 @@ with sync_playwright() as p:
     if pac.locator("#formConfirmacion\\:numeroTarjeta").count():  # copago de la obra social (pasarela REST)
         pac.fill("#formConfirmacion\\:titular","Juan Perez"); pac.fill("#formConfirmacion\\:numeroTarjeta","4111 1111 1111 1111")
         pac.fill("#formConfirmacion\\:vencimiento","12/29"); pac.fill("#formConfirmacion\\:codigoSeguridad","123")
-    t=time.time(); pac.click("#formConfirmacion\\:btnConfirmar"); pac.wait_for_load_state(); dt=time.time()-t
+    pac.click("#formConfirmacion\\:btnConfirmar")  # revisa la tarjeta y abre el diálogo con el importe
+    t=time.time()
+    with pac.expect_navigation(): pac.click(".ui-confirm-dialog:visible button:has-text('Sí, pagar')")
+    dt=time.time()-t
     check("confirmación OK (%.2f s)"%dt, "Turno confirmado" in pac.content())
     check("mis turnos se actualiza en la MISMA respuesta al confirmar (%d -> %d)"%(antes,mis(pac)), mis(pac)==antes+1)
     row=pac.locator("#formAgenda\\:tablaMisTurnos tr", has_text=FECHA_TABLA)
