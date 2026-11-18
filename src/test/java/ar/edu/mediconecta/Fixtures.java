@@ -26,6 +26,18 @@ public final class Fixtures {
         return new Turno(profesional(20, "Cardiología"), fechaHora);
     }
 
+    /** El id que le daría la base a un turno guardado. */
+    public static Turno conId(Turno turno, long id) {
+        try {
+            Field campo = Turno.class.getDeclaredField("id");
+            campo.setAccessible(true);
+            campo.set(turno, id);
+            return turno;
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
     public static <T extends Usuario> T conId(T usuario, long id) {
         try {
             Field campo = Usuario.class.getDeclaredField("id");

@@ -23,14 +23,13 @@
 
         <!--
           Umbrales que verifica el build (mvn verify y PIT), sobre la capa de negocio y dominio
-          (paquetes modelo y negocio). Los mínimos del Eje B de los criterios de testing son 80 % de
-          líneas, 70 % de ramas y 60 % de mutantes muertos en el paquete de dominio. Hasta llegar a
-          ellos, cada umbral es el valor alcanzado (18/11: 30 % de líneas, 34 % de ramas y 43 % de
-          mutantes): sólo se sube, así ningún cambio empeora la cobertura.
+          (paquetes modelo y negocio): los mínimos del Eje B de los criterios de testing, 80 % de
+          líneas, 70 % de ramas y 60 % de mutantes muertos en el paquete de dominio. Si un cambio los
+          baja, el pipeline falla. Alcanzado el 18/11: 85 % de líneas, 84 % de ramas y 73 % de mutantes.
         -->
-        <cobertura.lineas.minima>0.30</cobertura.lineas.minima>
-        <cobertura.ramas.minima>0.34</cobertura.ramas.minima>
-        <mutacion.minima>43</mutacion.minima>
+        <cobertura.lineas.minima>0.80</cobertura.lineas.minima>
+        <cobertura.ramas.minima>0.70</cobertura.ramas.minima>
+        <mutacion.minima>60</mutacion.minima>
 
         <!-- Análisis estático en SonarCloud: lo corre el pipeline cuando el repositorio tiene el secreto SONAR_TOKEN. -->
         <sonar.host.url>https://sonarcloud.io</sonar.host.url>
@@ -64,6 +63,17 @@
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
             <version>5.10.3</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!--
+          Dobles de prueba para los EJB de negocio (sus DAO y colaboradores), sin contenedor. Con el mock maker de
+          subclases (src/test/resources/mockito-extensions): no necesita adjuntar un agente a la JVM.
+        -->
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>5.24.0</version>
             <scope>test</scope>
         </dependency>
 
