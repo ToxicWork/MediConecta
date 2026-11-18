@@ -1,0 +1,27 @@
+# Hallazgos de gitleaks revisados uno por uno el 18/11/2026 (pipeline de CI, trabajo «Secretos»): ninguno es un
+# secreto. Son valores de prueba o de ejemplo, publicados a propósito en la documentación o en las pruebas, que sólo
+# sirven en el ambiente de demo. Formato: commit:archivo:regla:línea, la huella con la que gitleaks informa cada
+# hallazgo. Un hallazgo nuevo hace fallar el pipeline: se revisa y, si no es un secreto, se agrega acá con su motivo;
+# si lo es, se rota y se saca del repositorio.
+
+# Ejemplos de curl con las credenciales de los usuarios de demo (las publica SETUP.md; sólo valen en la base de demo).
+a767111770f043c4e4852f42f398653cc087c7d8:docs/guia-demo-entrega4.md:curl-auth-user:104
+1c9ee2e3768327783ac092b2b8aca1a277fb4104:docs/guia-demo-entrega4.md:curl-auth-user:114
+1c9ee2e3768327783ac092b2b8aca1a277fb4104:docs/guia-demo-entrega4.md:curl-auth-user:115
+1c9ee2e3768327783ac092b2b8aca1a277fb4104:docs/api/README.md:curl-auth-user:25
+
+# Ejemplo de curl a la pasarela de pagos simulada (sistemas-externos) con su clave de prueba y la tarjeta de prueba.
+a767111770f043c4e4852f42f398653cc087c7d8:docs/api/README.md:curl-auth-header:76
+
+# Respuestas de ejemplo de la API en el informe del núcleo: JWT de un usuario de demo, de 30 minutos de vigencia,
+# vencidos el 14/11/2026 a las 11:30 y el 15/11/2026 a las 18:47.
+0236f3a8d5396c62562c9e0ede6f388a8e1d4992:docs/entrega-nucleo/informe-entrega-nucleo.html:jwt:710
+1d722df34cdc794c84a995f189e20bb80223c486:docs/entrega-nucleo/informe-entrega-nucleo.html:jwt:769
+
+# Contraseña temporal que las pruebas de punta a punta le ponen a un usuario de prueba que ellas mismas crean.
+c31cb50b146e884e000f80b3af48ccbf30c92bb7:pruebas/prueba_entrega4.py:generic-api-key:270
+4db2ce5544d43705f3209ce27d935f525ba7fe17:pruebas/prueba_seguridad.py:generic-api-key:433
+
+# Valor de ejemplo del secreto del JWT en SETUP.md: una frase que muestra el formato pedido. El servidor no lo usa:
+# si no se le configura un secreto, genera uno al azar en cada arranque.
+0236f3a8d5396c62562c9e0ede6f388a8e1d4992:SETUP.md:generic-api-key:286
