@@ -10,6 +10,7 @@ import ar.edu.mediconecta.integracion.obrasocial.TipoCopago;
 import ar.edu.mediconecta.mensajeria.ProductorSolicitudesAutorizacion;
 import ar.edu.mediconecta.mensajeria.PublicadorEventosTurno;
 import ar.edu.mediconecta.mensajeria.TipoEventoTurno;
+import ar.edu.mediconecta.modelo.ErrorDeNegocioException;
 import ar.edu.mediconecta.modelo.EstadoAutorizacion;
 import ar.edu.mediconecta.modelo.EstadoCobertura;
 import ar.edu.mediconecta.modelo.EstadoTurno;
@@ -170,13 +171,30 @@ class ProcesoConfirmacionTurnoTest {
     /** La falla de demostración salta después de todos los pasos: la transacción entera tiene que revertirse. */
     @Test
     void laFallaDeDemostracionArmadaSaltaDespuesDeTodosLosPasosYSeDesarma() {
+        System.setProperty(InyectorDeFallas.PROPIEDAD, "true");
+        try {
+            conCobertura(ResultadoCobertura.sinObraSocial());
+            inyector.armar();
+
+            assertThrows(FallaSimuladaException.class, () -> proceso.confirmar(TURNO, PACIENTE, new DatosPago()));
+
+            verify(publicador).publicar(any());
+            assertEquals(false, inyector.isArmada());
+        } finally {
+            System.clearProperty(InyectorDeFallas.PROPIEDAD);
+        }
+    }
+
+    /** Apagada (lo normal: el informe del núcleo prometió retirarla), no se puede armar y nunca hace fallar nada. */
+    @Test
+    void sinHabilitarlaLaFallaDeDemostracionNoSePuedeArmarNiFalla() {
         conCobertura(ResultadoCobertura.sinObraSocial());
-        inyector.armar();
 
-        assertThrows(FallaSimuladaException.class, () -> proceso.confirmar(TURNO, PACIENTE, new DatosPago()));
+        assertThrows(ErrorDeNegocioException.class, inyector::armar);
+        assertEquals(false, inyector.isHabilitada());
 
-        verify(publicador).publicar(any());
-        assertEquals(false, inyector.isArmada());
+        assertSame(turno, proceso.confirmar(TURNO, PACIENTE, new DatosPago()));
+        assertEquals(EstadoTurno.CONFIRMADO, turno.getEstado());
     }
 
     @Test

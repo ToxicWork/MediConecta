@@ -35,4 +35,9 @@ public class ControlDeDemostracion {
     public boolean isFallaArmada() {
         return inyector.isArmada();
     }
+
+    /** Apagada salvo que el servidor la habilite para una demostración ({@link InyectorDeFallas#PROPIEDAD}). */
+    public boolean isFallaHabilitada() {
+        return inyector.isHabilitada();
+    }
 }

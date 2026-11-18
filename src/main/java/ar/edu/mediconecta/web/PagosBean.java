@@ -1,5 +1,6 @@
 package ar.edu.mediconecta.web;
 
+import ar.edu.mediconecta.modelo.ErrorDeNegocioException;
 import ar.edu.mediconecta.modelo.EstadoPago;
 import ar.edu.mediconecta.modelo.EstadoReclamo;
 import ar.edu.mediconecta.modelo.Pago;
@@ -78,10 +79,20 @@ public class PagosBean {
         return loginBean.isAdministrativo() && demostracion.isFallaArmada();
     }
 
+    /** El panel de la falla sólo aparece si el servidor la habilitó para una demostración. */
+    public boolean isFallaHabilitada() {
+        return loginBean.isAdministrativo() && demostracion.isFallaHabilitada();
+    }
+
     public void armarFalla() {
-        demostracion.armarFalla();
-        FacesContext.getCurrentInstance().addMessage(null, new FacesMessage(FacesMessage.SEVERITY_WARN,
-                "Falla armada: la próxima confirmación de turno va a revertirse antes del commit.", null));
+        try {
+            demostracion.armarFalla();
+            FacesContext.getCurrentInstance().addMessage(null, new FacesMessage(FacesMessage.SEVERITY_WARN,
+                    "Falla armada: la próxima confirmación de turno va a revertirse antes del commit.", null));
+        } catch (ErrorDeNegocioException apagada) {
+            FacesContext.getCurrentInstance().addMessage(null,
+                    new FacesMessage(FacesMessage.SEVERITY_ERROR, apagada.getMessage(), null));
+        }
     }
 
     public void desarmarFalla() {

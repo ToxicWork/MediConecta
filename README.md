@@ -110,6 +110,9 @@ defectos D-01, D-02, D-04, D-07 y D-09 del informe del 16/11.
 - **Falla a mitad del flujo crítico, en vivo**: el administrativo la arma desde **Pagos** («Armar falla antes del
   commit», `ControlDeDemostracion` con `@RolesAllowed`). La próxima confirmación falla después de cobrar y antes
   del commit: la base y los mensajes se revierten y el cobro se reembolsa (escenario F de `prueba_entrega4.py`).
+  Desde el 18/11 está apagada salvo que el servidor se levante con `-Dmediconecta.demo.fallas=true` (o, en caliente,
+  `/system-property=mediconecta.demo.fallas:add(value=true)` en jboss-cli): el informe del núcleo prometió retirarla
+  de la entrega final. El escenario F la habilita sólo mientras corre.
 - **Pago inexistente en la pasarela**: un 404 al reintegrar ya no cuenta como caída para el Circuit Breaker ni se
   reintenta; queda en el log para conciliación manual.
 - Guion y diapositivas nuevos (`docs/entrega-nucleo/`, con `generar_presentacion.py`), informe actualizado y
