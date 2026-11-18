@@ -1,7 +1,6 @@
 package ar.edu.mediconecta.api;
 
 import ar.edu.mediconecta.api.dto.CredencialesApi;
-import ar.edu.mediconecta.api.dto.ErrorApi;
 import ar.edu.mediconecta.api.dto.TokenApi;
 import ar.edu.mediconecta.modelo.Usuario;
 import ar.edu.mediconecta.negocio.ServicioDeUsuarios;
@@ -16,9 +15,12 @@ import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.UriInfo;
 
+import java.time.Duration;
 import java.util.Optional;
 
 /**
@@ -26,8 +28,12 @@ import java.util.Optional;
  * viaja la contraseña; el resto de los pedidos llevan {@code Authorization: Bearer <token>}.
  *
  * <p>Valida contra el mismo identity store que la web (PBKDF2 sobre la tabla usuario). La respuesta ante
- * credenciales inválidas es siempre la misma, exista o no el email y esté o no bloqueada la cuenta, para no
- * revelar qué cuentas existen. Cinco fallos seguidos bloquean la cuenta 15 minutos ({@link ControlDeIngresos}).
+ * credenciales inválidas es siempre la misma, exista o no el email, para no revelar qué cuentas existen. Cinco
+ * fallos seguidos con un mismo email (exista o no la cuenta) dan <b>429</b> con {@code Retry-After} durante 15
+ * minutos, y bloquean la cuenta si existe ({@link ControlDeIngresos}).
+ *
+ * <p>Errores en Problem Details: 400 si el cuerpo no es JSON, 422 si faltan el email o la contraseña, 401 con
+ * credenciales inválidas, 403 con contraseña temporal y 429 tras demasiados intentos.
  */
 @Path("/v1/auth")
 @Stateless
@@ -47,21 +53,33 @@ public class AuthResource {
 
     @POST
     @Path("/login")
-    public Response login(CredencialesApi credenciales) {
-        if (credenciales == null || esVacio(credenciales.getEmail()) || esVacio(credenciales.getPassword())) {
-            return error(400, "pedido_invalido", "Enviá un JSON con email y password.");
+    public Response login(CredencialesApi credenciales, @Context UriInfo uri) {
+        String instancia = uri == null ? null : uri.getRequestUri().getPath();
+        if (credenciales == null) {
+            return problema(TipoDeProblema.PEDIDO_INVALIDO, "Enviá un JSON con email y password.", instancia);
+        }
+        if (esVacio(credenciales.getEmail()) || esVacio(credenciales.getPassword())) {
+            return problema(TipoDeProblema.DATOS_INVALIDOS, "Faltan el email o la contraseña.", instancia);
         }
         String email = credenciales.getEmail().trim();
+        Optional<Duration> espera = controlDeIngresos.esperaPorIntentos(email);
+        if (espera.isPresent()) {
+            return Problemas.demasiadosIntentos(espera.get(), instancia).build();
+        }
         CredentialValidationResult resultado = controlDeIngresos.validar( // con bloqueo por intentos fallidos (SEC-W01)
                 new UsernamePasswordCredential(email, credenciales.getPassword()));
         Optional<Usuario> usuario = resultado.getStatus() == CredentialValidationResult.Status.VALID
                 ? usuarios.buscarPorEmail(email) : Optional.empty();
         if (usuario.isEmpty()) {
-            return error(401, "credenciales_invalidas", "Email o contraseña incorrectos.");
+            // El fallo que llega al máximo ya responde 429: así el que prueba contraseñas se entera recién ahí.
+            return controlDeIngresos.esperaPorIntentos(email)
+                    .map(restante -> Problemas.demasiadosIntentos(restante, instancia).build())
+                    .orElseGet(() -> problema(TipoDeProblema.CREDENCIALES_INVALIDAS, "Email o contraseña incorrectos.", instancia));
         }
         if (usuario.get().isDebeCambiarPassword()) {
             // Una contraseña temporal no sirve para la API: primero hay que cambiarla desde "Mi perfil".
-            return error(403, "password_temporal", "Cambiá tu contraseña temporal desde Mi perfil antes de usar la API.");
+            return problema(TipoDeProblema.PASSWORD_TEMPORAL,
+                    "Cambiá tu contraseña temporal desde Mi perfil antes de usar la API.", instancia);
         }
         String rol = usuario.get().getRol().name();
         return Response.ok(new TokenApi(tokens.emitir(usuario.get().getEmail(), rol), "Bearer",
@@ -72,7 +90,7 @@ public class AuthResource {
         return valor == null || valor.isBlank();
     }
 
-    private static Response error(int estado, String codigo, String mensaje) {
-        return Response.status(estado).type(MediaType.APPLICATION_JSON).entity(ErrorApi.de(estado, codigo, mensaje)).build();
+    private static Response problema(TipoDeProblema tipo, String detalle, String instancia) {
+        return Problemas.respuesta(Problemas.de(tipo, detalle, instancia)).build();
     }
 }

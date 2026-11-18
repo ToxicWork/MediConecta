@@ -270,6 +270,11 @@ public class Turno implements Serializable {
         return id;
     }
 
+    /** Versión del bloqueo optimista: sube con cada cambio guardado. La API la publica como ETag. */
+    public int getVersion() {
+        return version;
+    }
+
     public Profesional getProfesional() {
         return profesional;
     }

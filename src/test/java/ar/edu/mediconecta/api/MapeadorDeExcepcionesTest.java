@@ -1,7 +1,7 @@
 package ar.edu.mediconecta.api;
 
 import ar.edu.mediconecta.Fixtures;
-import ar.edu.mediconecta.api.dto.ErrorApi;
+import ar.edu.mediconecta.api.dto.ProblemaApi;
 import ar.edu.mediconecta.modelo.DatosConfirmacion;
 import ar.edu.mediconecta.modelo.ErrorDeNegocioException;
 import ar.edu.mediconecta.modelo.EstadoAutorizacion;
@@ -9,8 +9,13 @@ import ar.edu.mediconecta.modelo.EstadoCobertura;
 import ar.edu.mediconecta.modelo.Rol;
 import ar.edu.mediconecta.modelo.TransicionInvalidaException;
 import ar.edu.mediconecta.modelo.Turno;
+import ar.edu.mediconecta.negocio.excepciones.AccesoDenegadoException;
+import ar.edu.mediconecta.negocio.excepciones.ClaveDeIdempotenciaReutilizadaException;
+import ar.edu.mediconecta.negocio.excepciones.ParametroInvalidoException;
+import ar.edu.mediconecta.negocio.excepciones.PrecondicionFallidaException;
 import ar.edu.mediconecta.negocio.excepciones.TurnoInexistenteException;
 import jakarta.ejb.EJBAccessException;
+import jakarta.json.bind.JsonbException;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -18,10 +23,16 @@ import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-/** Qué código HTTP devuelve la API ante cada error; en particular, 409 ante una transición inválida (State). */
+/**
+ * Qué problema (RFC 9457) y qué código HTTP devuelve la API ante cada error; en particular, 409 ante una transición
+ * inválida (State).
+ */
 class MapeadorDeExcepcionesTest {
+
+    private static final String RUTA = "/mediconecta/api/v1/turnos/5/cancelacion";
 
     @Test
     void unaTransicionInvalidaDelTurnoEs409() {
@@ -29,11 +40,13 @@ class MapeadorDeExcepcionesTest {
         TransicionInvalidaException transicion = assertThrows(TransicionInvalidaException.class,
                 () -> disponible.cancelar(Rol.PACIENTE, LocalDateTime.now()));
 
-        ErrorApi error = MapeadorDeExcepciones.clasificar(transicion, true);
+        ProblemaApi problema = MapeadorDeExcepciones.clasificar(transicion, true, RUTA);
 
-        assertEquals(409, error.estado());
-        assertEquals("transicion_invalida", error.error());
-        assertEquals("No se puede cancelar un turno disponible.", error.mensaje());
+        assertEquals(409, problema.status());
+        assertEquals(TipoDeProblema.TRANSICION_INVALIDA.uri(), problema.type());
+        assertEquals("Transición de estado inválida", problema.title());
+        assertEquals("No se puede cancelar un turno disponible.", problema.detail());
+        assertEquals(RUTA, problema.instance());
     }
 
     /** D-13: cancelar por la API un turno que ya empezó también es una transición inválida: 409, no 200. */
@@ -47,41 +60,91 @@ class MapeadorDeExcepcionesTest {
         TransicionInvalidaException yaEmpezo = assertThrows(TransicionInvalidaException.class,
                 () -> turno.cancelar(Rol.PACIENTE, hora.plusMinutes(5)));
 
-        ErrorApi error = MapeadorDeExcepciones.clasificar(yaEmpezo, true);
+        ProblemaApi problema = MapeadorDeExcepciones.clasificar(yaEmpezo, true, RUTA);
 
-        assertEquals(409, error.estado());
-        assertEquals("El turno ya empezó: no se puede cancelar.", error.mensaje());
+        assertEquals(409, problema.status());
+        assertEquals("El turno ya empezó: no se puede cancelar.", problema.detail());
+    }
+
+    /** Los campos del formato anterior (docs/api/README.md) siguen en la respuesta, como extensiones. */
+    @Test
+    void losCamposDelFormatoAnteriorSiguenEnElProblema() {
+        ProblemaApi problema = MapeadorDeExcepciones.clasificar(new ErrorDeNegocioException("El turno ya fue tomado."), true, RUTA);
+
+        assertEquals(problema.status(), problema.estado());
+        assertEquals(problema.detail(), problema.mensaje());
+        assertEquals("regla_de_negocio", problema.error());
+        assertNotNull(problema.fecha());
     }
 
     @Test
     void unTurnoInexistenteOAjenoEs404ComoUnIdQueNoExiste() {
-        ErrorApi error = MapeadorDeExcepciones.clasificar(new TurnoInexistenteException(), true);
+        ProblemaApi problema = MapeadorDeExcepciones.clasificar(new TurnoInexistenteException(), true, RUTA);
 
-        assertEquals(404, error.estado());
-        assertEquals("no_encontrado", error.error());
+        assertEquals(404, problema.status());
+        assertEquals("no_encontrado", problema.error());
+        assertEquals(MapeadorDeExcepciones.deEstadoHttp(404, RUTA).detail(), problema.detail());
     }
 
     @Test
     void otraReglaDeNegocioTambienEs409PeroConOtroCodigo() {
-        ErrorApi error = MapeadorDeExcepciones.clasificar(new ErrorDeNegocioException("El turno ya fue tomado."), true);
+        ProblemaApi problema = MapeadorDeExcepciones.clasificar(new ErrorDeNegocioException("El turno ya fue tomado."), true, RUTA);
 
-        assertEquals(409, error.estado());
-        assertEquals("regla_de_negocio", error.error());
+        assertEquals(409, problema.status());
+        assertEquals("regla_de_negocio", problema.error());
+    }
+
+    @Test
+    void unAccesoDenegadoEs403() {
+        assertEquals(403, MapeadorDeExcepciones.clasificar(new AccesoDenegadoException("No es de tu agenda."), true, RUTA).status());
+    }
+
+    @Test
+    void unEtagDesactualizadoEs412YUnaClaveReutilizadaEs422() {
+        assertEquals(412, MapeadorDeExcepciones.clasificar(new PrecondicionFallidaException(), true, RUTA).status());
+        ProblemaApi reutilizada = MapeadorDeExcepciones.clasificar(new ClaveDeIdempotenciaReutilizadaException(), true, RUTA);
+        assertEquals(422, reutilizada.status());
+        assertEquals("clave_reutilizada", reutilizada.error());
+        assertEquals(400, MapeadorDeExcepciones.clasificar(new ParametroInvalidoException("x"), true, RUTA).status());
     }
 
     @Test
     void sinPermisoEs401SiNoHayTokenY403SiElRolNoAlcanza() {
-        assertEquals(401, MapeadorDeExcepciones.clasificar(new EJBAccessException("x"), false).estado());
-        assertEquals(403, MapeadorDeExcepciones.clasificar(new EJBAccessException("x"), true).estado());
+        assertEquals(401, MapeadorDeExcepciones.clasificar(new EJBAccessException("x"), false, RUTA).status());
+        assertEquals(403, MapeadorDeExcepciones.clasificar(new EJBAccessException("x"), true, RUTA).status());
+    }
+
+    @Test
+    void unCuerpoQueNoEsJsonEs400SinElMensajeDelParser() {
+        ProblemaApi problema = MapeadorDeExcepciones.clasificar(
+                new JsonbException("Unexpected char 123 at (line no=1, column no=2) in ar.edu.mediconecta.api.dto"), false, RUTA);
+
+        assertEquals(400, problema.status());
+        assertEquals("pedido_invalido", problema.error());
+        assertFalse(problema.detail().contains("line no"));
+        assertFalse(problema.detail().contains("ar.edu"));
+    }
+
+    @Test
+    void losErroresDelPropioJaxRsConservanSuCodigoConUnDetalleFijo() {
+        assertEquals("metodo_no_permitido", MapeadorDeExcepciones.deEstadoHttp(405, RUTA).error());
+        assertEquals("no_aceptable", MapeadorDeExcepciones.deEstadoHttp(406, RUTA).error());
+        assertEquals("tipo_no_soportado", MapeadorDeExcepciones.deEstadoHttp(415, RUTA).error());
+        ProblemaApi otro = MapeadorDeExcepciones.deEstadoHttp(410, RUTA);
+        assertEquals(410, otro.status());
+        assertEquals("error_http", otro.error());
+        assertEquals(503, MapeadorDeExcepciones.deEstadoHttp(503, RUTA).status());
+        assertEquals("error_interno", MapeadorDeExcepciones.deEstadoHttp(503, RUTA).error());
     }
 
     @Test
     void unErrorInesperadoEs500YNoFiltraDetallesInternos() {
-        ErrorApi error = MapeadorDeExcepciones.clasificar(
-                new IllegalStateException("ORA-00942 tabla usuario; ar.edu.mediconecta.dao.TurnoDAO"), true);
+        ProblemaApi problema = MapeadorDeExcepciones.clasificar(
+                new IllegalStateException("ORA-00942 tabla usuario; ar.edu.mediconecta.dao.TurnoDAO"), true, RUTA);
 
-        assertEquals(500, error.estado());
-        assertFalse(error.mensaje().contains("usuario"));
-        assertFalse(error.mensaje().contains("TurnoDAO"));
+        assertEquals(500, problema.status());
+        assertFalse(problema.detail().contains("usuario"));
+        assertFalse(problema.detail().contains("TurnoDAO"));
+        assertFalse(problema.title().contains("TurnoDAO"));
     }
 }

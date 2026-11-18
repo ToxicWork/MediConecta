@@ -11,6 +11,7 @@ import jakarta.security.enterprise.credential.UsernamePasswordCredential;
 import jakarta.security.enterprise.identitystore.CredentialValidationResult;
 import jakarta.security.enterprise.identitystore.IdentityStoreHandler;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.logging.Logger;
@@ -21,11 +22,12 @@ import java.util.logging.Logger;
  * ({@code AuthResource}), así que la regla vale igual en ambos.
  *
  * <ul>
- *   <li>Con la cuenta bloqueada se rechaza incluso la contraseña correcta, y la respuesta es la misma que ante
- *       una contraseña incorrecta: quien prueba contraseñas no puede distinguir una cuenta bloqueada de un
- *       error, ni una cuenta que existe de una que no.</li>
  *   <li>Cada fallo suma uno; al quinto seguido la cuenta se bloquea 15 minutos ({@link PoliticaDeBloqueo}). Un
- *       ingreso correcto pone el contador en cero. La regla está en {@link Usuario#registrarIntentoFallido}.</li>
+ *       ingreso correcto pone el contador en cero. La regla está en {@link Usuario#registrarIntentoFallido}.
+ *       Con la cuenta bloqueada se rechaza incluso la contraseña correcta.</li>
+ *   <li>Los mismos fallos se cuentan también por email en {@link LimiteDeIntentos}, exista o no la cuenta: es lo que
+ *       usan la API y la web para responder 429 ante la fuerza bruta ({@link #esperaPorIntentos}). Como un email que
+ *       no existe se bloquea igual que uno que sí, quien prueba contraseñas no puede saber qué cuentas existen.</li>
  *   <li>Todo ocurre en una transacción (REQUIRED) con la fila del usuario bloqueada: dos intentos simultáneos
  *       no pueden perder un fallo.</li>
  * </ul>
@@ -42,17 +44,29 @@ public class ControlDeIngresos {
     @Inject
     private UsuarioDAO usuarioDAO;
 
+    @Inject
+    private LimiteDeIntentos limite;
+
     public CredentialValidationResult validar(Credential credencial) {
         if (!(credencial instanceof UsernamePasswordCredential usuarioYClave)) {
             return identityStoreHandler.validate(credencial);
         }
+        String email = usuarioYClave.getCaller();
+        if (limite.espera(email).isPresent()) {
+            return CredentialValidationResult.INVALID_RESULT; // demasiados fallos con este email: ni se prueba la clave
+        }
         LocalDateTime ahora = LocalDateTime.now();
-        Optional<Usuario> usuario = usuarioDAO.buscarPorEmailParaActualizar(usuarioYClave.getCaller());
+        Optional<Usuario> usuario = usuarioDAO.buscarPorEmailParaActualizar(email);
         if (usuario.isPresent() && usuario.get().estaBloqueado(ahora)) {
             return CredentialValidationResult.INVALID_RESULT;
         }
 
         CredentialValidationResult resultado = identityStoreHandler.validate(credencial);
+        if (resultado.getStatus() == CredentialValidationResult.Status.VALID) {
+            limite.registrarIngreso(email);
+        } else {
+            limite.registrarFallo(email);
+        }
 
         if (usuario.isPresent()) {
             Usuario cuenta = usuario.get();
@@ -68,5 +82,10 @@ public class ControlDeIngresos {
             }
         }
         return resultado;
+    }
+
+    /** Cuánto falta para que este email pueda volver a intentar (la API y la web responden 429); vacío si puede ya. */
+    public Optional<Duration> esperaPorIntentos(String email) {
+        return limite.espera(email);
     }
 }

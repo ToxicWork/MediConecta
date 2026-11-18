@@ -43,6 +43,11 @@ public class TurnoDAO {
         return em.merge(turno);
     }
 
+    /** Escribe ya los cambios pendientes: después de esto, la versión del turno es la nueva (para su ETag). */
+    public void sincronizar() {
+        em.flush();
+    }
+
     /** Solo horarios futuros: un turno disponible que ya pasó no se puede reservar. */
     public List<Turno> buscarDisponibles(Long profesionalId) {
         return em.createQuery(
