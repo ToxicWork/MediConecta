@@ -31,6 +31,7 @@ propia prueba (prueba_monitor.py).
 """
 import os
 import base64, json, random, subprocess, sys, time, urllib.error, urllib.request
+from datetime import date, timedelta
 from playwright.sync_api import sync_playwright
 import ssl
 # MediConecta corre por HTTPS con el certificado autofirmado que WildFly genera para localhost (SEC-W04):
@@ -173,8 +174,14 @@ def esperar(pg, url, condicion, segundos):
     return False
 
 
+def dia_desde_hoy(dias):
+    """Un día a tantos días de hoy ("dd/mm/aaaa"): la prueba no depende de la fecha en que se corre."""
+    return (date.today() + timedelta(days=dias)).strftime("%d/%m/%Y")
+
+
 def fecha_al_azar(dia):
-    return "%s/12/2026 %02d:%02d" % (dia, random.randint(7, 19), random.randint(0, 59))
+    """Un horario del día "01" a "04" de la prueba: a 13-16 días de hoy, lejos de los que usan las otras."""
+    return "%s %02d:%02d" % (dia_desde_hoy(12 + int(dia)), random.randint(7, 19), random.randint(0, 59))
 
 
 def publicar_libre(prof, dia, modalidad="PRESENCIAL"):
@@ -183,7 +190,7 @@ def publicar_libre(prof, dia, modalidad="PRESENCIAL"):
         fecha = fecha_al_azar(dia)
         if publicar(prof, fecha, modalidad):
             return fecha
-    raise AssertionError("no se encontró un horario libre el %s/12" % dia)
+    raise AssertionError("no se encontró un horario libre el %s" % dia_desde_hoy(12 + int(dia)))
 
 
 consola(obraSocial="EN_LINEA", autorizaciones="APROBAR", pasarela="EN_LINEA", videoconsulta="EN_LINEA")

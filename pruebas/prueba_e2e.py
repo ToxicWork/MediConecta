@@ -10,10 +10,11 @@ Requisitos: WildFly levantado con la app desplegada, Google Chrome instalado y
 Uso:
     python pruebas/prueba_e2e.py
 
-Usa los usuarios de demo (ver SETUP.md). Cada corrida publica un horario nuevo el 26/11/2026,
+Usa los usuarios de demo (ver SETUP.md). Cada corrida publica un horario nuevo a 8 días de hoy,
 lo confirma y lo cancela: el turno queda DISPONIBLE y las notificaciones quedan en las bandejas.
 """
 import os
+from datetime import date, timedelta
 import time, re
 from playwright.sync_api import sync_playwright
 import sys
@@ -22,6 +23,11 @@ try:
 except AttributeError:
     pass
 B="https://localhost:8443/mediconecta/"
+def dia_desde_hoy(dias):
+    """Un día a tantos días de hoy ("dd/mm/aaaa"): la prueba no depende de la fecha en que se corre."""
+    return (date.today() + timedelta(days=dias)).strftime("%d/%m/%Y")
+
+
 def login(br, email):
     pg=br.new_context(ignore_https_errors=True).new_page(); pg.goto(B+"login.xhtml")
     pg.fill("#formLogin\\:email", email); pg.fill("#formLogin\\:password", "demo1234")
@@ -30,8 +36,9 @@ def mis(pg):
     m=re.search(r"(\d+) turno\(s\) confirmado\(s\)", pg.content()); return int(m.group(1))
 import random
 HORA="%02d:%02d" % (random.randint(7,19), random.randint(0,59))
-FECHA="26/11/2026 "+HORA
-FECHA_TABLA="26/11/2026 · "+HORA
+DIA=dia_desde_hoy(8)
+FECHA=DIA+" "+HORA
+FECHA_TABLA=DIA+" · "+HORA
 ok=True
 def check(nombre, cond):
     global ok; ok &= bool(cond); print(("OK   " if cond else "FALLA"), nombre)
@@ -50,7 +57,7 @@ with sync_playwright() as p:
         prof.fill("#formPublicar\\:fecha_input",FECHA); prof.keyboard.press("Escape")
         with prof.expect_navigation(): prof.locator("#formPublicar button:has-text('Publicar')").evaluate("b => b.click()")
         if "Disponibilidad publicada" in prof.content(): break
-        HORA="%02d:%02d" % (random.randint(7,19), random.randint(0,59)); FECHA="26/11/2026 "+HORA; FECHA_TABLA="26/11/2026 · "+HORA
+        HORA="%02d:%02d" % (random.randint(7,19), random.randint(0,59)); FECHA=DIA+" "+HORA; FECHA_TABLA=DIA+" · "+HORA
     check("profesional publica disponibilidad", "Disponibilidad publicada" in prof.content())
     prof.goto(B+"historia.xhtml"); check("profesional abre historia clínica", "Historia" in prof.title() or "Historia" in prof.content())
     pac=login(br,"juan.perez@mediconecta.test")

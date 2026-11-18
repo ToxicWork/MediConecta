@@ -16,6 +16,7 @@ Deja en la base dos pacientes de prueba por corrida (monitor.NNNNN y monitor.otr
 turno cancelado de la Dra. Ana Lopez.
 """
 import json, os, random, re, ssl, subprocess, sys, time, urllib.request
+from datetime import date, timedelta
 from playwright.sync_api import sync_playwright
 
 try:
@@ -30,6 +31,11 @@ NAVEGADOR = os.environ.get("NAVEGADOR", "chrome")
 WILDFLY_HOME = os.environ.get("WILDFLY_HOME")
 MDB_AUDITORIA = "/deployment=mediconecta.war/subsystem=ejb3/message-driven-bean=AuditoriaSubscriber"
 ok = True
+
+
+def dia_desde_hoy(dias):
+    """Un día a tantos días de hoy ("dd/mm/aaaa"): la prueba no depende de la fecha en que se corre."""
+    return (date.today() + timedelta(days=dias)).strftime("%d/%m/%Y")
 
 
 def check(nombre, condicion):
@@ -106,7 +112,7 @@ with sync_playwright() as p:
     check("1. la profesional tiene el Monitor de eventos en el menú", prof.locator("a.nav-item", has_text="Monitor de eventos").count() == 1)
     # Un horario libre: si ya existe uno igual de otra corrida (D-23 no lo deja repetir), se elige otro.
     for _ in range(15):
-        fecha = "%02d/12/2026 %02d:%02d" % (random.randint(20, 28), random.randint(7, 19), random.randint(0, 59))
+        fecha = "%s %02d:%02d" % (dia_desde_hoy(random.randint(32, 40)), random.randint(7, 19), random.randint(0, 59))
         prof.goto(B + "agenda.xhtml")
         prof.fill("#formPublicar\\:fecha_input", fecha)
         prof.keyboard.press("Escape")

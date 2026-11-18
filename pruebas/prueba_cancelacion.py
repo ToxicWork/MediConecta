@@ -27,7 +27,7 @@ la Dra. Ana Lopez (más el horario que vuelve a ofrecerse en C y el turno ya pas
 """
 import json, os, random, ssl, sys, time, urllib.error, urllib.request, uuid
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from playwright.sync_api import sync_playwright
 
 # MediConecta corre por HTTPS con el certificado autofirmado que WildFly genera para localhost: se acepta sin validar.
@@ -105,9 +105,14 @@ def mensaje(pg):
     return " ".join(pg.locator(".ui-growl-message").all_inner_texts())
 
 
+def dia_desde_hoy(dias):
+    """Un día a tantos días de hoy ("dd/mm/aaaa"): la prueba no depende de la fecha en que se corre."""
+    return (date.today() + timedelta(days=dias)).strftime("%d/%m/%Y")
+
+
 def fecha_al_azar():
-    """Un horario de diciembre, lejos de los días que usan las otras pruebas."""
-    return "%02d/12/2026 %02d:%02d" % (random.randint(14, 19), random.randint(7, 19), random.randint(0, 59))
+    """Un horario a 26-31 días de hoy, lejos de los días que usan las otras pruebas."""
+    return "%s %02d:%02d" % (dia_desde_hoy(random.randint(26, 31)), random.randint(7, 19), random.randint(0, 59))
 
 
 def publicar(prof, fecha):
@@ -125,7 +130,7 @@ def publicar_libre(prof):
         fecha = fecha_al_azar()
         if publicar(prof, fecha):
             return fecha
-    raise AssertionError("no se encontró un horario libre en diciembre")
+    raise AssertionError("no se encontró un horario libre a 26-31 días de hoy")
 
 
 def ofrecido(pac, fecha):
