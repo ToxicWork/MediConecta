@@ -5,6 +5,7 @@
 # si lo es, se rota y se saca del repositorio.
 
 # Ejemplos de curl con las credenciales de los usuarios de demo (las publica SETUP.md; sólo valen en la base de demo).
+a767111770f043c4e4852f42f398653cc087c7d8:docs/api/README.md:curl-auth-user:20
 a767111770f043c4e4852f42f398653cc087c7d8:docs/guia-demo-entrega4.md:curl-auth-user:104
 1c9ee2e3768327783ac092b2b8aca1a277fb4104:docs/guia-demo-entrega4.md:curl-auth-user:114
 1c9ee2e3768327783ac092b2b8aca1a277fb4104:docs/guia-demo-entrega4.md:curl-auth-user:115
