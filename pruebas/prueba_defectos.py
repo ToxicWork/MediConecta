@@ -24,6 +24,8 @@ que ya empezó) y D-21 (el paciente confirma antes de cancelar) están en prueba
   D-36 (paso 1). El paciente cancela mientras otra transacción modifica el mismo turno, como la autorización de la
         obra social: la cancelación la espera y cancela sobre la versión nueva, sin error 500. Necesita WILDFLY_HOME
         (lee el datasource de MediConecta y usa el driver de PostgreSQL de WildFly) y Java; sin WILDFLY_HOME se omite.
+  D-38. La pantalla Pagos del administrativo (su página de inicio) abre en pocos segundos aunque haya cientos de
+        cobros y reclamos: cada listado sale en una sola consulta, no una por fila.
 
 Requisitos: WildFly levantado (perfil standalone-full) con mediconecta.war y externos.war desplegados, Google
 Chrome (o Edge con NAVEGADOR=msedge) y  pip install playwright
@@ -46,6 +48,7 @@ except AttributeError:
 B = "https://localhost:8443/mediconecta/"
 EXT = "http://localhost:8080/externos/"
 PROFESIONAL = "ana.lopez@mediconecta.test"
+ADMINISTRATIVO = "carla.admin@mediconecta.test"
 NAVEGADOR = os.environ.get("NAVEGADOR", "chrome")
 WILDFLY_HOME = os.environ.get("WILDFLY_HOME")
 BLOQUEO = os.path.join(os.path.dirname(os.path.abspath(__file__)), "BloqueoExterno.java")
@@ -495,6 +498,22 @@ with sync_playwright() as p:
         check("D-36. la otra transacción modificó el turno y lo retuvo mientras el paciente cancelaba", retenido)
         check("D-36. la cancelación la espera (%.1f s) y cancela sobre la versión nueva, sin error 500 (%d)" % (demora, estado),
               estado == 200 and isinstance(cuerpo, dict) and cuerpo.get("estado") == "CANCELADO" and demora >= 2)
+
+    # ---- D-38. La pantalla Pagos del administrativo con cientos de filas ---------------------------------
+    # Antes cada fila leía su turno con una consulta aparte (N+1): con 355 cobros y 165 reclamos tardaba 30 s.
+    print("-- D-38. La pantalla Pagos del administrativo")
+    adm = pagina(br)
+    adm.goto(B + "login.xhtml")
+    adm.fill("#formLogin\\:email", ADMINISTRATIVO)
+    adm.fill("#formLogin\\:password", "demo1234")
+    inicio = time.time()
+    with adm.expect_navigation(timeout=120000):
+        adm.click("#formLogin button:has-text('Ingresar')")
+    demora = time.time() - inicio
+    cobros = adm.locator("[id$='tablaPagos'] tbody tr").count()
+    check("D-38. el administrativo entra a Pagos en pocos segundos (%.1f s, %d cobros)" % (demora, cobros),
+          "pagos.xhtml" in adm.url and cobros > 0 and demora < 10)
+    adm.context.close()
 
     # ---- D-24, D-27 y D-28. Pantallas ---------------------------------------------------------------
     print("-- D-24, D-27 y D-28. Pantallas")
