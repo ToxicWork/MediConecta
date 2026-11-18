@@ -19,13 +19,17 @@ import jakarta.inject.Named;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Named
 @ViewScoped
 public class HistoriaBean implements Serializable {
 
+    private static final String TURNOS_DEL_PROFESIONAL = HistoriaBean.class.getName() + ".turnosDelProfesional";
     private static final DateTimeFormatter FORMATO_FECHA = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     @Inject
@@ -91,10 +95,30 @@ public class HistoriaBean implements Serializable {
         return accesos;
     }
 
+    /**
+     * Turnos confirmados del profesional (también los pasados: habilitan la historia clínica). Se evalúa varias veces
+     * por página, así que se guarda en el request.
+     */
+    @SuppressWarnings("unchecked")
     public List<Turno> getTurnosDelProfesional() {
         Usuario actual = loginBean.getUsuarioActual();
-        return actual == null || !loginBean.isProfesional() ? List.of()
-                : servicioDeTurnos.buscarConfirmadosDeProfesional(actual.getId());
+        if (actual == null || !loginBean.isProfesional()) {
+            return List.of();
+        }
+        Map<String, Object> request = FacesContext.getCurrentInstance().getExternalContext().getRequestMap();
+        return (List<Turno>) request.computeIfAbsent(TURNOS_DEL_PROFESIONAL,
+                clave -> servicioDeTurnos.buscarConfirmadosDeProfesional(actual.getId()));
+    }
+
+    /** Pacientes con algún turno confirmado con el profesional, una sola vez cada uno y por nombre (D-15). */
+    public List<Paciente> getPacientesDelProfesional() {
+        Map<Long, Paciente> unicos = new LinkedHashMap<>();
+        for (Turno turno : getTurnosDelProfesional()) {
+            unicos.putIfAbsent(turno.getPaciente().getId(), turno.getPaciente());
+        }
+        return unicos.values().stream()
+                .sorted(Comparator.comparing(Paciente::getNombreCompleto, String.CASE_INSENSITIVE_ORDER))
+                .toList();
     }
 
     public String getNombrePacienteSeleccionado() {
@@ -117,8 +141,7 @@ public class HistoriaBean implements Serializable {
         if (pacienteId == null) {
             return Optional.empty();
         }
-        return getTurnosDelProfesional().stream()
-                .map(Turno::getPaciente)
+        return getPacientesDelProfesional().stream()
                 .filter(paciente -> pacienteId.equals(paciente.getId()))
                 .findFirst();
     }
