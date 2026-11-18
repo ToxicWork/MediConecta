@@ -1,15 +1,18 @@
 """Resumen de las pruebas de mutación de PIT para el pipeline.
 
-Uso: python3 .github/scripts/resumen_mutacion.py target/pit-reports/mutations.xml >> "$GITHUB_STEP_SUMMARY"
+Uso: python3 .github/scripts/resumen_mutacion.py >> "$GITHUB_STEP_SUMMARY" (desde la raíz del repositorio)
 
 Escribe en Markdown el puntaje de mutación del paquete de dominio (mutantes detectados sobre el total, el que mide el
 umbral del Eje B), la fortaleza de las pruebas (detectados sobre los que alguna prueba ejecuta) y el detalle por clase.
 """
-import sys
+import os
 import xml.etree.ElementTree as ET
 from collections import Counter, defaultdict
 
+
 OBJETIVO = 60.0
+# Siempre el reporte que deja PIT: el script no recibe rutas (Sonar pythonsecurity:S8707).
+REPORTE = os.path.join("target", "pit-reports", "mutations.xml")
 
 
 def main(ruta):
@@ -44,4 +47,4 @@ def main(ruta):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1])
+    main(REPORTE)

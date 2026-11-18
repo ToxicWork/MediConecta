@@ -1,14 +1,17 @@
 """Resumen de la cobertura de JaCoCo para el pipeline.
 
-Uso: python3 .github/scripts/resumen_cobertura.py target/site/jacoco/jacoco.csv >> "$GITHUB_STEP_SUMMARY"
+Uso: python3 .github/scripts/resumen_cobertura.py >> "$GITHUB_STEP_SUMMARY" (desde la raíz del repositorio)
 
 Escribe en Markdown la cobertura de líneas y de ramas de la capa de negocio y dominio (paquetes modelo y negocio,
 la que miden los umbrales del Eje B), la de todo el código del equipo y el detalle por paquete.
 """
 import csv
-import sys
+import os
 from collections import defaultdict
 
+
+# Siempre el reporte que deja mvn verify: el script no recibe rutas (Sonar pythonsecurity:S8707).
+REPORTE = os.path.join("target", "site", "jacoco", "jacoco.csv")
 RAIZ = "ar.edu.mediconecta"
 ALCANCE = ("modelo", "negocio")
 OBJETIVO_LINEAS = 80.0
@@ -71,4 +74,4 @@ def main(ruta):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1])
+    main(REPORTE)

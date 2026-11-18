@@ -1,6 +1,6 @@
 """Resumen de los hallazgos de gitleaks para el pipeline, sin mostrar nunca el valor encontrado.
 
-Uso: python3 .github/scripts/resumen_secretos.py gitleaks.json <commits revisados>
+Uso: python3 .github/scripts/resumen_secretos.py <commits revisados> (desde la raíz, con gitleaks.json ya generado)
 
 Escribe una anotación por hallazgo (::error, con la regla, el archivo, la línea y el commit, que GitHub muestra en la
 página del run) y agrega a $GITHUB_STEP_SUMMARY una tabla con lo mismo. El reporte viene redactado (--redact): ni el
@@ -9,6 +9,9 @@ secreto ni la línea que lo contiene figuran en él, y este script tampoco los u
 import json
 import os
 import sys
+
+# Siempre el reporte que deja gitleaks en la raíz: el script no recibe rutas (Sonar pythonsecurity:S8707).
+REPORTE = "gitleaks.json"
 
 
 def main(ruta, commits):
@@ -39,4 +42,4 @@ def main(ruta, commits):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1], sys.argv[2])
+    main(REPORTE, sys.argv[1])

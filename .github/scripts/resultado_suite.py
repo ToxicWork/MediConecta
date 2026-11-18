@@ -1,14 +1,16 @@
 """Resultado de una corrida de la suite, prueba por prueba, a partir de los reportes XML de Surefire.
 
-Uso: python3 .github/scripts/resultado_suite.py target/surefire-reports > corrida-1.txt
+Uso: python3 .github/scripts/resultado_suite.py > corrida-1.txt (desde la raíz del repositorio)
 
 La primera línea es el total («100 pruebas: 100 pasaron, 0 fallaron, 0 con error, 0 omitidas») y las siguientes, cada
 prueba con su resultado, ordenadas: dos corridas dieron lo mismo si los archivos son idénticos.
 """
 import glob
 import os
-import sys
 import xml.etree.ElementTree as ET
+
+# Siempre los reportes que deja Surefire: el script no recibe rutas (Sonar pythonsecurity:S8707).
+CARPETA = os.path.join("target", "surefire-reports")
 
 
 def resultado(caso):
@@ -32,4 +34,4 @@ def main(carpeta):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1])
+    main(CARPETA)

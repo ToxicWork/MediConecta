@@ -41,10 +41,11 @@
         <!--
           La cobertura que mide Sonar (y la que exige su Quality Gate en el código nuevo) es la de la capa de negocio y
           dominio, la misma del umbral del Eje B en JaCoCo. Las pantallas, la API, los DAO, las integraciones, la
-          mensajería y la seguridad se prueban de punta a punta (pruebas/*.py), no con pruebas unitarias. La cobertura
-          de todo el código igual queda en el resumen de cada run del pipeline.
+          mensajería y la seguridad se prueban de punta a punta (pruebas/*.py), no con pruebas unitarias. Tampoco cuentan
+          para la cobertura los scripts del pipeline, las pruebas de punta a punta, los simuladores ni la web estática
+          (Sonar sí los analiza por bugs y seguridad). La cobertura de todo el código igual queda en el resumen de cada run.
         -->
-        <sonar.coverage.exclusions>**/web/**,**/api/**,**/dao/**,**/integracion/**,**/mensajeria/**,**/notificaciones/**,**/seguridad/**,**/auditoria/**</sonar.coverage.exclusions>
+        <sonar.coverage.exclusions>**/web/**,**/api/**,**/dao/**,**/integracion/**,**/mensajeria/**,**/notificaciones/**,**/seguridad/**,**/auditoria/**,src/main/webapp/**,.github/**,pruebas/**,sistemas-externos/**,docs/**</sonar.coverage.exclusions>
     </properties>
 
     <dependencies>
