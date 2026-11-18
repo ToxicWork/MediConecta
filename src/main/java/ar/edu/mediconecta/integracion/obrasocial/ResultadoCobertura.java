@@ -37,6 +37,15 @@ public class ResultadoCobertura implements Serializable {
                 "No declaraste obra social: el turno se abona como particular.", OrigenCobertura.SIN_OBRA_SOCIAL, null);
     }
 
+    /**
+     * La obra social respondió con un rechazo de negocio (SOAP Fault Client, por ejemplo un afiliado de baja): sin
+     * cobertura, el turno se abona como particular. {@code motivo} es el mensaje para el paciente, nunca el del Fault.
+     */
+    public static ResultadoCobertura rechazadaPorLaObraSocial(String motivo) {
+        return new ResultadoCobertura(EstadoCobertura.PARTICULAR, TipoCopago.NINGUNO, null, null, false,
+                motivo + " El turno se abona como particular.", OrigenCobertura.LEGADO, null);
+    }
+
     /** Fallback sin caché: no se sabe si hay cobertura; la autorización asincrónica lo resolverá. */
     public static ResultadoCobertura pendiente(String motivo) {
         return new ResultadoCobertura(EstadoCobertura.PENDIENTE, TipoCopago.NINGUNO, null, null, true,

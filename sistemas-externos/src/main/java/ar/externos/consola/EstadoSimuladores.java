@@ -16,7 +16,8 @@ import java.util.List;
 public class EstadoSimuladores {
 
     /** Comportamiento del sistema legado de la obra social. */
-    public enum ModoObraSocial { EN_LINEA, LENTO, CAIDO }
+    /** AFILIADO_DE_BAJA: el legado responde, pero con un SOAP Fault de negocio (Client): el padrón lo dio de baja. */
+    public enum ModoObraSocial { EN_LINEA, LENTO, CAIDO, AFILIADO_DE_BAJA }
 
     /** Qué responde la auditoría médica de la obra social a las solicitudes de autorización. */
     public enum ModoAutorizacion { APROBAR, RECHAZAR }

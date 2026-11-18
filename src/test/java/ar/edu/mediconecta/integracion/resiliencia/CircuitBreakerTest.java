@@ -93,6 +93,36 @@ class CircuitBreakerTest {
         assertEquals(CircuitBreaker.Estado.CERRADO, circuito.getEstado());
     }
 
+    /** Una respuesta de negocio (un SOAP Fault Client) prueba que el sistema está: el contador vuelve a cero. */
+    static final class Rechazo extends RuntimeException implements RespuestaDeNegocio {
+    }
+
+    @Test
+    void unaRespuestaDeNegocioCuentaComoExitoYReiniciaLasFallas() {
+        assertThrows(IntegracionNoDisponibleException.class, () -> circuito.ejecutar(this::falla));
+        assertThrows(IntegracionNoDisponibleException.class, () -> circuito.ejecutar(this::falla));
+        assertThrows(Rechazo.class, () -> circuito.ejecutar(() -> {
+            throw new Rechazo();
+        }));
+        assertThrows(IntegracionNoDisponibleException.class, () -> circuito.ejecutar(this::falla));
+
+        assertEquals(CircuitBreaker.Estado.CERRADO, circuito.getEstado(), "sin el rechazo, la tercera falla lo abría");
+    }
+
+    @Test
+    void enSemiabiertoUnaRespuestaDeNegocioCierraElCircuito() {
+        for (int i = 0; i < 3; i++) {
+            assertThrows(IntegracionNoDisponibleException.class, () -> circuito.ejecutar(this::falla));
+        }
+        reloj.avanzar(Duration.ofSeconds(31));
+
+        assertThrows(Rechazo.class, () -> circuito.ejecutar(() -> {
+            throw new Rechazo();
+        }));
+
+        assertEquals(CircuitBreaker.Estado.CERRADO, circuito.getEstado());
+    }
+
     @Test
     void unErrorQueNoEsDeDisponibilidadNoAbreElCircuito() {
         for (int i = 0; i < 5; i++) {

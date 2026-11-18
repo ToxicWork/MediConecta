@@ -11,6 +11,8 @@ Recorre con un navegador real (y con llamadas HTTP directas) todo lo que se defi
   F. Falla a mitad del flujo crítico (armada por el administrativo): rollback de la base y de los mensajes, y
      reembolso compensatorio del cobro, visible en la pasarela.
   G. Legado caído: la cotización usa el fallback (caché o cobertura pendiente) y el turno se confirma igual.
+  G2. SOAP Fault de negocio (afiliado de baja): el paciente ve un mensaje propio, no el Fault; el turno se cotiza
+      como particular y se confirma.
   H. Cancelación: Facturación reintegra el pago (REST) y anula el reclamo, de forma asincrónica.
   I. Telemedicina: el profesional crea la sala por REST y el paciente ve el enlace.
   J. Auditoría por interceptor: el paciente ve qué profesional consultó su historia clínica.
@@ -272,6 +274,19 @@ with sync_playwright() as p:
     pac.goto(B + "agenda.xhtml")
     msg = pagar(pac)
     check("F. al reintentar (la falla se desarma sola) el turno se confirma", "Turno confirmado" in msg)
+
+    # ---- G2. SOAP Fault de negocio: el legado responde, pero rechaza al afiliado (Eje C) ----------
+    # Antes que G: el legado caído abre el circuito 30 s y en ese lapso la consulta ni llegaría al legado.
+    consola(obraSocial="AFILIADO_DE_BAJA")
+    f3b = publicar_libre(prof, "03")
+    reservar(pac, f3b)
+    contenido = pac.content()
+    check("G2. con un SOAP Fault de negocio el paciente ve el motivo con un mensaje propio, nunca el texto del Fault",
+          "afiliación está dada de baja" in contenido and "ERR-PAD" not in contenido and "Fault" not in contenido)
+    check("G2. el turno se cotiza como particular, sin esperar a la obra social", "como particular" in contenido)
+    msg = pagar(pac)
+    check("G2. y se confirma: un rechazo de negocio no frena la reserva", "Turno confirmado" in msg)
+    consola(obraSocial="EN_LINEA")
 
     # ---- G. Legado caído: fallback de cobertura -------------------------------------------
     consola(obraSocial="CAIDO")

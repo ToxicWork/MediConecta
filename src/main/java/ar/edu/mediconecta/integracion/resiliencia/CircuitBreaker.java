@@ -56,8 +56,13 @@ public class CircuitBreaker {
             registrarFalla();
             throw falla;
         } catch (RuntimeException otra) {
-            // Un error que no es de disponibilidad (p. ej. de mapeo) no abre el circuito, pero libera la prueba.
-            liberarPrueba();
+            if (otra instanceof RespuestaDeNegocio) {
+                // El sistema respondió (con un rechazo de negocio): está disponible.
+                registrarExito();
+            } else {
+                // Un error que no es de disponibilidad (p. ej. de mapeo) no abre el circuito, pero libera la prueba.
+                liberarPrueba();
+            }
             throw otra;
         }
     }

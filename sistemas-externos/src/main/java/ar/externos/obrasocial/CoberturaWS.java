@@ -7,6 +7,13 @@ import jakarta.jws.WebMethod;
 import jakarta.jws.WebParam;
 import jakarta.jws.WebResult;
 import jakarta.jws.WebService;
+import jakarta.xml.soap.SOAPConstants;
+import jakarta.xml.soap.SOAPException;
+import jakarta.xml.soap.SOAPFactory;
+import jakarta.xml.soap.SOAPFault;
+import jakarta.xml.ws.soap.SOAPFaultException;
+
+import javax.xml.namespace.QName;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -85,7 +92,10 @@ public class CoberturaWS {
         return resultado;
     }
 
-    /** CAIDO: responde con un SOAP Fault. LENTO: tarda más que el timeout del cliente. */
+    /**
+     * CAIDO: SOAP Fault técnico (Server). LENTO: tarda más que el timeout del cliente. AFILIADO_DE_BAJA: SOAP Fault de
+     * negocio (Client, con el código del error en el detalle): el legado funciona, pero rechaza el pedido por sus datos.
+     */
     private void simularDisponibilidad(String operacion) {
         switch (estado.getObraSocial()) {
             case CAIDO -> {
@@ -93,12 +103,28 @@ public class CoberturaWS {
                 LOG.warning("[Legado obra social] " + operacion + " rechazada: el sistema está caído (simulado).");
                 throw new IllegalStateException("Sistema de autorizaciones fuera de servicio (ventana de mantenimiento)");
             }
+            case AFILIADO_DE_BAJA -> {
+                estado.registrar("Obra social (SOAP)", operacion, "SOAP Fault de negocio: AFILIADO_DE_BAJA");
+                throw faultDeNegocio("AFILIADO_DE_BAJA", "Afiliado dado de baja en el padrón (ERR-PAD-017)");
+            }
             case LENTO -> {
                 estado.registrar("Obra social (SOAP)", operacion, "respuesta demorada 8 s");
                 dormir(8_000);
             }
             default -> {
             }
+        }
+    }
+
+    /** Un SOAP Fault {@code Client}: el error es del pedido, no del servidor; el código va en el detalle. */
+    static SOAPFaultException faultDeNegocio(String codigo, String descripcion) {
+        try {
+            SOAPFault fault = SOAPFactory.newInstance().createFault(descripcion,
+                    new QName(SOAPConstants.URI_NS_SOAP_1_1_ENVELOPE, "Client"));
+            fault.addDetail().addDetailEntry(new QName(NS, "codigoError")).addTextNode(codigo);
+            return new SOAPFaultException(fault);
+        } catch (SOAPException imposible) {
+            throw new IllegalStateException("No se pudo armar el SOAP Fault", imposible);
         }
     }
 
