@@ -253,11 +253,37 @@ jobs:
             done
           done
           mkdir -p wars && cp target/mediconecta.war sistemas-externos/target/externos.war wars/
+      # WildFly y el driver también se bajan una sola vez (caché de Actions o Maven Central, con checksums estrictos)
+      # y pasan como artefacto: las máquinas de punta a punta ya no dependen de Maven Central.
+      - name: Caché de WildFly y del driver de PostgreSQL
+        uses: actions/cache@v4
+        with:
+          path: descargas
+          key: descargas-wildfly-41.0.0.Final-postgresql-42.7.13
+      - name: WildFly 41 y el driver de PostgreSQL (Maven Central, checksums estrictos)
+        run: |
+          for artefacto in org.wildfly:wildfly-dist:41.0.0.Final:zip org.postgresql:postgresql:42.7.13; do
+            archivo="descargas/$(echo "$artefacto" | awk -F: '{ print $2 "-" $3 "." ($4 ? $4 : "jar") }')"
+            if [ -s "$archivo" ]; then echo "En la caché: $archivo"; continue; fi
+            for intento in 1 2 3 4; do
+              mvn -B -ntp -C -q org.apache.maven.plugins:maven-dependency-plugin:3.8.1:copy \
+                -Dartifact="$artefacto" -DoutputDirectory=descargas && break
+              [ "$intento" = 4 ] && { echo "::error::No se pudo bajar $artefacto de Maven Central"; exit 1; }
+              echo "::warning::Falló la descarga de $artefacto (intento $intento); se reintenta"
+              sleep $((30 * intento))
+            done
+          done
       - uses: actions/upload-artifact@v7
         with:
           name: wars
           path: wars/
           retention-days: 1
+      - uses: actions/upload-artifact@v7
+        with:
+          name: descargas
+          path: descargas/
+          retention-days: 1
+          compression-level: 0
 
   punta-a-punta:
     needs: empaquetar
@@ -275,16 +301,20 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - nombre: Pruebas de punta a punta, grupo 1 de 2 (WildFly, PostgreSQL y Chrome del runner)
+          - nombre: Pruebas de punta a punta, grupo 1 de 3 (WildFly, PostgreSQL y Chrome del runner)
             tipo: suites
             # prueba_broker va primero: reinicia el servidor (el broker se cae y vuelve a levantar) y necesita el
             # Circuit Breaker de la obra social cerrado (prueba_entrega4 lo deja abierto un rato).
             suites: prueba_broker prueba_hold_vence prueba_e2e prueba_entrega4 demo_api_jwt_409 prueba_responsive
           # prueba_monitor va al final, después de las suites que generan avisos: su escenario 4 (la carga de a
           # tandas de 10) necesita más de 10 avisos de la profesional.
-          - nombre: Pruebas de punta a punta, grupo 2 de 2 (WildFly, PostgreSQL y Chrome del runner)
+          - nombre: Pruebas de punta a punta, grupo 2 de 3 (WildFly, PostgreSQL y Chrome del runner)
             tipo: suites
-            suites: prueba_permisos_broker prueba_cancelacion prueba_seguridad prueba_defectos prueba_inyeccion prueba_contrato_api prueba_monitor
+            suites: prueba_permisos_broker prueba_cancelacion prueba_inyeccion prueba_contrato_api prueba_monitor
+          # Seguridad y defectos en un grupo propio: con las cinco suites anteriores, el grupo 2 llegaba a 13,4 minutos.
+          - nombre: Pruebas de punta a punta, grupo 3 de 3 (WildFly, PostgreSQL y Chrome del runner)
+            tipo: suites
+            suites: prueba_seguridad prueba_defectos
           - nombre: Prueba de carga de la API (k6, 50 usuarios durante 5 minutos)
             tipo: carga
           - nombre: Escaneo de seguridad (OWASP ZAP, pasivo y activo autenticado)
@@ -316,13 +346,13 @@ jobs:
           sudo -u postgres psql -v ON_ERROR_STOP=1 -q \
             -c "CREATE ROLE mediconecta LOGIN PASSWORD '$PG_CLAVE'" \
             -c "CREATE DATABASE mediconecta OWNER mediconecta"
-      # Cinco máquinas bajaban el mismo zip a la vez y Maven Central empezó a responder 429 (Too Many Requests):
-      # el zip y el driver se guardan en la caché de Actions y se bajan sólo si no están.
-      - name: Caché de WildFly y del driver de PostgreSQL
-        uses: actions/cache@v4
+      # El zip de WildFly y el driver los baja una sola vez el trabajo de empaquetado (Maven Central respondía 429 con
+      # cinco máquinas bajándolos a la vez); el paso siguiente sólo los baja si faltan.
+      - name: WildFly y el driver del trabajo de empaquetado
+        uses: actions/download-artifact@v7
         with:
+          name: descargas
           path: descargas
-          key: descargas-wildfly-41.0.0.Final-postgresql-42.7.13
       - name: WildFly 41 y el driver de PostgreSQL (Maven Central, checksums estrictos)
         run: |
           # Hasta 4 intentos con espera creciente: un corte o un 429 de Maven Central no tiene que tirar el pipeline.
