@@ -1,10 +1,14 @@
 package ar.edu.mediconecta.modelo;
 
 import ar.edu.mediconecta.Fixtures;
+import ar.edu.mediconecta.TransicionesInvalidas;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -51,34 +55,21 @@ class TurnoEstadoTest {
         assertNull(turno.getPaciente());
     }
 
-    /** La matriz completa: las doce combinaciones de estado y operación que el State no admite. */
-    @Test
-    void cadaEstadoRechazaTodasLasOperacionesQueNoAdmite() {
-        Paciente otro = Fixtures.paciente(8, null);
+    /**
+     * La matriz completa del State: cada una de las doce combinaciones de estado y operación que no admite es un caso
+     * propio (la tabla está en {@link TransicionesInvalidas}). Lanza TransicionInvalidaException con su mensaje, que la
+     * API responde con 409 (MapeadorDeExcepcionesTest), y no cambia el estado.
+     */
+    @ParameterizedTest(name = "{0} + {1}: «{3}»")
+    @MethodSource("ar.edu.mediconecta.TransicionesInvalidas#casos")
+    void cadaEstadoRechazaCadaOperacionQueNoAdmite(EstadoTurno estado, String operacion, Consumer<Turno> aplicar,
+                                                   String mensaje) {
+        Turno turno = TransicionesInvalidas.enEstado(estado);
+        assertEquals(estado, turno.getEstado());
 
-        Turno disponible = Fixtures.turno(MANANA);
-        assertInvalida(() -> disponible.confirmar(confirmacion()), "No se puede confirmar un turno disponible.");
-        assertInvalida(disponible::liberar, "No se puede liberar un turno disponible.");
-        assertInvalida(() -> disponible.cancelar(Rol.PACIENTE, AHORA), "No se puede cancelar un turno disponible.");
+        assertInvalida(() -> aplicar.accept(turno), mensaje);
 
-        Turno enHold = Fixtures.turno(MANANA);
-        enHold.reservar(Fixtures.paciente(7, null), MANANA);
-        assertInvalida(() -> enHold.reservar(otro, MANANA), "No se puede reservar un turno en espera.");
-        assertInvalida(() -> enHold.cancelar(Rol.PACIENTE, AHORA), "No se puede cancelar un turno en espera.");
-
-        Turno confirmado = Fixtures.turno(MANANA);
-        confirmado.reservar(Fixtures.paciente(7, null), MANANA);
-        confirmado.confirmar(confirmacion());
-        assertInvalida(() -> confirmado.reservar(otro, MANANA), "No se puede reservar un turno confirmado.");
-        assertInvalida(() -> confirmado.confirmar(confirmacion()), "No se puede confirmar un turno confirmado.");
-        assertInvalida(confirmado::liberar, "No se puede liberar un turno confirmado.");
-
-        confirmado.cancelar(Rol.PACIENTE, AHORA);
-        assertInvalida(() -> confirmado.reservar(otro, MANANA), "No se puede reservar un turno cancelado.");
-        assertInvalida(() -> confirmado.confirmar(confirmacion()), "No se puede confirmar un turno cancelado.");
-        assertInvalida(confirmado::liberar, "No se puede liberar un turno cancelado.");
-        assertInvalida(() -> confirmado.cancelar(Rol.PACIENTE, AHORA), "No se puede cancelar un turno cancelado.");
-        assertEquals(EstadoTurno.CANCELADO, confirmado.getEstado(), "una transición inválida no cambia el estado");
+        assertEquals(estado, turno.getEstado(), "una transición inválida no cambia el estado");
     }
 
     private static void assertInvalida(org.junit.jupiter.api.function.Executable operacion, String mensaje) {
