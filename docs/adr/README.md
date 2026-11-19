@@ -30,6 +30,8 @@ La fecha es la de la entrega en la que se tomó la decisión. Los ADR se escribi
 | [ADR-0019](0019-revocar-el-token-al-cerrar-sesion.md) | Revocar el JWT al cerrar sesión | Seguridad (lista de revocación) | 19/11/2026 |
 | [ADR-0020](0020-permisos-por-destino-en-el-broker.md) | Permisos por destino en el broker, sin el rol guest | Seguridad (mínimo privilegio en la mensajería) | 19/11/2026 |
 | [ADR-0021](0021-pbkdf2-con-600000-iteraciones.md) | PBKDF2 con 600.000 iteraciones, y por qué no bcrypt ni Argon2 | Seguridad (hash adaptativo) | 19/11/2026 |
+| [ADR-0022](0022-cifrado-de-columnas-con-aes-gcm.md) | Cifrado de columnas con AES-GCM y la clave en el credential store de Elytron | Seguridad (cifrado en reposo) | 19/11/2026 |
+| [ADR-0023](0023-ficha-del-paciente-con-decorator.md) | Ficha del paciente con el Decorator PacienteEnmascarado | Decorator (GoF, CDI) | 19/11/2026 |
 
 Las rutas de código son relativas a `src/main/java/ar/edu/mediconecta/`. Las pruebas unitarias están en
 `src/test/java` y las de navegador en `pruebas/`.

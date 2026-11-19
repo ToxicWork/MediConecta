@@ -1,6 +1,8 @@
 package ar.edu.mediconecta.modelo;
 
+import ar.edu.mediconecta.seguridad.CifradoConverter;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -17,6 +19,8 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "entrada_clinica")
 public class EntradaClinica implements Serializable {
+
+    public static final int LARGO_MAXIMO = 2000;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -38,7 +42,12 @@ public class EntradaClinica implements Serializable {
     @Column(name = "tipo", nullable = false, length = 20)
     private TipoEntrada tipo;
 
-    @Column(name = "descripcion", nullable = false, length = 2000)
+    /**
+     * El diagnóstico o la receta: hasta {@value #LARGO_MAXIMO} caracteres. En la base va cifrado con AES-GCM
+     * (ADR-0022), por eso la columna es más ancha que el texto.
+     */
+    @Convert(converter = CifradoConverter.class)
+    @Column(name = "descripcion", nullable = false, length = 8100)
     private String descripcion;
 
     @Column(name = "fecha", nullable = false)

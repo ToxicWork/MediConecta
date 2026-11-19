@@ -269,7 +269,12 @@
                                     <f:convertDateTime pattern="dd/MM/yyyy HH:mm" type="localDateTime"/>
                                 </h:outputText>
                             </p:column>
-                            <p:column headerText="Paciente">#{turno.paciente.nombreCompleto}</p:column>
+                            <p:column headerText="Paciente">
+                                #{turno.paciente.nombreCompleto}
+                                <div><p:commandLink id="verFicha" value="Ver ficha" styleClass="link-ficha"
+                                                    action="#{fichaPacienteBean.abrir(turno.paciente.id)}" process="@this" update=":cuerpoFicha :mensajes"
+                                                    oncomplete="PF('ficha').show()" title="Ver la ficha de #{turno.paciente.nombreCompleto}"/></div>
+                            </p:column>
                             <p:column headerText="Modalidad">
                                 <span class="tag #{turno.telemedicina ? 'tag-info' : 'tag-neutral'}">#{turno.modalidad.etiqueta}</span>
                             </p:column>
@@ -330,5 +335,8 @@
             </div>
         </h:panelGroup>
 
+        <ui:fragment rendered="#{loginBean.profesional}">
+            <ui:include src="/WEB-INF/includes/ficha-paciente.xhtml"/>
+        </ui:fragment>
     </ui:define>
 </ui:composition>

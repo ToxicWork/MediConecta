@@ -314,7 +314,7 @@ jobs:
           # Seguridad y defectos en un grupo propio: con las cinco suites anteriores, el grupo 2 llegaba a 13,4 minutos.
           - nombre: Pruebas de punta a punta, grupo 3 de 3 (WildFly, PostgreSQL y Chrome del runner)
             tipo: suites
-            suites: prueba_seguridad prueba_defectos
+            suites: prueba_seguridad prueba_defectos prueba_datos_protegidos
           - nombre: Prueba de carga de la API (k6, 50 usuarios durante 5 minutos)
             tipo: carga
           - nombre: Escaneo de seguridad (OWASP ZAP, pasivo y activo autenticado)
@@ -392,6 +392,8 @@ jobs:
           "$WILDFLY_HOME/bin/jboss-cli.sh" --file=wildfly/configurar-mensajeria.cli
           "$WILDFLY_HOME/bin/jboss-cli.sh" --file=wildfly/configurar-permisos-broker.cli
           "$WILDFLY_HOME/bin/jboss-cli.sh" --commands="embed-server --server-config=standalone-full.xml,data-source add --name=mediconectaDS --jndi-name=java:/mediconectaDS --driver-name=postgresql --connection-url=jdbc:postgresql://localhost:5432/mediconecta --user-name=mediconecta --password=$PG_CLAVE --enabled=true --jta=true --use-ccm=true --min-pool-size=2 --max-pool-size=20 --validate-on-match=true --background-validation=false,stop-embedded-server"
+          # Clave del cifrado de columnas (ADR-0022): nueva en cada corrida, guardada en el credential store de Elytron.
+          python3 wildfly/configurar_cifrado.py --generar
       - name: Los WAR del trabajo de empaquetado
         uses: actions/download-artifact@v7
         with:

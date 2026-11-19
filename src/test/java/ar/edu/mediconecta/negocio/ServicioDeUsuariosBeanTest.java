@@ -152,4 +152,16 @@ class ServicioDeUsuariosBeanTest {
         assertEquals(List.of(ana), servicio.listarUsuarios());
         assertSame(ana, servicio.buscarPorEmail("ana@test").orElseThrow());
     }
+
+    /** El n.º de afiliado va cifrado en una columna más ancha (ADR-0022), pero el dato sigue teniendo hasta 40 caracteres. */
+    @Test
+    void unNumeroDeAfiliadoDeMasDe40CaracteresNoSeRegistra() {
+        DatosRegistro largo = new DatosRegistro("Ana", "ana.larga@mediconecta.test", "OSDE", "9".repeat(41), null, null);
+
+        assertThrows(DatosDeUsuarioInvalidosException.class, () -> servicio.registrarPaciente(largo, "secreta-2026"));
+        verify(usuarioDAO, never()).guardar(any());
+        Usuario justo = servicio.registrarPaciente(
+                new DatosRegistro("Ana", "ana.justa@mediconecta.test", "OSDE", " " + "9".repeat(40) + " ", null, null), "secreta-2026");
+        assertEquals("9".repeat(40), ((Paciente) justo).getNroAfiliado());
+    }
 }

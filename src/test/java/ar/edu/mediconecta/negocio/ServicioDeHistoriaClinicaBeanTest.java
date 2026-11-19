@@ -19,6 +19,7 @@ import ar.edu.mediconecta.modelo.Turno;
 import ar.edu.mediconecta.modelo.Usuario;
 import ar.edu.mediconecta.negocio.dto.AccesoHistoriaDTO;
 import ar.edu.mediconecta.negocio.excepciones.AccesoDenegadoException;
+import ar.edu.mediconecta.negocio.excepciones.ParametroInvalidoException;
 import jakarta.ejb.SessionContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,6 +32,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -160,5 +162,23 @@ class ServicioDeHistoriaClinicaBeanTest {
         assertEquals("Consultó la historia", vistos.get(0).getOperacion());
         assertEquals("Agregó una entrada", vistos.get(1).getOperacion());
         assertEquals("PERMITIDO", vistos.get(1).getResultado());
+    }
+
+    /** Antes una entrada vacía se guardaba y una de más de 2000 caracteres terminaba en un error de la base. */
+    @Test
+    void unaEntradaVaciaODeMasDe2000CaracteresSeRechazaAntesDeTocarLaBase() {
+        comoUsuario(profesional);
+        when(turnoDAO.existeConfirmadoEntre(20L, 7L)).thenReturn(true);
+
+        assertThrows(ParametroInvalidoException.class, () -> servicio.agregarEntrada(7L, null, TipoEntrada.DIAGNOSTICO, "  "));
+        assertThrows(ParametroInvalidoException.class, () -> servicio.agregarEntrada(7L, null, TipoEntrada.DIAGNOSTICO, null));
+        ParametroInvalidoException largo = assertThrows(ParametroInvalidoException.class,
+                () -> servicio.agregarEntrada(7L, null, TipoEntrada.DIAGNOSTICO, "a".repeat(EntradaClinica.LARGO_MAXIMO + 1)));
+        assertTrue(largo.getMessage().contains("2001"));
+        verify(historias, never()).agregarEntrada(any());
+
+        when(historias.buscarPorPaciente(7L)).thenReturn(new HistoriaClinica(paciente));
+        servicio.agregarEntrada(7L, null, TipoEntrada.DIAGNOSTICO, "a".repeat(EntradaClinica.LARGO_MAXIMO));
+        verify(historias).agregarEntrada(any());
     }
 }

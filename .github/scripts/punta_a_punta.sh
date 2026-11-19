@@ -12,7 +12,8 @@ SUITES=("$@")
 if [ ${#SUITES[@]} -eq 0 ]; then
   # prueba_broker primero (reinicia el servidor) y prueba_monitor después de las que generan avisos.
   SUITES=(prueba_broker prueba_permisos_broker prueba_e2e prueba_seguridad prueba_cancelacion prueba_defectos prueba_inyeccion
-          prueba_contrato_api prueba_monitor prueba_entrega4 prueba_hold_vence demo_api_jwt_409 prueba_responsive)
+          prueba_contrato_api prueba_monitor prueba_entrega4 prueba_hold_vence demo_api_jwt_409 prueba_responsive
+          prueba_datos_protegidos)
 fi
 mkdir -p "$SALIDA"
 fallo=0

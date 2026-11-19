@@ -39,6 +39,8 @@ import java.util.logging.Logger;
 public class ServicioDeUsuariosBean implements ServicioDeUsuarios {
 
     private static final Logger LOG = Logger.getLogger(ServicioDeUsuariosBean.class.getName());
+    /** En la base va cifrado (ADR-0022): la columna es más ancha, pero el dato no pasa de 40. */
+    static final int LARGO_MAXIMO_AFILIADO = 40;
 
     @Inject
     private UsuarioDAO usuarioDAO;
@@ -131,6 +133,9 @@ public class ServicioDeUsuariosBean implements ServicioDeUsuarios {
         String email = datos.email() == null ? "" : datos.email().trim();
         if (!email.matches("[^@\\s]+@[^@\\s]+\\.[^@\\s]+")) {
             throw new DatosDeUsuarioInvalidosException("Ingresá un email válido.");
+        }
+        if (datos.nroAfiliado() != null && datos.nroAfiliado().trim().length() > LARGO_MAXIMO_AFILIADO) {
+            throw new DatosDeUsuarioInvalidosException("El n.º de afiliado tiene hasta " + LARGO_MAXIMO_AFILIADO + " caracteres.");
         }
         PoliticaDeContrasenas.validar(passwordPlano);
         if (usuarioDAO.existeEmail(email)) {

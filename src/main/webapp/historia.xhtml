@@ -58,6 +58,9 @@
                         <div class="p-sub">
                             <h:outputText value="Obra social: #{historiaBean.obraSocialPacienteSeleccionado}" rendered="#{not empty historiaBean.obraSocialPacienteSeleccionado}"/>
                             <h:outputText value="Sin obra social registrada" rendered="#{empty historiaBean.obraSocialPacienteSeleccionado}"/>
+                            <p:commandLink id="verFicha" value="Ver ficha" rendered="#{loginBean.profesional}" styleClass="link-ficha"
+                                           action="#{fichaPacienteBean.abrir(historiaBean.pacienteId)}" process="@this" update=":cuerpoFicha :mensajes"
+                                           oncomplete="PF('ficha').show()" title="Ver la ficha de #{historiaBean.nombrePacienteSeleccionado}"/>
                         </div>
                     </div>
                 </div>
@@ -112,7 +115,7 @@
                 </div>
                 <div class="field">
                     <label for="formHistoria:descripcion">Descripción</label>
-                    <p:inputTextarea id="descripcion" value="#{historiaBean.descripcionNuevaEntrada}" rows="4"/>
+                    <p:inputTextarea id="descripcion" value="#{historiaBean.descripcionNuevaEntrada}" rows="4" maxlength="2000"/>
                 </div>
                 <p:commandButton value="Guardar" action="#{historiaBean.agregarEntrada}" ajax="false" styleClass="btn btn-primary"/>
             </h:panelGroup>
@@ -142,5 +145,8 @@
             </h:panelGroup>
         </h:form>
 
+        <ui:fragment rendered="#{loginBean.profesional}">
+            <ui:include src="/WEB-INF/includes/ficha-paciente.xhtml"/>
+        </ui:fragment>
     </ui:define>
 </ui:composition>

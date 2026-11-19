@@ -90,6 +90,9 @@
                         <p:column headerText="Nombre">
                             #{u.nombreCompleto}
                             <div class="texto-tenue email-usuario">#{u.email}</div>
+                            <p:commandLink id="verFicha" value="Ver ficha" rendered="#{u.rol == 'PACIENTE'}" styleClass="link-ficha"
+                                           action="#{fichaPacienteBean.abrir(u.id)}" process="@this" update=":cuerpoFicha :mensajes"
+                                           oncomplete="if (!args.validationFailed) PF('ficha').show()" title="Ver la ficha de #{u.nombreCompleto}"/>
                         </p:column>
                         <p:column headerText="Rol">
                             <span class="tag #{u.rol == 'ADMINISTRATIVO' ? 'tag-warning' : (u.rol == 'PROFESIONAL' ? 'tag-info' : 'tag-neutral')}">#{u.rol.etiqueta}</span>
@@ -111,5 +114,6 @@
                 </h:form>
             </div>
         </div>
+        <ui:include src="/WEB-INF/includes/ficha-paciente.xhtml"/>
     </ui:define>
 </ui:composition>

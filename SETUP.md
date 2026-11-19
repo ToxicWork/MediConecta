@@ -51,6 +51,10 @@ cp target/mediconecta.war sistemas-externos/target/externos.war ~/Downloads/wild
 >
 > Para la entrega final, en cada máquina y también con el servidor apagado:
 > `jboss-cli.sh --file=wildfly/configurar-permisos-broker.cli` (permisos por destino en el broker; ver 2.3).
+>
+> **Desde el 19/11 también hace falta la clave del cifrado de columnas** (ver 2.4); sin ella la aplicación no
+> despliega. Con el servidor apagado y la clave del equipo en la variable `MEDICONECTA_CLAVE_CIFRADO`:
+> `python wildfly/configurar_cifrado.py`.
 
 App: <https://localhost:8443/mediconecta/login.xhtml> (por HTTPS desde el 14/11; `http://localhost:8080/mediconecta/`
 redirige solo) · Consola de sistemas externos: <http://localhost:8080/externos/> · WSDL del legado:
@@ -223,6 +227,35 @@ más de una vez. Lo verifica `pruebas/prueba_permisos_broker.py` (ver Pruebas); 
 Para volver atrás, apagar el servidor y restaurar la copia de `standalone-full.xml` (WildFly también guarda las
 anteriores en `standalone/configuration/standalone_xml_history/`).
 
+## 2.4 Clave del cifrado de columnas (entrega final)
+
+El n.º de afiliado y las entradas de la historia clínica se guardan cifrados con AES-256-GCM (diseño 8.6,
+[ADR-0022](docs/adr/0022-cifrado-de-columnas-con-aes-gcm.md)). La clave la entrega WildFly en la propiedad de sistema
+`mediconecta.cifrado.clave`, guardada como expresión cifrada de Elytron con el credential store `mediconecta-cs`.
+**Sin clave la aplicación no despliega.**
+
+**Todos los servidores que usan la base de Supabase tienen que tener la misma clave.** Está en el gestor de
+contraseñas del equipo. Con el servidor **apagado**:
+
+```
+set MEDICONECTA_CLAVE_CIFRADO=<la clave del equipo>        (Windows; en Linux/Mac: export ...)
+set WILDFLY_HOME=C:\WildFly\wildfly-41.0.0.Final
+python wildfly/configurar_cifrado.py
+```
+
+El script crea `standalone/configuration/mediconecta-cs.cs` y deja en `standalone-full.xml` sólo la expresión
+cifrada (`${ENC::mediconecta:...}`), nunca la clave. Se puede correr más de una vez. Para una base nueva o
+descartable, `--generar` crea una clave nueva; con `--guardar-clave <archivo fuera del repo>` además la guarda para
+pasarla al equipo.
+
+- La clave y `mediconecta-cs.cs` **no van al repositorio**, y si se pierden los dos, los datos cifrados no se
+  recuperan: el respaldo es la clave en el gestor de contraseñas.
+- Al desplegar, la aplicación cifra sola los valores que estaban en claro y ensancha las columnas (lo dice el log:
+  `Cifrado de columnas: ...`). Un servidor con una versión anterior de la aplicación muestra `enc:v1:...` en lugar
+  del dato: hay que actualizar el código y configurar la clave a la vez.
+- Lo verifica `pruebas/prueba_datos_protegidos.py`, que también prueba la ficha del paciente (Decorator
+  `PacienteEnmascarado`, [ADR-0023](docs/adr/0023-ficha-del-paciente-con-decorator.md)).
+
 ## 3. Deploy
 
 Con Maven configurado (`mvn -v`), o vía el conector de servidor de Eclipse (ya hay `.project`/`.classpath`):
@@ -319,6 +352,7 @@ python pruebas/prueba_hold_vence.py  # el hold vence solo (tarda unos 6 minutos)
 python pruebas/demo_api_jwt_409.py --sin-cancelar   # guion del login con JWT (no modifica datos)
 python pruebas/prueba_broker.py      # el broker se cae y vuelve a levantar sin perder mensajes (reinicia el servidor)
 python pruebas/prueba_permisos_broker.py  # de afuera, nadie publica ni lee en el broker (sección 2.3)
+python pruebas/prueba_datos_protegidos.py # ficha del paciente (Decorator) y cifrado AES-GCM mirado en la base (sección 2.4)
 python pruebas/prueba_inyeccion.py   # SQL, XSS y expresiones EL en todos los campos de texto
 python pruebas/prueba_contrato_api.py  # la API REST contra su OpenAPI (docs/api/openapi.json)
 python pruebas/prueba_responsive.py  # cada pantalla de cada rol a 360, 768 y 1280 px, con capturas (no modifica datos)

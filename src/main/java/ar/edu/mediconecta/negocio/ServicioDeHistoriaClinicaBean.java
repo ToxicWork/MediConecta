@@ -15,6 +15,7 @@ import ar.edu.mediconecta.modelo.Turno;
 import ar.edu.mediconecta.modelo.Usuario;
 import ar.edu.mediconecta.negocio.dto.AccesoHistoriaDTO;
 import ar.edu.mediconecta.negocio.excepciones.AccesoDenegadoException;
+import ar.edu.mediconecta.negocio.excepciones.ParametroInvalidoException;
 import jakarta.annotation.Resource;
 import jakarta.annotation.security.DeclareRoles;
 import jakarta.annotation.security.RolesAllowed;
@@ -66,6 +67,7 @@ public class ServicioDeHistoriaClinicaBean implements ServicioDeHistoriaClinica 
     @RolesAllowed("PROFESIONAL")
     @Auditado(recurso = RECURSO)
     public EntradaClinica agregarEntrada(Long pacienteId, Long turnoId, TipoEntrada tipo, String descripcion) {
+        validarDescripcion(descripcion);
         Usuario profesional = verificarTitularidad(pacienteId);
         Turno turno = turnoId == null ? null : turnoDAO.buscarPorId(turnoId);
         if (turnoId != null && (turno == null || !turno.habilitaHistoriaClinica(profesional.getId(), pacienteId))) {
@@ -91,6 +93,17 @@ public class ServicioDeHistoriaClinicaBean implements ServicioDeHistoriaClinica 
                             registro.getResultado());
                 })
                 .toList();
+    }
+
+    /** Antes, una vacía se guardaba y una de más de 2000 caracteres daba un error de la base. */
+    static void validarDescripcion(String descripcion) {
+        if (descripcion == null || descripcion.isBlank()) {
+            throw new ParametroInvalidoException("Escribí el diagnóstico o la receta.");
+        }
+        if (descripcion.length() > EntradaClinica.LARGO_MAXIMO) {
+            throw new ParametroInvalidoException("La descripción tiene hasta " + EntradaClinica.LARGO_MAXIMO
+                    + " caracteres (escribiste " + descripcion.length() + ").");
+        }
     }
 
     private HistoriaClinica obtenerOCrear(Long pacienteId) {

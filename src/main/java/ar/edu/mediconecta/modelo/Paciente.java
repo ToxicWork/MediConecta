@@ -1,6 +1,8 @@
 package ar.edu.mediconecta.modelo;
 
+import ar.edu.mediconecta.seguridad.CifradoConverter;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
 
@@ -11,7 +13,9 @@ public class Paciente extends Usuario {
     @Column(name = "obra_social")
     private String obraSocial;
 
-    @Column(name = "nro_afiliado", length = 40)
+    /** Hasta 40 caracteres; en la base va cifrado con AES-GCM (ADR-0022), por eso la columna es más ancha. */
+    @Convert(converter = CifradoConverter.class)
+    @Column(name = "nro_afiliado", length = 256)
     private String nroAfiliado;
 
     protected Paciente() {

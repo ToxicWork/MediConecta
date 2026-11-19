@@ -1,0 +1,50 @@
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:h="jakarta.faces.html"
+                xmlns:f="jakarta.faces.core"
+                xmlns:p="http://primefaces.org/ui">
+    <!--
+      Ficha del paciente (diseño 4.8). La ficha llega del servicio ya decorada por PacienteEnmascarado: si quien la
+      pide no es el profesional que atiende al paciente, viene sin datos clínicos y acá sólo se avisa.
+      Se abre con: action="#{fichaPacienteBean.abrir(id)}" update=":cuerpoFicha" oncomplete="PF('ficha').show()"
+    -->
+    <p:dialog id="dialogoFicha" widgetVar="ficha" header="Ficha del paciente" modal="true" responsive="true"
+              width="520" closeOnEscape="true" fitViewport="true">
+        <h:panelGroup layout="block" id="cuerpoFicha">
+        <h:panelGroup layout="block" id="contenidoFicha" rendered="#{fichaPacienteBean.ficha != null}">
+            <dl class="datos-perfil">
+                <dt>Nombre</dt>
+                <dd id="fichaNombre">#{fichaPacienteBean.ficha.nombreCompleto}</dd>
+                <dt>Email</dt>
+                <dd>#{fichaPacienteBean.ficha.email}</dd>
+                <dt>Obra social</dt>
+                <dd>#{empty fichaPacienteBean.ficha.obraSocial ? 'Particular' : fichaPacienteBean.ficha.obraSocial}</dd>
+                <dt>N.º de afiliado</dt>
+                <dd id="fichaAfiliado">#{empty fichaPacienteBean.ficha.nroAfiliado ? '—' : fichaPacienteBean.ficha.nroAfiliado}</dd>
+            </dl>
+
+            <h4>Datos clínicos</h4>
+            <h:panelGroup layout="block" id="fichaClinicaOculta" styleClass="aviso-ficha" rendered="#{not fichaPacienteBean.ficha.datosClinicosVisibles}">
+                Los datos clínicos sólo los ve el profesional que atiende al paciente (con un turno confirmado).
+            </h:panelGroup>
+            <h:panelGroup layout="block" id="fichaClinica" rendered="#{fichaPacienteBean.ficha.datosClinicosVisibles}">
+                <h:outputText rendered="#{fichaPacienteBean.ficha.totalDeEntradas == 0}" value="Todavía no tiene entradas en la historia clínica."
+                              styleClass="texto-tenue"/>
+                <ui:repeat value="#{fichaPacienteBean.ficha.ultimasEntradas}" var="entrada">
+                    <div class="ficha-entrada">
+                        <span class="tag #{entrada.tipo == 'RECETA' ? 'tag-info' : 'tag-neutral'}">#{fichaPacienteBean.tipo(entrada.tipo)}</span>
+                        <span class="texto-tenue">
+                            <h:outputText value="#{entrada.fecha}"><f:convertDateTime pattern="dd/MM/yyyy" type="localDateTime"/></h:outputText>
+                            · #{entrada.profesional}
+                        </span>
+                        <div class="ficha-descripcion">#{entrada.descripcion}</div>
+                    </div>
+                </ui:repeat>
+                <h:outputText rendered="#{fichaPacienteBean.ficha.totalDeEntradas gt fichaPacienteBean.ficha.ultimasEntradas.size()}"
+                              value="Las #{fichaPacienteBean.ficha.ultimasEntradas.size()} más recientes de #{fichaPacienteBean.ficha.totalDeEntradas}; la historia completa está en Historia clínica."
+                              styleClass="texto-tenue"/>
+            </h:panelGroup>
+        </h:panelGroup>
+        </h:panelGroup>
+    </p:dialog>
+</ui:composition>

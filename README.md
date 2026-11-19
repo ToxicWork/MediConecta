@@ -121,6 +121,19 @@ defectos D-01, D-02, D-04, D-07 y D-09 del informe del 16/11.
 - **Sistemas externos simulados** (`sistemas-externos/`, se despliega como `externos.war`): la obra
   social (SOAP), la pasarela y la videoconsulta (REST), con una consola para tirarlos abajo en vivo.
 
+**Promesas del diseño completadas (19/11)**:
+
+- **Decorator `PacienteEnmascarado`** (diseño 4.8, [ADR-0023](docs/adr/0023-ficha-del-paciente-con-decorator.md)).
+  La ficha del paciente se abre desde Usuarios (administrativo), la Agenda y la Historia clínica (profesional). Sólo
+  el profesional con un turno confirmado con el paciente ve los datos clínicos; el administrativo ve la identificación
+  y la cobertura.
+- **Cifrado de columnas con AES-GCM** (diseño 8.6, [ADR-0022](docs/adr/0022-cifrado-de-columnas-con-aes-gcm.md)). El
+  n.º de afiliado y las entradas de la historia clínica se guardan cifrados. La clave está en el credential store de
+  Elytron, nunca en el código ni en la configuración en claro; se configura con `wildfly/configurar_cifrado.py`
+  (SETUP, sección 2.4). Sin clave la aplicación no despliega.
+- Las entradas de la historia clínica ya no se guardan vacías ni de más de 2000 caracteres, y el n.º de afiliado
+  tiene hasta 40.
+
 ## Documentación
 
 - [`SETUP.md`](SETUP.md): cómo levantar WildFly, la base en Supabase y desplegar los dos WAR.
@@ -201,6 +214,10 @@ defectos D-01, D-02, D-04, D-07 y D-09 del informe del 16/11.
     ([`ClienteJmsExterno.java`](pruebas/ClienteJmsExterno.java)) prueba que sin usuario no entra y que con un
     usuario del rol `guest` no puede publicar ni leer en ningún destino. También verifica que la aplicación sigue
     conectada al broker. Necesita `WILDFLY_HOME`: da de alta ese usuario con `add-user`.
+  - [`pruebas/prueba_datos_protegidos.py`](pruebas/prueba_datos_protegidos.py): la ficha del paciente (Decorator) vista
+    por la profesional tratante y por el administrativo, y el cifrado AES-GCM mirado directamente en la base
+    ([`VerificarCifrado.java`](pruebas/VerificarCifrado.java)): el dato está cifrado, el texto no aparece y no quedan
+    valores sin cifrar. Necesita `WILDFLY_HOME` para la parte de la base.
   - [`pruebas/prueba_inyeccion.py`](pruebas/prueba_inyeccion.py): SQL, XSS y expresiones EL en todos los campos
     de texto. Se verifica en cada pantalla donde se muestran: que se vean literales, que no se ejecute nada y que
     no haya errores 500 ni rastros de la base.
