@@ -44,4 +44,6 @@ texto = ", ".join("%d %s" % (n, nivel) for nivel, n in totales.items())
 if totales["High"]:
     print("::error title=ZAP::%s. El criterio es 0 High." % texto)
     sys.exit(1)
-print("::notice title=ZAP::%s (0 High)." % texto)
+detalle = "%0A".join("%s: %s (%d)" % (RIESGOS.get(r, r), nombre, datos["cantidad"])
+                     for (r, _, nombre), datos in sorted(alertas.items(), key=lambda x: (-int(x[0][0]), x[0][2])))
+print("::notice title=ZAP::%s (0 High).%%0A%s" % (texto, detalle))

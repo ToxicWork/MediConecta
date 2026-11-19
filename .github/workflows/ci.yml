@@ -324,8 +324,15 @@ jobs:
           "$WILDFLY_HOME/bin/jboss-cli.sh" --commands="embed-server --server-config=standalone-full.xml,data-source add --name=mediconectaDS --jndi-name=java:/mediconectaDS --driver-name=postgresql --connection-url=jdbc:postgresql://localhost:5432/mediconecta --user-name=mediconecta --password=$PG_CLAVE --enabled=true --jta=true --use-ccm=true --min-pool-size=2 --max-pool-size=20 --validate-on-match=true --background-validation=false,stop-embedded-server"
       - name: Compilar y desplegar mediconecta.war y externos.war
         run: |
-          mvn -B -ntp -q package -DskipTests
-          mvn -B -ntp -q -f sistemas-externos/pom.xml package -DskipTests
+          # Hasta 3 intentos con espera: si Maven Central responde 429 al bajar una dependencia, se reintenta.
+          for pom in pom.xml sistemas-externos/pom.xml; do
+            for intento in 1 2 3; do
+              mvn -B -ntp -q -f "$pom" package -DskipTests && break
+              [ "$intento" = 3 ] && { echo "::error::No se pudo compilar $pom"; exit 1; }
+              echo "::warning::Falló la compilación de $pom (intento $intento, posible 429 de Maven Central); se reintenta"
+              sleep $((30 * intento))
+            done
+          done
           cp target/mediconecta.war sistemas-externos/target/externos.war "$WILDFLY_HOME/standalone/deployments/"
       - name: Levantar WildFly (perfil standalone-full)
         run: |
