@@ -209,6 +209,17 @@ defectos D-01, D-02, D-04, D-07 y D-09 del informe del 16/11.
     con el contrato: código, tipo de contenido, cabeceras y cuerpo, y al final la cobertura del contrato.
   - [`pruebas/prueba_responsive.py`](pruebas/prueba_responsive.py): cada pantalla de cada rol a 360, 768 y 1280 px.
     Verifica que no haya scroll horizontal y deja una captura de cada una.
+  - Pruebas no funcionales. Las corre el pipeline, cada una con su propia aplicación levantada en el runner:
+    - [`pruebas/carga/carga_api.js`](pruebas/carga/carga_api.js) (k6): 50 usuarios durante 5 minutos sobre la búsqueda
+      de disponibilidad, "mis turnos" y el detalle de un turno. Exige p95 menor a 500 ms y menos de 1 % de errores en
+      cada uno, y deja el reporte en el resumen del run. Los datos los prepara
+      [`pruebas/carga/preparar_datos.py`](pruebas/carga/preparar_datos.py).
+    - [`pruebas/seguridad/zap-plan.yaml`](pruebas/seguridad/zap-plan.yaml) (OWASP ZAP): escaneo pasivo y activo
+      autenticado de la web y de la API (con su OpenAPI). Falla si hay alertas High; el reporte queda en el artefacto
+      del run.
+    - [`pruebas/prueba_accesibilidad.py`](pruebas/prueba_accesibilidad.py): axe-core en cada pantalla de cada rol a 360,
+      768 y 1280 px, sin violaciones críticas de WCAG 2.2 AA. También Lighthouse en las pantallas principales, con 90
+      o más de accesibilidad.
   - [`pruebas/sembrar_usuarios_demo.py`](pruebas/sembrar_usuarios_demo.py): no es una prueba. Crea los usuarios
     de demo en una base vacía a través de la propia aplicación, igual que el pipeline (ver `SETUP.md`).
 

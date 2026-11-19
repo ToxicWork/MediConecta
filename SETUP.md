@@ -345,6 +345,20 @@ Todas usan `https://localhost:8443/mediconecta/` y aceptan el certificado autofi
 `prueba_responsive.py` deja sus capturas en la carpeta de la variable `CAPTURAS`; por defecto,
 `mediconecta-responsive` dentro de la carpeta temporal.
 
+### Pruebas no funcionales (carga, ZAP y accesibilidad)
+
+Corren en el pipeline, con versiones fijas: k6 2.3.0, OWASP ZAP 2.17.0, axe-core 4.14.0 y Lighthouse 13.5.0. Para
+correrlas en una PC, con la aplicación levantada y las herramientas instaladas:
+
+```
+python pruebas/carga/preparar_datos.py && k6 run pruebas/carga/carga_api.js       # reporte en resultados-carga/
+python pruebas/seguridad/sesion_zap.py    # deja la sesión del paciente de demo en zap-sesion.env (carpeta temporal)
+zap.sh -cmd -autorun pruebas/seguridad/zap-plan.yaml   # con ZAP_COOKIE, ZAP_TOKEN y GITHUB_WORKSPACE definidas
+AXE_JS=<node_modules>/axe-core/axe.min.js LIGHTHOUSE="npx --yes lighthouse@13.5.0" python pruebas/prueba_accesibilidad.py
+```
+
+`preparar_datos.py` suma 20 horarios de la Dra. Ana Lopez y 3 turnos confirmados de Juan Perez cada vez que corre.
+
 En el pipeline corren todas, con la aplicación levantada en el runner (ver la sección de integración continua del
 `README.md`).
 

@@ -1,0 +1,76 @@
+# Escaneo de seguridad con OWASP ZAP (Automation Framework), sin Docker: lo corre el pipeline (ver ci.yml).
+#
+#   - Pasivo sobre todo lo que recorre el spider en la web y lo que define el OpenAPI de la API REST.
+#   - Activo autenticado: la web con la sesión del paciente de demo (cookie) y la API con su JWT. Los dos los obtiene
+#     pruebas/seguridad/sesion_zap.py y llegan por las variables ZAP_COOKIE y ZAP_TOKEN.
+#   - El cierre de sesión queda fuera: revocaría el token y la sesión del propio escaneo.
+#
+# Los reportes (HTML y JSON) quedan en resultados-zap/. .github/scripts/resumen_zap.py los resume y hace fallar el
+# pipeline si hay alertas High (criterio de la cátedra: 0 High, Medium justificadas una por una).
+env:
+  contexts:
+    - name: mediconecta
+      urls:
+        - https://localhost:8443/mediconecta/
+      includePaths:
+        - "https://localhost:8443/mediconecta/.*"
+      excludePaths:
+        - ".*logout.*"
+        - ".*cerrarSesion.*"
+  parameters:
+    failOnError: true
+    failOnWarning: false
+    progressToStdout: true
+jobs:
+  - type: replacer
+    parameters:
+      deleteAllRules: true
+    rules:
+      - description: Sesión web del paciente de demo
+        url: "https://localhost:8443/mediconecta/(?!api/).*"
+        matchType: req_header
+        matchString: Cookie
+        matchRegex: false
+        replacementString: "${ZAP_COOKIE}"
+      - description: JWT del paciente de demo para la API
+        url: "https://localhost:8443/mediconecta/api/.*"
+        matchType: req_header
+        matchString: Authorization
+        matchRegex: false
+        replacementString: "Bearer ${ZAP_TOKEN}"
+  - type: passiveScan-config
+    parameters:
+      maxAlertsPerRule: 10
+      scanOnlyInScope: true
+  - type: openapi
+    parameters:
+      apiFile: "${GITHUB_WORKSPACE}/docs/api/openapi.json"
+      targetUrl: https://localhost:8443/mediconecta/api/v1
+      context: mediconecta
+  - type: spider
+    parameters:
+      context: mediconecta
+      url: https://localhost:8443/mediconecta/agenda.xhtml
+      maxDuration: 2
+      maxDepth: 6
+      postForm: false
+  - type: passiveScan-wait
+    parameters:
+      maxDuration: 3
+  - type: activeScan
+    parameters:
+      context: mediconecta
+      maxScanDurationInMins: 5
+      maxRuleDurationInMins: 1
+      threadPerHost: 4
+  - type: report
+    parameters:
+      template: traditional-html
+      reportDir: "${GITHUB_WORKSPACE}/resultados-zap"
+      reportFile: zap-reporte.html
+      reportTitle: MediConecta - escaneo OWASP ZAP
+  - type: report
+    parameters:
+      template: traditional-json
+      reportDir: "${GITHUB_WORKSPACE}/resultados-zap"
+      reportFile: zap-reporte.json
