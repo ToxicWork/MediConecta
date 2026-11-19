@@ -140,14 +140,18 @@ with sync_playwright() as p:
             temporal = "Temporal." + secrets.token_hex(4)
             paso, actual = "alta de " + usuario["email"] + " por el administrador", adm
             adm.goto(B + "usuarios.xhtml")
-            adm.select_option("#formAlta\\:rol", usuario["rol"])
+            # Elegir el rol vuelve a dibujar (AJAX) el panel de los campos que dependen de él, y lo dibuja vacío: si el
+            # rol ya es el pedido no se toca, y si cambia, se espera la respuesta antes de completar ese panel.
+            if adm.eval_on_selector("#formAlta\\:rol", "rol => rol.value") != usuario["rol"]:
+                with adm.expect_response(lambda r: r.request.method == "POST" and "usuarios.xhtml" in r.url):
+                    adm.select_option("#formAlta\\:rol", usuario["rol"])
+            adm.fill("#formAlta\\:nombre", usuario["nombre"])
+            adm.fill("#formAlta\\:email", usuario["email"])
+            adm.fill("#formAlta\\:passwordTemporal", temporal)
             if usuario["rol"] == "PROFESIONAL":
                 adm.wait_for_selector("#formAlta\\:matricula")
                 adm.fill("#formAlta\\:matricula", usuario["matricula"])
                 adm.fill("#formAlta\\:especialidad", usuario["especialidad"])
-            adm.fill("#formAlta\\:nombre", usuario["nombre"])
-            adm.fill("#formAlta\\:email", usuario["email"])
-            adm.fill("#formAlta\\:passwordTemporal", temporal)
             with adm.expect_navigation(timeout=60000):
                 adm.click("#formAlta button:has-text('Crear usuario')")
             if adm.locator("[id$='tablaUsuarios'] tr", has_text=usuario["email"]).count() == 0:
