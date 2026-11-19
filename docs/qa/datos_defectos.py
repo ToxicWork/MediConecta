@@ -38,7 +38,7 @@ DEFECTOS = [
             "Faltaba implementar la cancelación por rol. Agregada el 14/11", "prueba_cancelacion.py A y B (CP-16, CP-17)"),
     defecto("D-08", "Al escribir la fecha para publicar, el calendario queda abierto y tapa el botón Publicar", "Menor", "Baja", "Resuelto en rama", "HU-06", "Pruebas del 14/11",
             "Escribir la fecha y la hora en el campo", "Poder hacer clic en Publicar", "El calendario sigue abierto hasta hacer clic afuera o apretar Escape",
-            "El selector se abre al tomar el foco y no se cierra al escribir. Arreglo (19/11): el calendario se abre sólo con el botón del ícono (showOnFocus="false"); escribir la fecha ya no lo abre", "-"),
+            "El selector se abre al tomar el foco y no se cierra al escribir. Arreglo (19/11): el calendario se abre sólo con el botón del ícono (showOnFocus=false); escribir la fecha ya no lo abre", "prueba_defectos.py, escenario D-08"),
     defecto("D-09", "No se verificaba que los logs enmascaren los emails", "Menor", "Media", "Cerrado", "Seguridad (SEC-D02)", "Informe del 14/11",
             "Revisar el log después de un alta", "Emails enmascarados, sin datos personales", "No había prueba: no se podía afirmar",
             "Faltaba la prueba. Agregada (D02) junto con el enmascarador", "prueba_seguridad.py D02 (CP-54)"),
