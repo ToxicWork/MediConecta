@@ -96,9 +96,25 @@ class ServicioDeTurnosBeanTest {
         verify(turnoDAO, never()).guardar(any());
     }
 
+    /** D-39: el servidor exige el mismo paso de 5 minutos que el selector, y sugiere los dos horarios más cercanos. */
+    @Test
+    void unHorarioQueNoVaDeA5MinutosSeRechazaYSugiereLosMasCercanos() {
+        LocalDateTime base = LocalDateTime.now().plusDays(3).withHour(10).withSecond(0).withNano(0);
+
+        TurnoNoDisponibleException error = assertThrows(TurnoNoDisponibleException.class,
+                () -> servicio.publicarDisponibilidad(PROFESIONAL, base.withMinute(18), Modalidad.PRESENCIAL));
+        assertEquals("Los horarios van de 5 en 5 minutos: elegí las 10:15 o las 10:20.", error.getMessage());
+        assertThrows(TurnoNoDisponibleException.class,
+                () -> servicio.publicarDisponibilidad(PROFESIONAL, base.withMinute(20).withSecond(30), Modalidad.PRESENCIAL),
+                "con segundos tampoco");
+
+        verify(usuarioDAO, never()).bloquear(any());
+        verify(turnoDAO, never()).guardar(any());
+    }
+
     @Test
     void unHorarioNuevoSeGuardaDisponibleConSuModalidad() {
-        LocalDateTime hora = LocalDateTime.now().plusDays(3);
+        LocalDateTime hora = LocalDateTime.now().plusDays(3).withHour(10).withMinute(15).withSecond(0).withNano(0);
         when(usuarioDAO.obtenerReferenciaProfesional(PROFESIONAL)).thenReturn(Fixtures.profesional(PROFESIONAL, "Cardiología"));
 
         Turno publicado = servicio.publicarDisponibilidad(PROFESIONAL, hora, Modalidad.TELEMEDICINA);

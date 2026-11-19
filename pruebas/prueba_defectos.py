@@ -26,6 +26,8 @@ que ya empezó) y D-21 (el paciente confirma antes de cancelar) están en prueba
         (lee el datasource de MediConecta y usa el driver de PostgreSQL de WildFly) y Java; sin WILDFLY_HOME se omite.
   D-38. La pantalla Pagos del administrativo (su página de inicio) abre en pocos segundos aunque haya cientos de
         cobros y reclamos: cada listado sale en una sola consulta, no una por fila.
+  D-39. Un horario que no va de 5 en 5 minutos (el paso del selector de fecha) lo rechaza el servidor, con los
+        dos horarios válidos más cercanos: el mismo horario escrito ya no puede quedar publicado de dos maneras.
 
 Requisitos: WildFly levantado (perfil standalone-full) con mediconecta.war y externos.war desplegados, Google
 Chrome (o Edge con NAVEGADOR=msedge) y  pip install playwright
@@ -261,6 +263,17 @@ with sync_playwright() as p:
           "Ya tenés publicado un horario el %s a las %s hs." % (dia, hora) in repetido)
     buscar(pac)
     check("D-23. el paciente ve ese horario una sola vez", filas_disponibles(pac, f1).count() == 1)
+    # D-39: un horario que no va de 5 en 5 minutos lo rechaza el servidor. Se escribe y se envía en el mismo
+    # instante, para que el selector no llegue a redondearlo (eso es lo que hacía variable el resultado).
+    prof.goto(B + "agenda.xhtml")
+    with prof.expect_navigation():
+        prof.evaluate("""valor => {
+            document.getElementById('formPublicar:fecha_input').value = valor;
+            Array.from(document.querySelectorAll('#formPublicar button')).find(b => b.textContent.includes('Publicar')).click();
+        }""", dia_desde_hoy(random.randint(33, 39)) + " 10:18")
+    rechazo = " ".join(mensajes(prof))
+    check("D-39. un horario que no va de 5 en 5 minutos se rechaza y sugiere los más cercanos (%s)" % rechazo,
+          "van de 5 en 5 minutos: elegí las 10:15 o las 10:20" in rechazo)
     for _ in range(15):  # un horario libre: si las dos respuestas dicen que ya existía, era de otra corrida
         f2 = fecha_al_azar()
         respuestas = publicar_dos_veces_a_la_vez(prof, f2)

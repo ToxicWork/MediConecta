@@ -54,6 +54,9 @@ public class ServicioDeTurnosBean implements ServicioDeTurnos {
 
     private static final Logger LOG = Logger.getLogger(ServicioDeTurnosBean.class.getName());
     static final Duration DURACION_HOLD = Duration.ofMinutes(5);
+    /** Los horarios van de 5 en 5 minutos: el mismo paso que el selector de fecha de la Agenda (D-39). */
+    static final int PASO_EN_MINUTOS = 5;
+    private static final DateTimeFormatter FORMATO_HORA = DateTimeFormatter.ofPattern("HH:mm");
 
     @Inject
     private TurnoDAO turnoDAO;
@@ -83,6 +86,14 @@ public class ServicioDeTurnosBean implements ServicioDeTurnos {
     public Turno publicarDisponibilidad(Long profesionalId, LocalDateTime fechaHora, Modalidad modalidad) {
         if (fechaHora == null || !fechaHora.isAfter(LocalDateTime.now())) {
             throw new TurnoNoDisponibleException("Elegí una fecha y hora futura.");
+        }
+        // D-39: el selector redondea a 5 minutos sólo a veces (según cuándo procesa lo escrito); el servidor lo exige
+        // siempre, así un mismo horario escrito no puede quedar publicado de dos maneras.
+        if (fechaHora.getMinute() % PASO_EN_MINUTOS != 0 || fechaHora.getSecond() != 0 || fechaHora.getNano() != 0) {
+            LocalDateTime anterior = fechaHora.withSecond(0).withNano(0).minusMinutes(fechaHora.getMinute() % PASO_EN_MINUTOS);
+            throw new TurnoNoDisponibleException("Los horarios van de " + PASO_EN_MINUTOS + " en " + PASO_EN_MINUTOS
+                    + " minutos: elegí las " + FORMATO_HORA.format(anterior) + " o las "
+                    + FORMATO_HORA.format(anterior.plusMinutes(PASO_EN_MINUTOS)) + ".");
         }
         // D-23: con la fila del profesional bloqueada, dos publicaciones simultáneas (doble clic) no pasan las dos
         // la verificación: la segunda espera el commit de la primera y ve el horario ya publicado.
