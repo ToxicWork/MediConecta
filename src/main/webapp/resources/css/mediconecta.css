@@ -381,6 +381,9 @@ a.user-chip:hover { background: var(--color-sidebar-chip); text-decoration: none
 /* ---------- Grid helpers ---------- */
 
 .grid { display: grid; gap: 20px; }
+/* Que una columna pueda achicarse más que su contenido: sin esto, una tabla ancha empuja la grilla y la página
+   entera se pasa del ancho de la pantalla (scroll horizontal en la Agenda de la profesional). */
+.grid > * { min-width: 0; }
 .grid-2 { grid-template-columns: 1.5fr 1fr; }
 .grid-3 { grid-template-columns: repeat(3, 1fr); }
 .grid-usuarios { grid-template-columns: minmax(300px, 1fr) 1.6fr; align-items: start; }
@@ -542,7 +545,9 @@ a.user-chip:hover { background: var(--color-sidebar-chip); text-decoration: none
 
 /* ---------- Data table (PrimeFaces) ---------- */
 
-.table-wrap { border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--color-border); }
+/* Una tabla más ancha que su recuadro se desplaza adentro de él (antes se recortaba: en el celular, las columnas de
+   la derecha quedaban fuera de alcance). */
+.table-wrap { border-radius: var(--radius-md); overflow-x: auto; border: 1px solid var(--color-border); }
 .table-wrap .ui-datatable, .table-wrap .ui-datatable-tablewrapper { border: 0; background: transparent; }
 
 .table-wrap table { width: 100%; border-collapse: collapse; font-size: 13.4px; }
