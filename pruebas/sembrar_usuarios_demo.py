@@ -84,10 +84,13 @@ def fallar(error):
         try:
             mensajes = " | ".join(t.strip() for t in actual.locator(
                 ".ui-messages, .ui-growl-message, .ui-message, .mensaje").all_inner_texts() if t.strip())[:300]
-            if not mensajes:  # sin mensajes, al menos lo que dice la pantalla
-                mensajes = "texto de la página: " + " ".join(actual.inner_text("body").split())[:300]
         except Exception:  # la página pudo haberse cerrado
             pass
+        if not mensajes:  # sin mensajes, al menos lo que dice la pantalla
+            try:
+                mensajes = "texto de la página: " + " ".join(actual.evaluate("() => document.body.innerText").split())[:300]
+            except Exception as sin_texto:  # noqa: BLE001
+                mensajes = "no se pudo leer la página (%s)" % str(sin_texto).splitlines()[0][:80]
     detalle = "%s: %s (página: %s; mensajes: %s)" % (paso, (str(error).strip().splitlines() or ["?"])[0][:250],
                                                     actual.url if actual is not None else "-", mensajes or "ninguno")
     if os.environ.get("GITHUB_ACTIONS"):

@@ -302,6 +302,18 @@ jobs:
         run: |
           mkdir -p resultados-e2e
           cp "$WILDFLY_HOME/standalone/log/server.log" resultados-e2e/ 2>/dev/null || cp wildfly.out resultados-e2e/ 2>/dev/null || true
+      - name: Errores del servidor (si algo falló)
+        if: failure()
+        run: |
+          # Los errores del server.log, en una sola anotación: se ven sin descargar el artefacto.
+          log=resultados-e2e/server.log
+          [ -f "$log" ] || log=resultados-e2e/wildfly.out
+          errores=$({ grep -E " ERROR |Caused by|Exception:" "$log" || true; } | grep -v "ELYEE01007" | cut -c1-300 | head -25)
+          if [ -n "$errores" ]; then
+            echo "::error title=server.log::$(echo "$errores" | sed ':a;N;$!ba;s/%/%25/g;s/\n/%0A/g')"
+          else
+            echo "::notice title=server.log::sin errores en el log del servidor"
+          fi
       - uses: actions/upload-artifact@v7
         if: always()
         with:
