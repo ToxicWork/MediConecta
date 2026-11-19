@@ -277,6 +277,17 @@ cumple("cancelar otra vez el turno ya cancelado (patrón State)", ruta, "post",
        pedir("POST", "/turnos/%d/cancelacion" % primero, token=tk))
 pedir("POST", "/turnos/%d/cancelacion" % segundo, token=tk)  # no deja turnos confirmados de prueba
 
+# ---- Cerrar la sesión (ADR-0019) -------------------------------------------------------------------------
+print("-- POST /auth/logout")
+tk_salida = token(email)
+cumple("cerrar la sesión de la API", "/auth/logout", "post", pedir("POST", "/auth/logout", token=tk_salida))
+estado, _, cuerpo = cumple("usar el token después de cerrar la sesión", "/turnos", "get", pedir("GET", "/turnos", token=tk_salida))
+check("el token revocado se rechaza como inválido aunque no venció (%s)" % json.loads(cuerpo).get("error"),
+      estado == 401 and json.loads(cuerpo).get("error") == "token_invalido")
+cumple("cerrar la sesión otra vez con el mismo token", "/auth/logout", "post", pedir("POST", "/auth/logout", token=tk_salida))
+cumple("cerrar la sesión sin token", "/auth/logout", "post", pedir("POST", "/auth/logout"))
+check("un login nuevo del mismo paciente da un token que sí vale", pedir("GET", "/turnos", token=token(email))[0] == 200)
+
 # ---- Cobertura del contrato ----------------------------------------------------------------------------------------
 documentadas = {(plantilla, metodo, codigo) for plantilla, operaciones in CONTRATO["paths"].items()
                 for metodo, operacion in operaciones.items() for codigo in operacion["responses"]}
