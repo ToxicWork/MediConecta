@@ -13,9 +13,9 @@ public class TokenRevocadoDAO {
     @PersistenceContext(unitName = "mediconectaPU")
     private EntityManager em;
 
-    /** Idempotente: revocar dos veces el mismo token deja una sola fila. */
-    public void guardar(TokenRevocado token) {
-        em.merge(token);
+    /** Idempotente: revocar dos veces el mismo token deja una sola fila. Devuelve la fila guardada. */
+    public TokenRevocado guardar(TokenRevocado token) {
+        return em.merge(token);
     }
 
     /** Los que todavía no vencieron (los demás ya se rechazan solos por vencidos). */
