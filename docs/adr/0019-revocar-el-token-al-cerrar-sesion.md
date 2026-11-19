@@ -1,6 +1,6 @@
 # ADR-0019: revocar el JWT al cerrar sesión
 
-- **Estado:** propuesto (pendiente de aprobación del equipo)
+- **Estado:** aceptado (19/11/2026)
 - **Fecha:** 19/11/2026
 - **Patrón:** Seguridad (lista de revocación sobre un token sin estado)
 - **Modifica:** la limitación aceptada en el [ADR-0017](0017-jwt-en-la-api.md): "un token emitido no se puede revocar antes de su vencimiento".
