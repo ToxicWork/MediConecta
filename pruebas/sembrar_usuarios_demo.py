@@ -84,6 +84,8 @@ def fallar(error):
         try:
             mensajes = " | ".join(t.strip() for t in actual.locator(
                 ".ui-messages, .ui-growl-message, .ui-message, .mensaje").all_inner_texts() if t.strip())[:300]
+            if not mensajes:  # sin mensajes, al menos lo que dice la pantalla
+                mensajes = "texto de la página: " + " ".join(actual.inner_text("body").split())[:300]
         except Exception:  # la página pudo haberse cerrado
             pass
     detalle = "%s: %s (página: %s; mensajes: %s)" % (paso, (str(error).strip().splitlines() or ["?"])[0][:250],
@@ -143,8 +145,10 @@ try:
             adm.fill("#formAlta\\:nombre", usuario["nombre"])
             adm.fill("#formAlta\\:email", usuario["email"])
             adm.fill("#formAlta\\:passwordTemporal", temporal)
-            adm.click("#formAlta button:has-text('Crear usuario')")
-            adm.wait_for_load_state()
+            with adm.expect_navigation(timeout=60000):
+                adm.click("#formAlta button:has-text('Crear usuario')")
+            if adm.locator("[id$='tablaUsuarios'] tr", has_text=usuario["email"]).count() == 0:
+                raise RuntimeError("el alta no quedó en la tabla de usuarios")
             paso = "primer ingreso de " + usuario["email"] + " y cambio de su contraseña temporal"
             nuevo = ingresar(br, usuario["email"], temporal, "perfil.xhtml")
             cambiar_contrasena(nuevo, temporal, CLAVE_DEMO, usuario["inicio"])
