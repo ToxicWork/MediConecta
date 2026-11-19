@@ -1,27 +1,33 @@
 #!/usr/bin/env bash
 # Corre las pruebas de punta a punta de a una (comparten los usuarios de demo y la agenda de la Dra. Ana Lopez),
-# deja la salida de cada suite en resultados-e2e/, una tabla en el resumen del run y una anotación por cada
-# verificación que falla. Termina con error si alguna suite falla o se corta.
-# Uso (desde la raíz del repositorio, con la aplicación levantada): bash .github/scripts/punta_a_punta.sh
+# deja la salida de cada suite en resultados-e2e/, una tabla en el resumen del run, una anotación por cada
+# verificación que falla y un aviso con el resultado de todas. Termina con error si alguna suite falla o se corta.
+# Uso (desde la raíz del repositorio, con la aplicación levantada):
+#   bash .github/scripts/punta_a_punta.sh [suite ...]     sin argumentos, todas las de pruebas/
 set -u
 PY=${PYTHON:-python3}
 SALIDA=resultados-e2e
 RESUMEN=${GITHUB_STEP_SUMMARY:-/dev/null}
+SUITES=("$@")
+if [ ${#SUITES[@]} -eq 0 ]; then
+  SUITES=(prueba_e2e prueba_seguridad prueba_cancelacion prueba_defectos prueba_monitor prueba_entrega4
+          prueba_hold_vence demo_api_jwt_409)
+fi
 mkdir -p "$SALIDA"
 fallo=0
+resultados=""
 {
-  echo "## Pruebas de punta a punta"
+  echo "## Pruebas de punta a punta: ${SUITES[*]}"
   echo
   echo "| Suite | Resultado | Verificaciones | Tiempo |"
   echo "| --- | --- | --- | --- |"
 } >> "$RESUMEN"
-for prueba in prueba_e2e prueba_seguridad prueba_cancelacion prueba_defectos prueba_monitor prueba_entrega4 \
-              prueba_hold_vence "demo_api_jwt_409 --sin-cancelar"; do
-  nombre=${prueba%% *}
-  argumentos=${prueba#"$nombre"}
+for nombre in "${SUITES[@]}"; do
+  argumentos=()
+  # La demo de la API, sin la cancelación final: deja el turno para la demo en vivo.
+  [ "$nombre" = demo_api_jwt_409 ] && argumentos=(--sin-cancelar)
   inicio=$(date +%s)
-  # shellcheck disable=SC2086  # los argumentos de la suite van separados
-  timeout 1200 "$PY" "pruebas/$nombre.py" $argumentos > "$SALIDA/$nombre.txt" 2>&1
+  timeout 1200 "$PY" "pruebas/$nombre.py" "${argumentos[@]}" > "$SALIDA/$nombre.txt" 2>&1
   codigo=$?
   ok=$(grep -c '^OK' "$SALIDA/$nombre.txt" || true)
   fallas=$(grep -c '^FALLA' "$SALIDA/$nombre.txt" || true)
@@ -40,7 +46,7 @@ for prueba in prueba_e2e prueba_seguridad prueba_cancelacion prueba_defectos pru
   fi
   echo "| $nombre | $resultado | $ok OK, $fallas fallas | $segundos s |" >> "$RESUMEN"
   echo "$nombre: código $codigo, $ok OK, $fallas fallas, $segundos s"
-  resultados="${resultados:-}$resultado $nombre: $ok OK, $fallas fallas, $segundos s%0A"
+  resultados="$resultados$resultado $nombre: $ok OK, $fallas fallas, $segundos s%0A"
 done
 # Una sola anotación con todas las suites: el resultado se ve en la página del run sin abrir el log.
 echo "::notice title=Punta a punta::${resultados%\%0A}"
