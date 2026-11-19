@@ -31,6 +31,7 @@ import jakarta.ejb.TransactionAttributeType;
 import jakarta.inject.Inject;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 import java.util.logging.Logger;
 
 /**
@@ -106,6 +107,8 @@ public class ProcesoConfirmacionTurno {
 
         // 1. Reglas de la reserva (Chain of Responsibility)
         validaciones.paraConfirmar().validar(new SolicitudReserva(turno, pacienteId, LocalDateTime.now()));
+        // TurnoExistente, el primer eslabón de la cadena, ya rechazó un turno inexistente: acá nunca es null.
+        Objects.requireNonNull(turno, "turno validado");
         Paciente paciente = turno.getPaciente();
 
         // 2. Cobertura con la obra social: SOAP sincrónico, con Circuit Breaker y Fallback (nunca falla)
