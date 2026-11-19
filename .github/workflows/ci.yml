@@ -54,7 +54,16 @@ jobs:
           java-version: '25'
           cache: maven
       - name: Compilar y correr las pruebas unitarias con cobertura
-        run: mvn -B -ntp verify
+        run: |
+          # Hasta 3 intentos sólo si falló una descarga de Maven Central (429); una prueba que falla no se reintenta.
+          for intento in 1 2 3; do
+            codigo=0
+            mvn -B -ntp verify | tee maven.log || codigo=$?
+            if [ "$codigo" = 0 ] || ! grep -q "Could not transfer\|could not be resolved\|Too Many Requests" maven.log; then exit "$codigo"; fi
+            echo "::warning::Maven Central no entregó una dependencia (intento $intento); se reintenta"
+            sleep $((30 * intento))
+          done
+          exit 1
       - name: Compilar los sistemas externos simulados
         run: mvn -B -ntp -f sistemas-externos/pom.xml verify
       - name: Resumen de cobertura
