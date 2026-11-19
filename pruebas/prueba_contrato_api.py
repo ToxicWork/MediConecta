@@ -176,7 +176,7 @@ def dos_turnos_confirmados(email):
 
         prof, pac = ingresar(PROFESIONAL), ingresar(email)
         while len(fechas) < 2:
-            fecha = "%s %02d:%02d" % (dia_desde_hoy(random.randint(56, 62)), random.randint(7, 19), random.randint(0, 59))
+            fecha = "%s %02d:%02d" % (dia_desde_hoy(random.randint(56, 62)), random.randint(7, 19), random.randint(0, 11) * 5)
             prof.goto(B + "agenda.xhtml")
             prof.fill("#formPublicar\\:fecha_input", fecha)
             prof.keyboard.press("Escape")
