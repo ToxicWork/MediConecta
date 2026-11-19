@@ -9,9 +9,10 @@
 #   - Estabilidad: la suite unitaria tres veces seguidas, que tiene que dar lo mismo las tres veces.
 #   - Secretos: gitleaks sobre todos los commits de todas las ramas.
 #   - Dependencias: Trivy; falla si hay vulnerabilidades altas o críticas.
-# Las herramientas que no son de GitHub se descargan de su release oficial y se verifican por SHA-256.
-# Quedan para más adelante las pruebas de integración con Testcontainers y las de punta a punta (Playwright): las dos
-# necesitan la aplicación completa levantada en el pipeline (esperan la respuesta de la cátedra sobre Docker).
+#   - Punta a punta: la aplicación completa en el runner, sin contenedores (WildFly, PostgreSQL y Chrome), con los
+#     usuarios de demo creados por la propia aplicación, y todas las suites de pruebas/ (Playwright).
+# Las herramientas que no son de GitHub se descargan de su release oficial y se verifican por SHA-256 (o, las que
+# vienen de Maven Central, por su checksum).
 name: CI
 
 on:
@@ -206,3 +207,128 @@ jobs:
               echo "**El escaneo falló:** vulnerabilidades altas o críticas, o un error de Trivy (ver el detalle)."; echo
             fi
             if [ -s trivy.txt ]; then echo '```'; cat trivy.txt; echo '```'; fi; } >> "$GITHUB_STEP_SUMMARY"
+
+  punta-a-punta:
+    # La aplicación completa en el runner, sin contenedores: WildFly del zip oficial (de Maven Central, con su
+    # checksum), el PostgreSQL y el Google Chrome que ya trae la imagen de Ubuntu, y los usuarios de demo creados por
+    # la propia aplicación. Las contraseñas de la corrida se generan acá, se enmascaran y mueren con el runner.
+    # Las suites van en dos grupos parejos que corren en paralelo, cada uno con su propia aplicación levantada: así
+    # el pipeline entra en los 15 minutos de los criterios (prueba_hold_vence espera los 5 minutos reales del hold).
+    name: Pruebas de punta a punta, grupo ${{ matrix.grupo }} (WildFly, PostgreSQL y Chrome del runner)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - grupo: 1 de 2
+            suites: prueba_hold_vence prueba_e2e prueba_entrega4 demo_api_jwt_409
+          # prueba_monitor va al final, después de las suites que generan avisos: su escenario 4 (la carga de a
+          # tandas de 10) necesita más de 10 avisos de la profesional.
+          - grupo: 2 de 2
+            suites: prueba_cancelacion prueba_seguridad prueba_defectos prueba_monitor
+    env:
+      WILDFLY_HOME: ${{ github.workspace }}/wildfly-41.0.0.Final
+      NAVEGADOR: chrome
+      PYTHON: ${{ github.workspace }}/.venv/bin/python
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - name: Contraseñas de la corrida (al azar y enmascaradas)
+        run: |
+          for nombre in PG_CLAVE JWT_SECRETO MEDICONECTA_ADMIN_PASSWORD MEDICONECTA_ADMIN_NUEVA; do
+            valor="Ci.$(openssl rand -hex 20)"
+            echo "::add-mask::$valor"
+            echo "$nombre=$valor" >> "$GITHUB_ENV"
+          done
+      - name: Base de datos (el PostgreSQL de la imagen del runner)
+        run: |
+          sudo systemctl start postgresql.service
+          sudo -u postgres psql -v ON_ERROR_STOP=1 -q \
+            -c "CREATE ROLE mediconecta LOGIN PASSWORD '$PG_CLAVE'" \
+            -c "CREATE DATABASE mediconecta OWNER mediconecta"
+      - name: WildFly 41 y el driver de PostgreSQL (Maven Central, checksums estrictos)
+        run: |
+          for artefacto in org.wildfly:wildfly-dist:41.0.0.Final:zip org.postgresql:postgresql:42.7.13; do
+            mvn -B -ntp -C -q org.apache.maven.plugins:maven-dependency-plugin:3.8.1:copy \
+              -Dartifact="$artefacto" -DoutputDirectory=descargas
+          done
+          unzip -q descargas/wildfly-dist-41.0.0.Final.zip
+          modulo="$WILDFLY_HOME/modules/org/postgresql/main"
+          mkdir -p "$modulo"
+          cp descargas/postgresql-42.7.13.jar "$modulo/postgresql.jar"
+          cat > "$modulo/module.xml" <<'XML'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <module xmlns="urn:jboss:module:1.9" name="org.postgresql">
+              <resources>
+                  <resource-root path="postgresql.jar"/>
+              </resources>
+              <dependencies>
+                  <module name="java.sql"/>
+                  <module name="java.logging"/>
+                  <module name="java.naming"/>
+                  <module name="java.management"/>
+                  <module name="java.security.jgss"/>
+                  <module name="java.xml"/>
+              </dependencies>
+          </module>
+          XML
+      - name: Configurar WildFly (los scripts del repositorio y el datasource local)
+        run: |
+          "$WILDFLY_HOME/bin/jboss-cli.sh" --file=wildfly/configurar-mensajeria.cli
+          "$WILDFLY_HOME/bin/jboss-cli.sh" --commands="embed-server --server-config=standalone-full.xml,data-source add --name=mediconectaDS --jndi-name=java:/mediconectaDS --driver-name=postgresql --connection-url=jdbc:postgresql://localhost:5432/mediconecta --user-name=mediconecta --password=$PG_CLAVE --enabled=true --jta=true --use-ccm=true --min-pool-size=2 --max-pool-size=20 --validate-on-match=true --background-validation=false,stop-embedded-server"
+      - name: Compilar y desplegar mediconecta.war y externos.war
+        run: |
+          mvn -B -ntp -q package -DskipTests
+          mvn -B -ntp -q -f sistemas-externos/pom.xml package -DskipTests
+          cp target/mediconecta.war sistemas-externos/target/externos.war "$WILDFLY_HOME/standalone/deployments/"
+      - name: Levantar WildFly (perfil standalone-full)
+        run: |
+          nohup "$WILDFLY_HOME/bin/standalone.sh" -c standalone-full.xml -Dmediconecta.jwt.secreto="$JWT_SECRETO" \
+            > wildfly.out 2>&1 &
+          despliegues="$WILDFLY_HOME/standalone/deployments"
+          for _ in $(seq 1 120); do
+            if ls "$despliegues"/*.failed > /dev/null 2>&1; then
+              echo "::error::Falló el despliegue: $(ls "$despliegues"/*.failed)"; tail -50 wildfly.out; exit 1
+            fi
+            if [ -f "$despliegues/mediconecta.war.deployed" ] && [ -f "$despliegues/externos.war.deployed" ]; then break; fi
+            sleep 2
+          done
+          estado=$(curl -sk -o /dev/null -w '%{http_code}' https://localhost:8443/mediconecta/login.xhtml)
+          if [ "$estado" != 200 ]; then echo "::error::La aplicación no responde ($estado)"; tail -50 wildfly.out; exit 1; fi
+          echo "MediConecta y los sistemas externos desplegados."
+      - name: Playwright (usa el Google Chrome del runner)
+        run: |
+          python3 -m venv .venv
+          .venv/bin/pip install -q playwright==1.65.2
+      - name: Usuarios de demo (los crea la propia aplicación)
+        run: '"$PYTHON" pruebas/sembrar_usuarios_demo.py'
+      - name: Pruebas de punta a punta
+        run: bash .github/scripts/punta_a_punta.sh ${{ matrix.suites }}
+      - name: Log del servidor
+        if: always()
+        run: |
+          mkdir -p resultados-e2e
+          cp "$WILDFLY_HOME/standalone/log/server.log" resultados-e2e/ 2>/dev/null || cp wildfly.out resultados-e2e/ 2>/dev/null || true
+      - name: Errores del servidor (si algo falló)
+        if: failure()
+        run: |
+          # Los errores del server.log, en una sola anotación: se ven sin descargar el artefacto.
+          log=resultados-e2e/server.log
+          [ -f "$log" ] || log=resultados-e2e/wildfly.out
+          errores=$({ grep -E " ERROR |Caused by|Exception:" "$log" | grep -v "ELYEE01007" | cut -c1-300 | head -25; } || true)
+          if [ -n "$errores" ]; then
+            echo "::error title=server.log::$(echo "$errores" | sed ':a;N;$!ba;s/%/%25/g;s/\n/%0A/g')"
+          else
+            echo "::notice title=server.log::sin errores en el log del servidor"
+          fi
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: resultados-punta-a-punta-${{ strategy.job-index }}
+          path: resultados-e2e/
+          if-no-files-found: ignore
