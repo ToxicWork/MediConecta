@@ -102,7 +102,7 @@
       "texto": "Pasó (sin hallazgos)"
     },
     "trivy": {
-      "texto": "Pasó (0 CVE altas o críticas)"
+      "texto": "Pasó: Trivy 0 CVE altas o críticas; Dependency-Check 0 CVE en 32 dependencias (NVD del 19/11)"
     },
     "estabilidad": {
       "texto": "Pasó (tres corridas idénticas)"
@@ -114,7 +114,7 @@
       "texto": "Pasó: el aviso apareció a los 6,9 s, sin recargar"
     },
     "cp91": {
-      "texto": "Pasó en parte: paciente y profesional sí; el administrativo no tiene tareas en el manual (D-47)"
+      "texto": "Pasó en parte con el manual v0.2: el administrativo no tenía tareas (D-47, resuelto con el manual 1.0)"
     },
     "cp92": {
       "texto": "Falló: encontró D-45 (crítico) y D-46; corregidos y con regresión automática"
@@ -125,7 +125,7 @@
       "tiempo": "1 s"
     },
     "integracion": {
-      "texto": "Pasó (4 de 4: RepositoriosIT y ConsumidoresDeMensajesIT, en el grupo 3)"
+      "texto": "Pasó (7 de 7 en una PC el 19/11: repositorios, consumidores y compensación; el pipeline las corre en el grupo 3)"
     },
     "prueba_datos_protegidos": {
       "ok": 17,
@@ -152,11 +152,11 @@
     },
     {
       "nivel": "Integración",
-      "ejecutados": 4,
-      "pasados": 4,
+      "ejecutados": 7,
+      "pasados": 7,
       "fallados": 0,
       "bloqueados": 0,
-      "detalle": "Arquillian en el WildFly del pipeline: 3 de repositorios (PostgreSQL) y 1 de consumidores (Artemis)"
+      "detalle": "Arquillian en el WildFly: 3 de repositorios (PostgreSQL), 1 de consumidores (Artemis) y 3 de compensación (CompensacionIT)"
     },
     {
       "nivel": "Punta a punta",
@@ -283,8 +283,8 @@
       "Sí"
     ],
     [
-      "CVE altas o críticas (Trivy)",
-      "0",
+      "CVE altas o críticas (Trivy y OWASP Dependency-Check)",
+      "0 y 0 (32 dependencias contra la NVD)",
       "0 sin mitigar",
       "Sí"
     ],
@@ -465,9 +465,9 @@
     ],
     [
       "Dependencias: 0 CVE críticas o altas",
-      "Trivy sobre los dos proyectos en cada corrida (el diseño mencionaba OWASP Dependency-Check: ver hallazgos)",
+      "Trivy y OWASP Dependency-Check en el pipeline",
       "CUMPLE",
-      "CP-82"
+      "Trivy: 0 altas o críticas. Dependency-Check (prometido en el diseño): 32 dependencias contra la NVD, 0 CVE; falla con CVSS 7 o más"
     ],
     [
       "Cabeceras CSP, HSTS y X-Content-Type-Options; CORS; cookies",
@@ -618,8 +618,8 @@
     [
       "CP-91",
       "Tarea del manual elegida al azar",
-      "Manual de usuario v0.2 (octubre). Sorteo: paciente «Cancelar un turno» (cap. 3), profesional «Ver tus notificaciones» (cap. 5); el administrativo no tiene ninguna tarea en el manual.",
-      "Paciente y profesional completaron la tarea siguiendo sólo el manual. El manual no menciona el diálogo de confirmación ni el reintegro, dice que «Mis turnos» está arriba de todo, que el aviso al paciente tiene la etiqueta «Email» y que Telemedicina y Pagos están «Pronto»; el registro ya no pide tipo de usuario. Pasó en parte: D-47.",
+      "Manual de usuario v0.2 (octubre), el entregado en la Entrega Parcial N.º 2. Sorteo: paciente «Cancelar un turno» (cap. 3), profesional «Ver tus notificaciones» (cap. 5); la v0.2 no tiene ninguna tarea del administrativo. La v0.4 del repositorio (1/11) sí las tiene, pero no se usó porque no era la entregada.",
+      "Paciente y profesional completaron la tarea siguiendo sólo el manual. Hallazgos (D-47): el manual no menciona el diálogo de confirmación ni el reintegro, «Mis turnos» ya no está arriba de todo, el aviso al paciente no lleva la etiqueta «Email» y Telemedicina y Pagos ya no están «Pronto». Pasó en parte. El 19/11 se armó el manual 1.0 (Entrega Final), que cubre esto y lo de noviembre.",
       "img/manual/cp91-*.jpg y cp91-tareas-del-manual.gif"
     ],
     [

@@ -138,6 +138,9 @@ defectos D-01, D-02, D-04, D-07 y D-09 del informe del 16/11.
   compensación no puede devolver el cobro porque la pasarela no responde, el reintegro queda pendiente y se reintenta
   solo cada minuto, con espera creciente. Si la pasarela no conoce el pago, queda para conciliación manual. El
   administrativo los ve en **Pagos** y los puede reintentar o marcar como conciliados. Antes quedaban sólo en el log.
+- **OWASP Dependency-Check** (prometido en el diseño): un trabajo del pipeline analiza las dependencias del WAR contra la
+  base de la NVD y falla con una CVE de CVSS 7 o más sin una supresión justificada
+  (`dependency-check-supresiones.xml`). Complementa a Trivy. Localmente: `mvn -P dependencias verify -DskipTests`.
 - **La falla de demostración salió de la aplicación** (D-42): la reemplaza `CompensacionIT`, una prueba de
   integración que hace fallar la confirmación real antes del commit.
 

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Supresiones de OWASP Dependency-Check. Cada una dice por qué la CVE no aplica a MediConecta; no se suprime nada
+  "para que pase". Sin entradas: hoy ninguna dependencia del WAR tiene una CVE alta o crítica que haya que justificar.
+-->
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+</suppressions>

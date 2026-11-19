@@ -51,7 +51,8 @@ public class ServicioDeReintegrosBean implements ServicioDeReintegros {
     @Resource
     private SessionContext contexto;
 
-    private Clock reloj = Clock.systemDefaultZone();
+    @Inject
+    private Clock reloj;
 
     @Override
     @PermitAll

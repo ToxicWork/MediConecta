@@ -239,6 +239,54 @@
 
     <profiles>
         <!--
+          OWASP Dependency-Check (prometido en el documento de diseño): falla si una dependencia del WAR tiene una CVE
+          de CVSS 7 o más (alta o crítica) sin una supresión justificada en dependency-check-supresiones.xml. Usa la
+          base de vulnerabilidades de la NVD, que se descarga la primera vez (unos minutos) y después sólo se actualiza.
+          Uso:  mvn -P dependencias verify -DskipTests
+        -->
+        <profile>
+            <id>dependencias</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.owasp</groupId>
+                        <artifactId>dependency-check-maven</artifactId>
+                        <version>12.1.9</version>
+                        <configuration>
+                            <failBuildOnCVSS>7</failBuildOnCVSS>
+                            <suppressionFiles>
+                                <suppressionFile>${project.basedir}/dependency-check-supresiones.xml</suppressionFile>
+                            </suppressionFiles>
+                            <!--
+                              La base de la NVD sale de la copia que publica el propio proyecto Dependency-Check en GitHub
+                              Pages (un archivo por año): sin clave, la API de la NVD tarda más de una hora la primera vez.
+                            -->
+                            <nvdDatafeedUrl>https://dependency-check.github.io/DependencyCheck_Builder/nvd_cache/nvdcve-{0}.json.gz</nvdDatafeedUrl>
+                            <formats>
+                                <format>HTML</format>
+                                <format>JSON</format>
+                            </formats>
+                            <!-- Sólo Java: OSS Index ahora exige credenciales y el proyecto no tiene JavaScript de npm. -->
+                            <ossindexAnalyzerEnabled>false</ossindexAnalyzerEnabled>
+                            <retireJsAnalyzerEnabled>false</retireJsAnalyzerEnabled>
+                            <nodeAnalyzerEnabled>false</nodeAnalyzerEnabled>
+                            <nodeAuditAnalyzerEnabled>false</nodeAuditAnalyzerEnabled>
+                            <assemblyAnalyzerEnabled>false</assemblyAnalyzerEnabled>
+                            <nuspecAnalyzerEnabled>false</nuspecAnalyzerEnabled>
+                            <nugetconfAnalyzerEnabled>false</nugetconfAnalyzerEnabled>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>check</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <!--
           Pruebas de integración con dependencias reales (Arquillian, contenedor remoto): se despliegan en el WildFly
           que ya está levantado y usan su PostgreSQL y su broker Artemis, sin mocks. Están en src/it/java, así que la
           compilación y las pruebas de siempre no cambian. Requisito: WildFly levantado (perfil standalone-full) con

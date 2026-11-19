@@ -134,7 +134,7 @@ riesgos = [
     ["R-01", "Dos operaciones simultáneas sobre un turno (doble reserva, doble cancelación)", "Alta", "Alto", "CP-05, CP-20, CP-46, CP-92 (D-45)"],
     ["R-02", "Pérdida de mensajes si el broker o un suscriptor se cae", "Media", "Alto", "CP-14, CP-35, CP-23"],
     ["R-03", "El legado de la obra social caído, lento o con Fault", "Alta", "Alto", "CP-09, CP-10, CP-13, CP-72"],
-    ["R-04", "La pasarela falla durante el cobro o el reintegro", "Media", "Alto", "CP-07, CP-11, CP-23 (D-06 y D-41 abiertos)"],
+    ["R-04", "La pasarela falla durante el cobro o el reintegro", "Media", "Alto", "CP-07, CP-11, CP-23, CP-93 (D-06 y D-41 resueltos en la rama)"],
     ["R-05", "Acceso a datos clínicos ajenos (BOLA) o de otro rol (BFLA)", "Media", "Alto", "CP-18, CP-27, CP-36, CP-43, CP-64"],
     ["R-06", "Fuerza bruta, inyección o token robado", "Media", "Alto", "CP-47, CP-49, CP-55, CP-56, CP-58"],
     ["R-07", "Datos personales o de salud en logs y mensajes", "Baja", "Alto", "CP-54, CP-67"],
