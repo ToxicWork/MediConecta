@@ -428,7 +428,11 @@ with sync_playwright() as p:
 
     adm.goto(B + "usuarios.xhtml")
     email_prof = "profesional.%d@mediconecta.test" % sufijo
-    adm.select_option("#formAlta\\:rol", "PROFESIONAL")
+    # Elegir el rol vuelve a dibujar (AJAX) el panel de matrícula y especialidad, vacío: si ya es Profesional (el
+    # valor inicial) no se toca; si no, se espera la respuesta antes de completarlo.
+    if adm.eval_on_selector("#formAlta\\:rol", "rol => rol.value") != "PROFESIONAL":
+        with adm.expect_response(lambda r: r.request.method == "POST" and "usuarios.xhtml" in r.url):
+            adm.select_option("#formAlta\\:rol", "PROFESIONAL")
     adm.wait_for_selector("#formAlta\\:matricula")
     adm.fill("#formAlta\\:nombre", "Dr. Prueba %d" % sufijo)
     adm.fill("#formAlta\\:email", email_prof)

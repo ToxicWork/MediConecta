@@ -40,5 +40,8 @@ for prueba in prueba_e2e prueba_seguridad prueba_cancelacion prueba_defectos pru
   fi
   echo "| $nombre | $resultado | $ok OK, $fallas fallas | $segundos s |" >> "$RESUMEN"
   echo "$nombre: código $codigo, $ok OK, $fallas fallas, $segundos s"
+  resultados="${resultados:-}$resultado $nombre: $ok OK, $fallas fallas, $segundos s%0A"
 done
+# Una sola anotación con todas las suites: el resultado se ve en la página del run sin abrir el log.
+echo "::notice title=Punta a punta::${resultados%\%0A}"
 exit "$fallo"
