@@ -63,7 +63,7 @@ def dia_desde_hoy(dias):
 
 def elegir_fecha():
     global fecha, dia, hora, iso
-    fecha = "%s %02d:%02d" % (dia_desde_hoy(random.randint(26, 40)), random.randint(7, 19), random.randint(0, 59))
+    fecha = "%s %02d:%02d" % (dia_desde_hoy(random.randint(26, 40)), random.randint(7, 19), random.randint(0, 11) * 5)
     dia, hora = fecha.split(" ")
     iso = "%s-%s-%sT%s" % (dia[6:], dia[3:5], dia[:2], hora)
 

@@ -253,9 +253,15 @@ jobs:
             -c "CREATE DATABASE mediconecta OWNER mediconecta"
       - name: WildFly 41 y el driver de PostgreSQL (Maven Central, checksums estrictos)
         run: |
+          # Hasta 3 intentos: un corte de red del runner con Maven Central no tiene que tirar el pipeline.
           for artefacto in org.wildfly:wildfly-dist:41.0.0.Final:zip org.postgresql:postgresql:42.7.13; do
-            mvn -B -ntp -C -q org.apache.maven.plugins:maven-dependency-plugin:3.8.1:copy \
-              -Dartifact="$artefacto" -DoutputDirectory=descargas
+            for intento in 1 2 3; do
+              mvn -B -ntp -C -q org.apache.maven.plugins:maven-dependency-plugin:3.8.1:copy \
+                -Dartifact="$artefacto" -DoutputDirectory=descargas && break
+              [ "$intento" = 3 ] && { echo "::error::No se pudo bajar $artefacto de Maven Central"; exit 1; }
+              echo "::warning::Falló la descarga de $artefacto (intento $intento); se reintenta"
+              sleep 15
+            done
           done
           unzip -q descargas/wildfly-dist-41.0.0.Final.zip
           modulo="$WILDFLY_HOME/modules/org/postgresql/main"
