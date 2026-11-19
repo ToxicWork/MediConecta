@@ -33,6 +33,10 @@ for nombre in "${SUITES[@]}"; do
   ok=$(grep -c '^OK' "$SALIDA/$nombre.txt" || true)
   fallas=$(grep -c '^FALLA' "$SALIDA/$nombre.txt" || true)
   segundos=$(( $(date +%s) - inicio ))
+  # Las líneas AVISO de una suite (observaciones que no la hacen fallar) quedan como advertencias del run.
+  { grep '^AVISO' "$SALIDA/$nombre.txt" || true; } | head -10 | while read -r linea; do
+    echo "::warning title=$nombre::${linea#AVISO }"
+  done
   if [ "$codigo" -ne 0 ] || [ "$fallas" -ne 0 ]; then
     fallo=1
     resultado="❌"

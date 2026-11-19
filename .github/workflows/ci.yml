@@ -384,9 +384,16 @@ jobs:
         run: |
           mkdir -p resultados-zap resultados-e2e
           codigo=0
-          ZAP_2.17.0/zap.sh -cmd -autorun "$GITHUB_WORKSPACE/pruebas/seguridad/zap-plan.yaml" || codigo=$?
+          ZAP_2.17.0/zap.sh -cmd -autorun "$GITHUB_WORKSPACE/pruebas/seguridad/zap-plan.yaml" > zap.log 2>&1 || codigo=$?
+          tail -60 zap.log
+          if [ ! -s resultados-zap/zap-reporte.json ]; then
+            # Sin reporte: el final de la salida de ZAP en una anotación, para verlo sin abrir el log.
+            final=$({ grep -v '^[[:space:]]*$' zap.log | tail -25 | cut -c1-250; } || true)
+            echo "::error title=ZAP (código $codigo)::$(echo "$final" | sed ':a;N;$!ba;s/%/%25/g;s/\n/%0A/g')"
+          fi
           python3 .github/scripts/resumen_zap.py || codigo=1
           cp -r resultados-zap resultados-e2e/zap
+          cp zap.log resultados-e2e/zap/ 2>/dev/null || true
           exit "$codigo"
       - name: axe-core 4.14.0 (paquete del registro de npm, con su sha512 publicado; sin npm ni scripts)
         if: matrix.tipo == 'accesibilidad'

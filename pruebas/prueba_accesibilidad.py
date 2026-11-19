@@ -128,6 +128,14 @@ with sync_playwright() as p:
         contexto.close()
     br.close()
 
+# Las violaciones graves (serious), agrupadas por regla, como AVISO: el pipeline las muestra como advertencias.
+por_regla = {}
+for d in detalle:
+    for v in d["violaciones"]:
+        if v["impacto"] == "serious":
+            por_regla.setdefault((v["regla"], v["ayuda"]), set()).add("%s/%s" % (d["rol"], d["pantalla"][:-6]))
+for (regla, ayuda), donde in sorted(por_regla.items()):
+    print("AVISO grave: %s (%s) en %d pantallas: %s" % (regla, ayuda, len(donde), ", ".join(sorted(donde))[:300]))
 with open(os.path.join(RESULTADOS, "axe.json"), "w", encoding="utf-8") as f:
     json.dump(detalle, f, ensure_ascii=False, indent=1)
 print("\n%d combinaciones con axe; violaciones graves (serious) en total: %d. Detalle en %s"
