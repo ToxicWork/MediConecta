@@ -308,7 +308,7 @@ jobs:
           # Los errores del server.log, en una sola anotación: se ven sin descargar el artefacto.
           log=resultados-e2e/server.log
           [ -f "$log" ] || log=resultados-e2e/wildfly.out
-          errores=$({ grep -E " ERROR |Caused by|Exception:" "$log" || true; } | grep -v "ELYEE01007" | cut -c1-300 | head -25)
+          errores=$({ grep -E " ERROR |Caused by|Exception:" "$log" | grep -v "ELYEE01007" | cut -c1-300 | head -25; } || true)
           if [ -n "$errores" ]; then
             echo "::error title=server.log::$(echo "$errores" | sed ':a;N;$!ba;s/%/%25/g;s/\n/%0A/g')"
           else

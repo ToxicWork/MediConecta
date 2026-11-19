@@ -108,8 +108,8 @@ if not pendientes:
     print("Los usuarios de demo ya existen: no hay nada que crear.")
     sys.exit(0)
 
-try:
-  with sync_playwright() as p:
+with sync_playwright() as p:
+  try:
     br = p.chromium.launch(channel=NAVEGADOR, headless=True)
 
     if PACIENTE["email"] in pendientes:
@@ -159,7 +159,7 @@ try:
             print("%s creado: %s" % (usuario["rol"].capitalize(), usuario["nombre"]))
         adm.context.close()
     br.close()
-except Exception as error:  # noqa: BLE001 - cualquier corte se informa con el paso en que ocurrió
+  except Exception as error:  # noqa: BLE001 - cualquier corte se informa con el paso en que ocurrió (con el navegador abierto)
     fallar(error)
 
 siguen = faltan()
