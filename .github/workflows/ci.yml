@@ -224,7 +224,7 @@ jobs:
           - grupo: 1 de 2
             # prueba_broker va primero: reinicia el servidor (el broker se cae y vuelve a levantar) y necesita el
             # Circuit Breaker de la obra social cerrado (prueba_entrega4 lo deja abierto un rato).
-            suites: prueba_broker prueba_hold_vence prueba_e2e prueba_entrega4 demo_api_jwt_409
+            suites: prueba_broker prueba_hold_vence prueba_e2e prueba_entrega4 demo_api_jwt_409 prueba_responsive
           # prueba_monitor va al final, después de las suites que generan avisos: su escenario 4 (la carga de a
           # tandas de 10) necesita más de 10 avisos de la profesional.
           - grupo: 2 de 2
@@ -233,6 +233,7 @@ jobs:
       WILDFLY_HOME: ${{ github.workspace }}/wildfly-41.0.0.Final
       NAVEGADOR: chrome
       PYTHON: ${{ github.workspace }}/.venv/bin/python
+      CAPTURAS: ${{ github.workspace }}/resultados-e2e/responsive  # las capturas de prueba_responsive, como artefacto
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-java@v6

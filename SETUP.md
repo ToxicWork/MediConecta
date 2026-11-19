@@ -289,9 +289,13 @@ python pruebas/prueba_e2e.py         # 13 verificaciones del recorrido básico
 python pruebas/prueba_seguridad.py   # tarjetas SEC-*: bloqueo, HTTPS y cookie, inyección SQL, DLQ, historia, logs
 python pruebas/prueba_monitor.py     # HU-09: Monitor de eventos (suscriptor caído y recuperado, paginación)
 python pruebas/prueba_cancelacion.py # cancelación por paciente, profesional, administrativo y API
-python pruebas/prueba_defectos.py    # un escenario por cada defecto de la exploratoria y de las regresiones (D-13 a D-38)
+python pruebas/prueba_defectos.py    # un escenario por cada defecto de la exploratoria y de las regresiones (D-13 a D-40)
 python pruebas/prueba_hold_vence.py  # el hold vence solo (tarda unos 6 minutos)
 python pruebas/demo_api_jwt_409.py --sin-cancelar   # guion del login con JWT (no modifica datos)
+python pruebas/prueba_broker.py      # el broker se cae y vuelve a levantar sin perder mensajes (reinicia el servidor)
+python pruebas/prueba_inyeccion.py   # SQL, XSS y expresiones EL en todos los campos de texto
+python pruebas/prueba_contrato_api.py  # la API REST contra su OpenAPI (docs/api/openapi.json)
+python pruebas/prueba_responsive.py  # cada pantalla de cada rol a 360, 768 y 1280 px, con capturas (no modifica datos)
 python pruebas/sembrar_usuarios_demo.py             # sólo en una base vacía: crea los usuarios de demo (ver arriba)
 ```
 
@@ -305,7 +309,12 @@ Todas usan `https://localhost:8443/mediconecta/` y aceptan el certificado autofi
     `-Dmediconecta.demo.fallas=true`);
   - `prueba_defectos.py`, para el escenario del D-36: lee el datasource de MediConecta y, con el driver de
     PostgreSQL de WildFly y Java, simula otra transacción que modifica el turno mientras el paciente cancela. Sin
-    `WILDFLY_HOME` ese escenario se omite.
+    `WILDFLY_HOME` ese escenario se omite;
+  - `prueba_broker.py`, que pausa la cola de autorizaciones y reinicia el servidor con `jboss-cli`. No hay que
+    correrla mientras alguien está usando la aplicación.
+
+`prueba_responsive.py` deja sus capturas en la carpeta de la variable `CAPTURAS`; por defecto,
+`mediconecta-responsive` dentro de la carpeta temporal.
 
 En el pipeline corren todas, con la aplicación levantada en el runner (ver la sección de integración continua del
 `README.md`).
