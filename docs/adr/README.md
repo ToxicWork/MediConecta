@@ -28,6 +28,7 @@ La fecha es la de la entrega en la que se tomó la decisión. Los ADR se escribi
 | [ADR-0017](0017-jwt-en-la-api.md) | JWT para autenticar la API REST | Seguridad (token sin estado) | 16/11/2026 |
 | [ADR-0018](0018-rls-en-supabase.md) | Row Level Security en las tablas de Supabase | Seguridad (defensa en profundidad) | 16/11/2026 |
 | [ADR-0019](0019-revocar-el-token-al-cerrar-sesion.md) | Revocar el JWT al cerrar sesión | Seguridad (lista de revocación) | 19/11/2026 |
+| [ADR-0020](0020-permisos-por-destino-en-el-broker.md) | Permisos por destino en el broker, sin el rol guest | Seguridad (mínimo privilegio en la mensajería) | 19/11/2026 |
 
 Las rutas de código son relativas a `src/main/java/ar/edu/mediconecta/`. Las pruebas unitarias están en
 `src/test/java` y las de navegador en `pruebas/`.

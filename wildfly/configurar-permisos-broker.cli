@@ -1,0 +1,38 @@
+## Permisos por destino en el broker (documento de diseño de patrones y seguridad, sección 8.5; ADR-0020).
+##
+## WildFly trae el rol guest con permiso para mandar y leer en CUALQUIER destino (security-setting #). Ese es el
+## rol que tienen los usuarios de aplicación del servidor (ApplicationRealm), los mismos que usan los clientes JMS
+## remotos: con cualquiera de ellos se podía publicar un TURNO_CONFIRMADO falso en el tópico, escuchar todos los
+## eventos de turnos o vaciar la cola de autorizaciones. Este script le saca esos permisos y define roles por destino:
+##   - jms.topic.turnos: publica sólo el rol aplicacion; leen sólo los suscriptores del rol consumidor.
+##   - jms.queue.autorizaciones: la llena sólo el rol aplicacion y la vacía sólo el rol consumidor.
+##   - Cualquier otro destino (DLQ, ExpiryQueue): nadie de afuera.
+##
+## La aplicación no necesita ninguno de esos roles: sus productores y sus MDB entran al broker embebido por la
+## conexión interna (in-vm) de WildFly, que se autentica con la identidad interna del servidor. Hoy ningún usuario
+## tiene los roles aplicacion ni consumidor; un sistema de afuera que tenga que leer los eventos se da de alta con
+##   <WILDFLY_HOME>/bin/add-user.sh -a -u <usuario> -g consumidor
+##
+## Se puede correr más de una vez. Con el servidor APAGADO:
+##   <WILDFLY_HOME>/bin/jboss-cli.sh --file=wildfly/configurar-permisos-broker.cli
+## Lo verifica pruebas/prueba_permisos_broker.py.
+
+embed-server --server-config=standalone-full.xml
+
+if (outcome == success) of /subsystem=messaging-activemq/server=default/security-setting=#/role=guest:read-resource
+    /subsystem=messaging-activemq/server=default/security-setting=#/role=guest:remove
+end-if
+
+if (outcome != success) of /subsystem=messaging-activemq/server=default/security-setting=jms.topic.turnos:read-resource
+    /subsystem=messaging-activemq/server=default/security-setting=jms.topic.turnos:add
+    /subsystem=messaging-activemq/server=default/security-setting=jms.topic.turnos/role=aplicacion:add(send=true,consume=false)
+    /subsystem=messaging-activemq/server=default/security-setting=jms.topic.turnos/role=consumidor:add(send=false,consume=true,create-durable-queue=true,delete-durable-queue=true)
+end-if
+
+if (outcome != success) of /subsystem=messaging-activemq/server=default/security-setting=jms.queue.autorizaciones:read-resource
+    /subsystem=messaging-activemq/server=default/security-setting=jms.queue.autorizaciones:add
+    /subsystem=messaging-activemq/server=default/security-setting=jms.queue.autorizaciones/role=aplicacion:add(send=true,consume=false)
+    /subsystem=messaging-activemq/server=default/security-setting=jms.queue.autorizaciones/role=consumidor:add(send=false,consume=true)
+end-if
+
+stop-embedded-server

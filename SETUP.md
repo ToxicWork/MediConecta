@@ -48,6 +48,9 @@ cp target/mediconecta.war sistemas-externos/target/externos.war ~/Downloads/wild
 
 > En la Mac, antes del primer arranque de esta entrega, correr con el servidor apagado
 > `jboss-cli.sh --file=wildfly/configurar-integracion-entrega4.cli` (crea la cola; ver 2.2).
+>
+> Para la entrega final, en cada máquina y también con el servidor apagado:
+> `jboss-cli.sh --file=wildfly/configurar-permisos-broker.cli` (permisos por destino en el broker; ver 2.3).
 
 App: <https://localhost:8443/mediconecta/login.xhtml> (por HTTPS desde el 14/11; `http://localhost:8080/mediconecta/`
 redirige solo) · Consola de sistemas externos: <http://localhost:8080/externos/> · WSDL del legado:
@@ -198,6 +201,28 @@ Las direcciones de los sistemas externos tienen valores por defecto (`http://loc
 Para apuntar a otro host, levantar WildFly con `-Dmediconecta.externos.url=http://host:puerto/externos`
 (ver `ConfiguracionIntegraciones`).
 
+## 2.3 Permisos por destino en el broker (entrega final)
+
+WildFly trae el rol `guest` con permiso para mandar y leer en cualquier destino del broker: con cualquier usuario de
+aplicación del servidor se podían publicar eventos de turnos falsos o leer las colas. Con el servidor **apagado**:
+
+```
+<WILDFLY_HOME>/bin/jboss-cli.sh --file=wildfly/configurar-permisos-broker.cli
+```
+
+El script saca esos permisos y deja roles por destino:
+
+- el tópico `turnos` lo publica el rol `aplicacion` y lo leen los del rol `consumidor`;
+- la cola `autorizaciones` la llena `aplicacion` y la lee `consumidor`;
+- la DLQ y la ExpiryQueue no las lee nadie de afuera.
+
+La aplicación no necesita usuario: entra al broker por la conexión interna de WildFly. El script se puede correr
+más de una vez. Lo verifica `pruebas/prueba_permisos_broker.py` (ver Pruebas); el porqué está en el
+[ADR-0020](docs/adr/0020-permisos-por-destino-en-el-broker.md).
+
+Para volver atrás, apagar el servidor y restaurar la copia de `standalone-full.xml` (WildFly también guarda las
+anteriores en `standalone/configuration/standalone_xml_history/`).
+
 ## 3. Deploy
 
 Con Maven configurado (`mvn -v`), o vía el conector de servidor de Eclipse (ya hay `.project`/`.classpath`):
@@ -293,6 +318,7 @@ python pruebas/prueba_defectos.py    # un escenario por cada defecto de la explo
 python pruebas/prueba_hold_vence.py  # el hold vence solo (tarda unos 6 minutos)
 python pruebas/demo_api_jwt_409.py --sin-cancelar   # guion del login con JWT (no modifica datos)
 python pruebas/prueba_broker.py      # el broker se cae y vuelve a levantar sin perder mensajes (reinicia el servidor)
+python pruebas/prueba_permisos_broker.py  # de afuera, nadie publica ni lee en el broker (sección 2.3)
 python pruebas/prueba_inyeccion.py   # SQL, XSS y expresiones EL en todos los campos de texto
 python pruebas/prueba_contrato_api.py  # la API REST contra su OpenAPI (docs/api/openapi.json)
 python pruebas/prueba_responsive.py  # cada pantalla de cada rol a 360, 768 y 1280 px, con capturas (no modifica datos)
@@ -311,7 +337,10 @@ Todas usan `https://localhost:8443/mediconecta/` y aceptan el certificado autofi
     PostgreSQL de WildFly y Java, simula otra transacción que modifica el turno mientras el paciente cancela. Sin
     `WILDFLY_HOME` ese escenario se omite;
   - `prueba_broker.py`, que pausa la cola de autorizaciones y reinicia el servidor con `jboss-cli`. No hay que
-    correrla mientras alguien está usando la aplicación.
+    correrla mientras alguien está usando la aplicación;
+  - `prueba_permisos_broker.py`, que da de alta con `add-user` el usuario de aplicación `cliente-externo` (rol
+    `guest`, con una clave al azar en cada corrida) y consulta el broker con `jboss-cli`. Corre el cliente
+    `ClienteJmsExterno.java` con el `java` del sistema y el `bin/client/jboss-client.jar` de WildFly.
 
 `prueba_responsive.py` deja sus capturas en la carpeta de la variable `CAPTURAS`; por defecto,
 `mediconecta-responsive` dentro de la carpeta temporal.

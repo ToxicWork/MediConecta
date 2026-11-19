@@ -196,6 +196,11 @@ defectos D-01, D-02, D-04, D-07 y D-09 del informe del 16/11.
     3. Al volver, la autorización se procesa sola y no pasa por la DLQ.
 
     Necesita `WILDFLY_HOME` y reinicia el servidor.
+  - [`pruebas/prueba_permisos_broker.py`](pruebas/prueba_permisos_broker.py): permisos por destino en el broker
+    ([ADR-0020](docs/adr/0020-permisos-por-destino-en-el-broker.md)). Un cliente JMS de afuera
+    ([`ClienteJmsExterno.java`](pruebas/ClienteJmsExterno.java)) prueba que sin usuario no entra y que con un
+    usuario del rol `guest` no puede publicar ni leer en ningún destino. También verifica que la aplicación sigue
+    conectada al broker. Necesita `WILDFLY_HOME`: da de alta ese usuario con `add-user`.
   - [`pruebas/prueba_inyeccion.py`](pruebas/prueba_inyeccion.py): SQL, XSS y expresiones EL en todos los campos
     de texto. Se verifica en cada pantalla donde se muestran: que se vean literales, que no se ejecute nada y que
     no haya errores 500 ni rastros de la base.

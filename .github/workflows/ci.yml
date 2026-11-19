@@ -228,7 +228,7 @@ jobs:
           # prueba_monitor va al final, después de las suites que generan avisos: su escenario 4 (la carga de a
           # tandas de 10) necesita más de 10 avisos de la profesional.
           - grupo: 2 de 2
-            suites: prueba_cancelacion prueba_seguridad prueba_defectos prueba_inyeccion prueba_contrato_api prueba_monitor
+            suites: prueba_permisos_broker prueba_cancelacion prueba_seguridad prueba_defectos prueba_inyeccion prueba_contrato_api prueba_monitor
     env:
       WILDFLY_HOME: ${{ github.workspace }}/wildfly-41.0.0.Final
       NAVEGADOR: chrome
@@ -289,6 +289,7 @@ jobs:
       - name: Configurar WildFly (los scripts del repositorio y el datasource local)
         run: |
           "$WILDFLY_HOME/bin/jboss-cli.sh" --file=wildfly/configurar-mensajeria.cli
+          "$WILDFLY_HOME/bin/jboss-cli.sh" --file=wildfly/configurar-permisos-broker.cli
           "$WILDFLY_HOME/bin/jboss-cli.sh" --commands="embed-server --server-config=standalone-full.xml,data-source add --name=mediconectaDS --jndi-name=java:/mediconectaDS --driver-name=postgresql --connection-url=jdbc:postgresql://localhost:5432/mediconecta --user-name=mediconecta --password=$PG_CLAVE --enabled=true --jta=true --use-ccm=true --min-pool-size=2 --max-pool-size=20 --validate-on-match=true --background-validation=false,stop-embedded-server"
       - name: Compilar y desplegar mediconecta.war y externos.war
         run: |
