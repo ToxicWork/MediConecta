@@ -1,0 +1,549 @@
+{
+  "qa_responsable": "a designar por el equipo",
+  "fecha_documento": "19 de noviembre de 2026 (borrador)",
+  "corrida": "44564580822",
+  "fecha_corrida": "19/11/2026",
+  "rama": "pbkdf2-600k",
+  "duracion_pipeline": "10,1 minutos (el trabajo más largo; corren en paralelo)",
+  "estado_ramas": "Estado del código: la corrida es de la rama pbkdf2-600k, que reúne todo lo hecho desde el 19/11 a la mañana (arreglos del D-39 y del D-43, ADR-0019 aceptado, permisos del broker, pruebas no funcionales y PBKDF2 con 600.000 iteraciones) y espera la aprobación del equipo para integrarse a main. El tag v1.0-testing se crea en main al cierre, y este documento se regenera con la corrida del tag.",
+  "enlaces": {
+    "repo": "https://github.com/ToxicWork/MediConecta",
+    "run": "https://github.com/ToxicWork/MediConecta/actions/runs/44564580822",
+    "tablero": "https://trello.com/b/7c84ZN3J/mediconecta-grupo-04",
+    "sonar": "https://sonarcloud.io/project/overview?id=ToxicWork_MediConecta",
+    "openapi": "https://github.com/ToxicWork/MediConecta/blob/main/docs/api/openapi.json"
+  },
+  "junit": {
+    "pruebas": 289,
+    "clases": 46
+  },
+  "e2e": {
+    "suites": 13
+  },
+  "suites": {
+    "prueba_broker": {
+      "ok": 9,
+      "fallas": 0,
+      "tiempo": "32 s"
+    },
+    "prueba_hold_vence": {
+      "ok": 8,
+      "fallas": 0,
+      "tiempo": "366 s"
+    },
+    "prueba_e2e": {
+      "ok": 13,
+      "fallas": 0,
+      "tiempo": "10 s"
+    },
+    "prueba_entrega4": {
+      "ok": 62,
+      "fallas": 0,
+      "tiempo": "40 s"
+    },
+    "prueba_responsive": {
+      "ok": 57,
+      "fallas": 0,
+      "tiempo": "48 s"
+    },
+    "prueba_permisos_broker": {
+      "ok": 15,
+      "fallas": 0,
+      "tiempo": "12 s"
+    },
+    "prueba_cancelacion": {
+      "ok": 60,
+      "fallas": 0,
+      "tiempo": "325 s"
+    },
+    "prueba_seguridad": {
+      "ok": 70,
+      "fallas": 0,
+      "tiempo": "88 s"
+    },
+    "prueba_defectos": {
+      "ok": 56,
+      "fallas": 0,
+      "tiempo": "77 s"
+    },
+    "prueba_inyeccion": {
+      "ok": 24,
+      "fallas": 0,
+      "tiempo": "6 s"
+    },
+    "prueba_contrato_api": {
+      "ok": 39,
+      "fallas": 0,
+      "tiempo": "6 s"
+    },
+    "prueba_monitor": {
+      "ok": 14,
+      "fallas": 0,
+      "tiempo": "17 s"
+    },
+    "prueba_accesibilidad": {
+      "ok": 57,
+      "fallas": 0,
+      "tiempo": "47 s"
+    },
+    "demo_api_jwt_409": {
+      "texto": "Pasó (guion de demostración, sin verificaciones contadas)"
+    },
+    "junit": {
+      "texto": "Pasó (289 de 289)"
+    },
+    "pit": {
+      "texto": "Pasó (73,5 %; umbral 60 %)"
+    },
+    "k6": {
+      "texto": "Pasó (p95 de 9,8 a 15,2 ms; 0 % de errores)"
+    },
+    "gitleaks": {
+      "texto": "Pasó (sin hallazgos)"
+    },
+    "trivy": {
+      "texto": "Pasó (0 CVE altas o críticas)"
+    },
+    "estabilidad": {
+      "texto": "Pasó (tres corridas idénticas)"
+    },
+    "zap": {
+      "texto": "Sin ejecutar (el escaneo no llegó a generar el reporte; ver sección 6)"
+    },
+    "manual": {
+      "texto": "Manual: pendiente de ejecutar por el equipo"
+    }
+  },
+  "niveles": [
+    {
+      "nivel": "Unitario",
+      "ejecutados": 289,
+      "pasados": 289,
+      "fallados": 0,
+      "bloqueados": 0,
+      "detalle": "46 clases de JUnit 5; tres corridas idénticas"
+    },
+    {
+      "nivel": "Mutación",
+      "ejecutados": 219,
+      "pasados": 161,
+      "fallados": 58,
+      "bloqueados": 0,
+      "detalle": "Mutantes del dominio: 161 eliminados, 16 sobrevivientes y 42 sin cobertura (73,5 %)"
+    },
+    {
+      "nivel": "Punta a punta",
+      "ejecutados": 427,
+      "pasados": 427,
+      "fallados": 0,
+      "bloqueados": 0,
+      "detalle": "Verificaciones de 11 suites con WildFly, PostgreSQL, el broker y Chrome reales"
+    },
+    {
+      "nivel": "Contrato",
+      "ejecutados": 39,
+      "pasados": 39,
+      "fallados": 0,
+      "bloqueados": 0,
+      "detalle": "prueba_contrato_api: 29 de las 30 respuestas del OpenAPI (incluidas en punta a punta)"
+    },
+    {
+      "nivel": "No funcional",
+      "ejecutados": 117,
+      "pasados": 117,
+      "fallados": 0,
+      "bloqueados": 1,
+      "detalle": "Responsive 57, accesibilidad 57, carga 3 endpoints; ZAP bloqueado (sin reporte)"
+    },
+    {
+      "nivel": "Manual",
+      "ejecutados": 0,
+      "pasados": 0,
+      "fallados": 0,
+      "bloqueados": 0,
+      "detalle": "CP-90 a CP-92: pendientes del equipo"
+    }
+  ],
+  "metricas": [
+    [
+      "Cobertura de líneas, negocio y dominio (JaCoCo)",
+      "89,5 % (1194 de 1334)",
+      "80 %",
+      "Sí"
+    ],
+    [
+      "Cobertura de ramas, negocio y dominio (JaCoCo)",
+      "84,6 % (362 de 428)",
+      "70 %",
+      "Sí"
+    ],
+    [
+      "Mutation score del dominio (PIT)",
+      "73,5 % (161 de 219)",
+      "60 %",
+      "Sí"
+    ],
+    [
+      "Quality Gate de SonarCloud (main)",
+      "Aprobado",
+      "Aprobado",
+      "Sí"
+    ],
+    [
+      "Bugs y vulnerabilidades (SonarCloud)",
+      "0 y 0",
+      "0 Blocker/Critical; 0 vulnerabilidades",
+      "Sí"
+    ],
+    [
+      "Duplicación (SonarCloud)",
+      "0,5 %",
+      "3 % o menos",
+      "Sí"
+    ],
+    [
+      "Ratings de confiabilidad y seguridad",
+      "A y A",
+      "A",
+      "Sí"
+    ],
+    [
+      "Security hotspots revisados",
+      "100 %",
+      "100 %",
+      "Sí"
+    ],
+    [
+      "Tiempo del pipeline",
+      "10,1 minutos",
+      "15 minutos o menos",
+      "Sí"
+    ],
+    [
+      "Pruebas inestables",
+      "0 (tres corridas idénticas)",
+      "0",
+      "Sí"
+    ],
+    [
+      "Carga: p95 por endpoint (k6)",
+      "9,8 / 15,2 / 11,7 ms",
+      "menos de 500 ms",
+      "Sí"
+    ],
+    [
+      "Carga: tasa de errores (k6)",
+      "0,00 % de 15.000 pedidos",
+      "menos de 1 %",
+      "Sí"
+    ],
+    [
+      "Accesibilidad: violaciones críticas (axe)",
+      "0 en 57 combinaciones",
+      "0",
+      "Sí"
+    ],
+    [
+      "Responsive sin scroll horizontal",
+      "57 de 57",
+      "360, 768 y 1280 px",
+      "Sí"
+    ],
+    [
+      "Alertas High de OWASP ZAP",
+      "Sin dato",
+      "0",
+      "No verificado"
+    ],
+    [
+      "CVE altas o críticas (Trivy)",
+      "0",
+      "0 sin mitigar",
+      "Sí"
+    ],
+    [
+      "Secretos en el historial (gitleaks)",
+      "0",
+      "0",
+      "Sí"
+    ]
+  ],
+  "carga": {
+    "filas": [
+      [
+        "GET /profesionales/{id}/disponibilidad",
+        "5000",
+        "3,0 ms",
+        "9,8 ms",
+        "22,8 ms",
+        "0,00 %"
+      ],
+      [
+        "GET /turnos",
+        "5000",
+        "4,4 ms",
+        "15,2 ms",
+        "24,3 ms",
+        "0,00 %"
+      ],
+      [
+        "GET /turnos/{id}",
+        "5000",
+        "3,7 ms",
+        "11,7 ms",
+        "17,4 ms",
+        "0,00 %"
+      ]
+    ],
+    "nota": "50 usuarios virtuales durante 5 minutos, cada uno con los tres pedidos y 1 s de pausa; 15.000 pedidos y 100 % de verificaciones de contenido. La base es el PostgreSQL del runner: con Supabase la latencia de red se suma a cada pedido."
+  },
+  "captura_sonar": "img/quality-gate.png",
+  "zap": {
+    "resumen": "PENDIENTE",
+    "alertas": []
+  },
+  "seguridad": [
+    [
+      "SEC-W01 Bloqueo tras 5 intentos fallidos y mensaje genérico",
+      "prueba_seguridad.py W01: fallos por web y API, 429 con Retry-After, desbloqueo",
+      "CUMPLE",
+      "CP-47"
+    ],
+    [
+      "SEC-W02 Contraseñas con hash adaptativo con sal",
+      "PBKDF2-HMAC-SHA256, sal de 32 bytes, 600.000 iteraciones (ADR-0021)",
+      "CUMPLE",
+      "ParametrosDeHashTest (CP-65). En main, hasta integrar la rama pbkdf2-600k: 2048 iteraciones"
+    ],
+    [
+      "SEC-W03 Páginas protegidas sin sesión redirigen al login",
+      "prueba_e2e.py",
+      "CUMPLE",
+      "CP-02"
+    ],
+    [
+      "SEC-W04 Cookie de sesión HttpOnly, Secure y SameSite; HTTPS",
+      "prueba_seguridad.py W04",
+      "CUMPLE",
+      "CP-50"
+    ],
+    [
+      "SEC-W05 Un paciente no ejecuta operaciones de profesional (BFLA)",
+      "@RolesAllowed; prueba_entrega4.py L; FiltroDeRolesTest",
+      "CUMPLE",
+      "CP-43, CP-73"
+    ],
+    [
+      "SEC-W06 Login resistente a inyección SQL",
+      "prueba_seguridad.py W06: 11 ataques por web y API",
+      "CUMPLE",
+      "CP-49"
+    ],
+    [
+      "SEC-D01 Historia clínica sólo con turno confirmado",
+      "prueba_seguridad.py D01; HistoriaConTurnoConfirmadoTest",
+      "CUMPLE",
+      "CP-27, CP-64"
+    ],
+    [
+      "SEC-D02 Logs sin datos sensibles y emails enmascarados",
+      "prueba_seguridad.py D02 sobre el log de la corrida",
+      "CUMPLE",
+      "CP-54"
+    ],
+    [
+      "SEC-I01 Eventos del tópico sin datos clínicos",
+      "EventoSinDatosClinicosTest",
+      "CUMPLE",
+      "CP-67"
+    ],
+    [
+      "SEC-I02 Mensaje que falla va a la DLQ, con reproceso",
+      "prueba_seguridad.py I02",
+      "CUMPLE",
+      "CP-23"
+    ],
+    [
+      "BOLA / IDOR: recurso de otro usuario",
+      "Turno ajeno por la API: 404, igual que inexistente",
+      "CUMPLE",
+      "CP-18, CP-55"
+    ],
+    [
+      "JWT vencido, adulterado, alg=none o de otro emisor",
+      "prueba_entrega4.py B; CodificadorJwtTest",
+      "CUMPLE",
+      "CP-55, CP-73"
+    ],
+    [
+      "Mass assignment (rol, estado, id)",
+      "prueba_seguridad.py M01",
+      "CUMPLE",
+      "CP-52"
+    ],
+    [
+      "Inyección SQL, XSS y EL en todos los campos de texto",
+      "prueba_inyeccion.py J01 a J06",
+      "CUMPLE",
+      "CP-56"
+    ],
+    [
+      "XXE en el canal SOAP",
+      "prueba_seguridad.py X01",
+      "CUMPLE",
+      "CP-53"
+    ],
+    [
+      "Fuerza bruta sobre el login: 429",
+      "prueba_seguridad.py W01",
+      "CUMPLE",
+      "CP-47"
+    ],
+    [
+      "Escaneo OWASP ZAP pasivo y activo autenticado: 0 High",
+      "Plan del Automation Framework en el pipeline",
+      "PENDIENTE",
+      "CP-80"
+    ],
+    [
+      "Dependencias: 0 CVE críticas o altas",
+      "Trivy sobre los dos proyectos en cada corrida (el diseño mencionaba OWASP Dependency-Check: ver hallazgos)",
+      "CUMPLE",
+      "CP-82"
+    ],
+    [
+      "Cabeceras CSP, HSTS y X-Content-Type-Options; CORS; cookies",
+      "prueba_seguridad.py H01 y W04",
+      "CUMPLE",
+      "CP-50, CP-51"
+    ],
+    [
+      "Sin trazas al cliente y sin datos personales en logs",
+      "prueba_seguridad.py C01 y D02",
+      "CUMPLE",
+      "CP-48, CP-54"
+    ],
+    [
+      "TLS y hash adaptativo de contraseñas",
+      "HTTPS con redirección; PBKDF2 (ADR-0021)",
+      "CUMPLE",
+      "CP-50, CP-65"
+    ],
+    [
+      "Permisos por destino en el broker, sin guest (diseño 8.5)",
+      "prueba_permisos_broker.py con un cliente JMS externo",
+      "CUMPLE",
+      "CP-59 (ADR-0020)"
+    ],
+    [
+      "Revocar el token al cerrar sesión",
+      "prueba_contrato_api.py; RevocacionDeTokensTest",
+      "CUMPLE",
+      "CP-58 (ADR-0019)"
+    ],
+    [
+      "Row Level Security en todas las tablas de Supabase (ADR-0018)",
+      "Consulta a pg_tables en la base de Supabase",
+      "NO CUMPLE",
+      "La tabla token_revocado, creada el 19/11, quedó sin RLS hasta volver a correr sql/02-habilitar-rls.sql (D-10)"
+    ],
+    [
+      "Diagnóstico y n.º de afiliado cifrados por columna con AES-GCM (diseño 8.6)",
+      "Revisión del código",
+      "NO CUMPLE",
+      "No implementado; pendiente de decisión del equipo"
+    ],
+    [
+      "Datos clínicos enmascarados con el Decorator PacienteEnmascarado (diseño 4.8)",
+      "Revisión del código",
+      "NO CUMPLE",
+      "No implementado; pendiente de decisión del equipo. El acceso ya se limita por rol y por turno confirmado (SEC-D01)"
+    ]
+  ],
+  "hallazgos": [
+    "Broker: el rol guest que trae WildFly podía publicar en el tópico de turnos, escuchar todos los eventos y leer la cola de autorizaciones y la DLQ. Se confirmó con prueba_permisos_broker.py (10 verificaciones fallidas antes del arreglo) y se corrigió con permisos por destino (ADR-0020).",
+    "Contraseñas: PBKDF2 usaba las 2048 iteraciones por defecto de la implementación, unas 290 veces menos que lo que recomienda OWASP. Se pasó a 600.000 (ADR-0021; 120 ms por hash medidos). PBKDF2 se mantiene frente a bcrypt o Argon2 porque es parte de Jakarta EE y está aprobado por NIST; las alternativas exigirían una biblioteca externa y un identity store propio.",
+    "Supabase: Hibernate creó la tabla token_revocado sin Row Level Security (D-10). Tratamiento: volver a correr sql/02-habilitar-rls.sql, que es idempotente, después de cada despliegue con entidades nuevas.",
+    "Análisis de dependencias: el diseño mencionaba OWASP Dependency-Check; se usa Trivy, que los criterios aceptan, porque analiza los dos proyectos en segundos y no necesita descargar la base del NVD en cada corrida. Resultado: 0 CVE altas o críticas.",
+    "Secretos: gitleaks recorre todo el historial en cada corrida sin hallazgos. La contraseña de demo de las pruebas (demo1234) es un dato de prueba documentado; la del administrador inicial llega por variable de entorno."
+  ],
+  "ia": {
+    "herramientas": [
+      [
+        "Claude Code (CLI) con Claude Opus 5.5, de Anthropic (19/11; en las etapas anteriores, los modelos Claude disponibles en cada momento)",
+        "Escribir y mantener las suites de punta a punta, las pruebas unitarias, el pipeline, los ADR y este documento; diagnosticar las fallas del pipeline",
+        "Pedido del equipo (resumido): que el servidor exija minutos múltiplos de 5, con su prueba; preparar los permisos del broker con una prueba de que un cliente sin permiso no puede mandar mensajes",
+        "Las pruebas que fallan sin el arreglo y pasan con él: por ejemplo, prueba_permisos_broker falló en 10 verificaciones antes del script y pasó después",
+        "Diagnósticos equivocados y verificaciones demasiado débiles (ver la lista siguiente); los descartes quedaron en los commits",
+        "Cada prueba se corrió contra la aplicación real, en una PC y en el pipeline; cada diagnóstico se confirmó con el log del servidor"
+      ],
+      [
+        "Otras herramientas de cada integrante",
+        "A completar por el equipo antes de la entrega",
+        "A completar",
+        "A completar",
+        "A completar",
+        "A completar"
+      ]
+    ],
+    "errores": [
+      "El escenario E de prueba_cancelacion daba por buena «el turno ya no figura en la Agenda» aunque la página fuera un error. La verificación la había escrito la IA y escondió el D-43. Lo detectó el pipeline del 19/11 cuando falló el escenario siguiente; ahora exige que la página sea la Agenda.",
+      "Al diagnosticar esa falla, la IA supuso primero que vencía la sesión web; el log del servidor del pipeline mostró NoSuchEJBException (la conversación con estado), que era la causa real.",
+      "El arreglo del D-39, propuesto por la IA, rompió el escenario E de prueba_cancelacion, que publicaba un turno con minutos sueltos. Lo detectó el pipeline de la rama antes de integrarla.",
+      "prueba_inyeccion marcaba un XSS ejecutado cuando el ataque sólo aparecía escapado dentro de un texto de JavaScript de PrimeFaces (falso positivo). Se revisó el código de la página y el detector pasó a buscar ejecución real.",
+      "La IA informó 75 verificaciones de la prueba responsive cuando eran 57; se corrigió al correr la suite.",
+      "Numeró un ADR nuevo como ADR-0018, número que ya tenía el de RLS; se detectó al revisar el índice y pasó a ADR-0019."
+    ],
+    "firma": "Todo el código de pruebas generado con IA está en Git con autor Sergio Casanova y la marca Co-Authored-By de Claude. Antes de la defensa, cada integrante revisa las pruebas de su área y tiene que poder explicarlas; la revisión queda registrada en el tablero.",
+    "plan": [
+      [
+        "Generar casos negativos a partir de los criterios Gherkin (Claude), revisados por un integrante",
+        "Al menos un caso negativo o de borde nuevo por HU antes de la presentación final",
+        "Criterios de error sin prueba, como pasó con el registro (D-12)"
+      ],
+      [
+        "Clasificar los ERROR del log del servidor de cada corrida de main (Claude sobre el server.log del artefacto)",
+        "El 100 % de los ERROR nuevos clasificados como esperados o como defecto en cada corrida",
+        "Errores reales escondidos entre los esperados (D-34, D-37, D-43)"
+      ],
+      [
+        "Revisión visual de las 57 capturas de la prueba responsive",
+        "Las 57 capturas revisadas por la IA y cada observación confirmada a mano",
+        "Defectos visuales que la verificación de scroll horizontal no ve (D-40)"
+      ],
+      [
+        "Claude como revisor defensivo de cada rama antes de integrarla (Clase 11)",
+        "Toda rama revisada antes de integrarla a main, con los hallazgos en el tablero",
+        "Vulnerabilidades en código nuevo, como el rol guest del broker o las 2048 iteraciones"
+      ]
+    ],
+    "funcionalidad": "8.3: MediConecta no integra funcionalidad de IA (no hay un modelo de lenguaje dentro del sistema), así que no hay casos de inyección de prompt ni de fuga de datos por el modelo. Está pendiente la consulta a la cátedra sobre si corresponde; si la respuesta es afirmativa, se agregan los casos de la sección 8.3 de los criterios."
+  },
+  "lecciones": [
+    [
+      "D-13 [Crítica] Se podía cancelar un turno que ya pasó y se reintegraba el copago",
+      "Las pruebas del patrón State recorrían las transiciones por estado, sin el tiempo: un turno CONFIRMADO en el pasado era un caso que nadie había escrito. Lo encontró la exploratoria del equipo el 17/11.",
+      "Un caso de borde temporal: cancelar un turno que ya empezó con los tres roles y por la API (CP-19, CancelacionPorRolTest)."
+    ],
+    [
+      "D-36 [Mayor] Operaciones simultáneas sobre un turno daban error 500",
+      "Las pruebas hacían una operación por vez; el bloqueo optimista sólo falla con dos transacciones sobre el mismo turno. Apareció en la regresión del 18/11.",
+      "Pruebas concurrentes: dos reservas, dos cancelaciones y una cancelación mientras otra transacción retiene el turno (CP-05, CP-20, CP-46)."
+    ],
+    [
+      "D-43 [Mayor] Después de 5 minutos sin uso, la Agenda daba error 500",
+      "Ninguna prueba dejaba la Agenda quieta más que el @StatefulTimeout de 5 minutos, y una verificación aceptaba una página de error como «el turno ya no figura». Apareció el 19/11 cuando un cambio alargó una espera.",
+      "La sesión inactiva como caso propio (CP-04 en prueba_hold_vence y CP-62) y verificaciones que exigen la página esperada antes de afirmar una ausencia."
+    ]
+  ],
+  "referencias": [
+    "Cátedra de Desarrollo de Aplicaciones II. (2026). Criterios de testing y aseguramiento de calidad: TP Obligatorio, prueba del sistema (Clase 15). UADE.",
+    "ISO/IEC/IEEE. (2021). ISO/IEC/IEEE 29119-3:2021 Software and systems engineering — Software testing — Part 3: Test documentation.",
+    "OWASP Foundation. (2025). Application Security Verification Standard 5.0.",
+    "OWASP Foundation. (2023). OWASP API Security Top 10.",
+    "OWASP Foundation. (s. f.). Password Storage Cheat Sheet. OWASP Cheat Sheet Series.",
+    "World Wide Web Consortium. (2023). Web Content Accessibility Guidelines (WCAG) 2.2.",
+    "Nottingham, M., Wilde, E. y Dalal, S. (2023). RFC 9457: Problem Details for HTTP APIs. IETF.",
+    "Ley 25.326 de Protección de los Datos Personales. (2000). Boletín Oficial de la República Argentina."
+  ]
+}

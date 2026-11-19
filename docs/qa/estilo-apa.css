@@ -1,0 +1,157 @@
+@page {
+    size: A4;
+    margin: 2.54cm;
+    @top-right {
+      content: counter(page);
+      font-family: Georgia, serif;
+      font-size: 11pt;
+      vertical-align: bottom;
+      padding-bottom: 0.6cm;
+    }
+  }
+  @page apaisada {
+    size: A4 landscape;
+  }
+  .figura-apaisada { page: apaisada; page-break-before: always; page-break-after: always; }
+  .figura-apaisada .figura { margin-top: 0; }
+  @page figura-grande {
+    margin: 1.8cm 1.6cm 1.6cm 1.6cm;
+  }
+
+  html { font-family: Georgia, serif; font-size: 11pt; color: #000; }
+  body { margin: 0; }
+
+  p {
+    line-height: 2;
+    margin: 0;
+    text-indent: 1.27cm;
+    text-align: left;
+    orphans: 3;
+    widows: 3;
+  }
+  p.sin-sangria { text-indent: 0; }
+
+  /* Niveles de título APA 7 */
+  h1 {
+    font-size: 11pt; font-weight: bold; text-align: center;
+    line-height: 2; margin: 0;
+    page-break-after: avoid;
+  }
+  h2 {
+    font-size: 11pt; font-weight: bold; text-align: left;
+    line-height: 2; margin: 0;
+    page-break-after: avoid;
+  }
+  h3 {
+    font-size: 11pt; font-weight: bold; font-style: italic; text-align: left;
+    line-height: 2; margin: 0;
+    page-break-after: avoid;
+  }
+  .salto { page-break-before: always; }
+
+  /* Carátula (formato APA de estudiante + datos institucionales) */
+  .caratula { text-align: center; line-height: 2; }
+  .caratula .institucion-cabecera {
+    margin-top: 0.4cm;
+    line-height: 1.5;
+  }
+  .caratula .sigla {
+    font-size: 26pt; font-weight: bold; letter-spacing: 0.18em;
+    line-height: 1.2;
+  }
+  .caratula .nombre-uni { font-size: 11pt; letter-spacing: 0.04em; }
+  .caratula .facultad { font-size: 11pt; }
+  .caratula .filete {
+    width: 6cm; margin: 0.5cm auto 0 auto; border-top: 0.8pt solid #000;
+  }
+  .caratula .titulo {
+    margin-top: 3.2cm; font-weight: bold; line-height: 2;
+  }
+  .caratula .subtitulo { font-weight: bold; }
+  .caratula .bloque { margin-top: 1.1cm; }
+  .caratula div { text-indent: 0; }
+
+  /* Índice */
+  .indice ul { list-style: none; padding: 0; margin: 0; }
+  .indice li { line-height: 2; }
+  .indice li.n2 { padding-left: 1.27cm; }
+  .indice a { color: #000; text-decoration: none; }
+  .indice a::after {
+    content: leader('.') target-counter(attr(href), page);
+  }
+
+  /* Figuras y tablas APA */
+  .figura { margin: 0.5cm 0 0.6cm 0; page-break-inside: avoid; }
+  .figura .num, .tabla .num { font-weight: bold; line-height: 2; text-indent: 0; }
+  .figura .tit, .tabla .tit { font-style: italic; line-height: 2; text-indent: 0; margin-bottom: 0.15cm; }
+  .figura img { display: block; max-width: 100%; margin: 0 auto; }
+  .figura .nota, .tabla .nota {
+    line-height: 1.5; text-indent: 0; margin-top: 0.2cm; font-size: 10pt;
+  }
+  .nota em.etq { font-style: italic; }
+  .figura-pagina { page: figura-grande; page-break-before: always; page-break-after: always; }
+  .figura-pagina .figura { margin-top: 0; }
+
+  .tabla { margin: 0.5cm 0 0.6cm 0; page-break-inside: avoid; }
+  table {
+    width: 100%; border-collapse: collapse; font-size: 10pt; line-height: 1.4;
+  }
+  thead th {
+    border-top: 0.8pt solid #000; border-bottom: 0.8pt solid #000;
+    text-align: left; font-weight: bold; padding: 4pt 5pt; vertical-align: bottom;
+  }
+  tbody td { padding: 4pt 5pt; vertical-align: top; }
+  tbody tr:last-child td { border-bottom: 0.8pt solid #000; }
+
+  code, .mono { font-family: "Courier New", monospace; font-size: 9.5pt; }
+
+  /* Referencias APA: sangría francesa */
+  .referencias p {
+    text-indent: -1.27cm; padding-left: 1.27cm;
+  }
+  ul.lista { margin: 0 0 0 1.27cm; padding: 0; }
+  ul.lista li { line-height: 2; }
+
+  .cu { margin: 0.25cm 0 0.5cm 0; page-break-inside: avoid; }
+  .cu-cab { font-weight: bold; font-size: 11pt; line-height: 2; }
+  .cu-id { color: #16308c; margin-right: 4pt; }
+  .cu .plan { font-weight: normal; font-style: italic; font-size: 9.5pt; color: #555; margin-left: 6pt; }
+  .cu table { font-size: 9.6pt; border-top: 0.8pt solid #000; border-bottom: 0.8pt solid #000; }
+  .cu td { padding: 3.5pt 5pt; vertical-align: top; border-bottom: 0.4pt solid #ccc; line-height: 1.4; }
+  .cu tr:last-child td { border-bottom: 0; }
+  .cu td.k { width: 24%; font-weight: bold; }
+  .cu ol { margin: 0; padding-left: 14pt; }
+  .cu ol li { line-height: 1.4; margin-bottom: 1pt; }
+  table.hu tr { page-break-inside: avoid; }
+  table.hu ul { margin: 0; padding-left: 11pt; }
+  table.hu li { line-height: 1.35; margin-bottom: 2pt; }
+  .mono { font-family: "Courier New", monospace; font-size: 9pt; }
+
+  /* Entrega Obligatoria N.º 2: el PDF se genera con Chrome (docs/generar_pdf.py), que numera las páginas
+     en el encabezado y completa el índice en dos pasadas (no soporta leader() ni target-counter()). */
+  @page { size: A4; margin: 2.54cm; }
+  .indice li { display: flex; align-items: baseline; gap: 4pt; }
+  .indice a::after { content: none; }
+  .indice .relleno { flex: 1; border-bottom: 1px dotted #000; transform: translateY(-3pt); }
+  .indice .pag { min-width: 1.2em; text-align: right; }
+  .figura img.alto { max-height: 21.5cm; width: auto; }
+  .figura img { max-width: 100%; }
+  thead { display: table-header-group; }
+  tr { page-break-inside: avoid; }
+  h1:not(:first-child) { margin-top: 0.5cm; }
+  /* Interlineado 1,5 en el cuerpo para respetar la extensión de 8 a 12 páginas que pide la consigna. */
+  p { line-height: 1.5; margin-bottom: 0.18cm; }
+  h1, h2, h3 { line-height: 1.6; }
+  h2 { margin-top: 0.25cm; }
+  .figura, .tabla { margin: 0.35cm 0 0.45cm 0; }
+  .figura .num, .tabla .num, .figura .tit, .tabla .tit { line-height: 1.5; }
+  .referencias p { line-height: 1.6; }
+
+  pre.consola { font-family: "Courier New", monospace; font-size: 7.6pt; line-height: 1.32; white-space: pre-wrap;
+                word-break: break-all; border: 0.6pt solid #999; padding: 6pt 8pt; margin: 0.2cm 0 0.3cm 0; background: #f7f7f7; }
+  .adr { margin: 0.15cm 0 0.45cm 0; }
+  .adr h3 { font-style: normal; }
+  .adr p { text-indent: 0; line-height: 1.4; margin-bottom: 0.12cm; font-size: 10.3pt; }
+  .adr .meta { font-size: 9.5pt; color: #333; }
+  td.si { white-space: nowrap; }
+  table.chica { font-size: 9.2pt; }

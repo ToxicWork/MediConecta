@@ -214,6 +214,11 @@ jobs:
               echo "**El escaneo falló:** vulnerabilidades altas o críticas, o un error de Trivy (ver el detalle)."; echo
             fi
             if [ -s trivy.txt ]; then echo '```'; cat trivy.txt; echo '```'; fi; } >> "$GITHUB_STEP_SUMMARY"
+          # Lo encontrado (o el error de Trivy), también en una anotación: se ve sin abrir el resumen del run.
+          if [ "$RESULTADO" != "success" ]; then
+            hallazgos=$({ grep -E 'CVE-|GHSA-|FATAL|ERROR' trivy.txt || true; } | head -15 | cut -c1-220)
+            echo "::error title=Trivy::$(echo "${hallazgos:-sin detalle en la salida}" | sed ':a;N;$!ba;s/%/%25/g;s/\n/%0A/g')"
+          fi
 
   punta-a-punta:
     # La aplicación completa en el runner, sin contenedores: WildFly del zip oficial (de Maven Central, con su
@@ -384,7 +389,8 @@ jobs:
         run: |
           mkdir -p resultados-zap resultados-e2e
           codigo=0
-          ZAP_2.17.0/zap.sh -cmd -autorun "$GITHUB_WORKSPACE/pruebas/seguridad/zap-plan.yaml" > zap.log 2>&1 || codigo=$?
+          # ZAP levanta su propio proxy, por defecto en el 8080, que es el de WildFly: se lo pasa al 8090.
+          ZAP_2.17.0/zap.sh -cmd -host 127.0.0.1 -port 8090 -autorun "$GITHUB_WORKSPACE/pruebas/seguridad/zap-plan.yaml" > zap.log 2>&1 || codigo=$?
           tail -60 zap.log
           if [ ! -s resultados-zap/zap-reporte.json ]; then
             # Sin reporte: el final de la salida de ZAP en una anotación, para verlo sin abrir el log.
