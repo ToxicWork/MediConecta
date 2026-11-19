@@ -2,11 +2,13 @@
 
 Lee el reporte JSON y lista las dependencias con CVE de CVSS 7 o más (las que hacen fallar el trabajo) y cuántas más
 bajas hay. El resumen va a GITHUB_STEP_SUMMARY (o a la salida, fuera del pipeline); la anotación, a la salida.
-Uso: python3 resumen_dependency_check.py target/dependency-check-report.json
+Uso (desde la raíz del repositorio): python3 .github/scripts/resumen_dependency_check.py
 """
 import json, os, sys
 
 UMBRAL = 7.0
+# Ruta fija, no un argumento: el script sólo lee el reporte que deja el trabajo (Sonar S8707).
+REPORTE = os.path.join("target", "dependency-check-report.json")
 DESTINO = os.environ.get("GITHUB_STEP_SUMMARY")
 
 
@@ -31,7 +33,7 @@ def puntaje(vulnerabilidad):
     return {"CRITICAL": 9.0, "HIGH": 7.0, "MEDIUM": 5.0, "LOW": 2.0}.get(str(vulnerabilidad.get("severity", "")).upper(), 0.0)
 
 
-def main(ruta):
+def main(ruta=REPORTE):
     escribir("## Dependencias contra la NVD (OWASP Dependency-Check)\n")
     if not os.path.exists(ruta):
         escribir("No se generó el reporte: el análisis no llegó a terminar (ver el log del trabajo).")
@@ -62,4 +64,4 @@ def main(ruta):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1])
+    main()
