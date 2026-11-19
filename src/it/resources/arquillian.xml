@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Arquillian con el contenedor remoto: despliega cada prueba en el WildFly que ya está levantado (el mismo de las suites
+  de punta a punta) y la corre adentro, con su datasource de PostgreSQL y su broker Artemis. La conexión de
+  administración es local (127.0.0.1:9990) y usa la autenticación local de WildFly, sin usuario ni contraseña.
+-->
+<arquillian xmlns="http://jboss.org/schema/arquillian"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xsi:schemaLocation="http://jboss.org/schema/arquillian http://jboss.org/schema/arquillian/arquillian_1_0.xsd">
+    <container qualifier="wildfly-remoto" default="true">
+        <configuration>
+            <property name="managementAddress">127.0.0.1</property>
+            <property name="managementPort">9990</property>
+        </configuration>
+    </container>
+</arquillian>

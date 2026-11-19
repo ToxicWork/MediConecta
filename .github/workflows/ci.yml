@@ -310,11 +310,12 @@ jobs:
           # tandas de 10) necesita más de 10 avisos de la profesional.
           - nombre: Pruebas de punta a punta, grupo 2 de 3 (WildFly, PostgreSQL y Chrome del runner)
             tipo: suites
-            suites: prueba_permisos_broker prueba_cancelacion prueba_inyeccion prueba_contrato_api prueba_monitor
+            suites: prueba_permisos_broker prueba_cancelacion prueba_inyeccion prueba_contrato_api prueba_contrato_wsdl prueba_monitor
           # Seguridad y defectos en un grupo propio: con las cinco suites anteriores, el grupo 2 llegaba a 13,4 minutos.
           - nombre: Pruebas de punta a punta, grupo 3 de 3 (WildFly, PostgreSQL y Chrome del runner)
             tipo: suites
             suites: prueba_seguridad prueba_defectos prueba_datos_protegidos
+            integracion: true  # y las pruebas de integración con Arquillian (src/it/java), en el mismo servidor
           - nombre: Prueba de carga de la API (k6, 50 usuarios durante 5 minutos)
             tipo: carga
           - nombre: Escaneo de seguridad (OWASP ZAP, pasivo y activo autenticado)
@@ -425,6 +426,24 @@ jobs:
       - name: Pruebas de punta a punta
         if: matrix.tipo == 'suites'
         run: bash .github/scripts/punta_a_punta.sh ${{ matrix.suites }}
+      - name: Pruebas de integración con Arquillian (repositorios sobre PostgreSQL y consumidores sobre Artemis)
+        if: matrix.tipo == 'suites' && matrix.integracion
+        run: |
+          # Se despliegan en el WildFly de este runner (contenedor remoto, autenticación local de administración).
+          # Hasta 3 intentos sólo si falló una descarga de Maven Central (429); una prueba que falla no se reintenta.
+          for intento in 1 2 3; do
+            codigo=0
+            mvn -B -ntp -P integracion verify -Djacoco.skip=true -Dtest=NingunaUnitaria               -Dsurefire.failIfNoSpecifiedTests=false | tee integracion.log || codigo=$?
+            if [ "$codigo" = 0 ] || ! grep -q "Could not transfer\|could not be resolved\|Too Many Requests" integracion.log; then break; fi
+            echo "::warning::Maven Central no entregó una dependencia (intento $intento); se reintenta"
+            sleep $((30 * intento))
+          done
+          {
+            echo "### Pruebas de integración (Arquillian)"
+            echo
+            grep -h "Tests run:.*-- in ar.edu.mediconecta.it" integracion.log | sed 's/^\[[A-Z]*\] /- /' || true
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$codigo"
       - name: k6 2.3.0 (binario oficial, con su checksum)
         if: matrix.tipo == 'carga'
         run: |

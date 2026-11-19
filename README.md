@@ -218,6 +218,17 @@ defectos D-01, D-02, D-04, D-07 y D-09 del informe del 16/11.
     por la profesional tratante y por el administrativo, y el cifrado AES-GCM mirado directamente en la base
     ([`VerificarCifrado.java`](pruebas/VerificarCifrado.java)): el dato está cifrado, el texto no aparece y no quedan
     valores sin cifrar. Necesita `WILDFLY_HOME` para la parte de la base.
+  - [`pruebas/prueba_contrato_wsdl.py`](pruebas/prueba_contrato_wsdl.py): el WSDL que publica el legado de la obra
+    social contra el contrato del que se genera el cliente (`src/main/resources/wsdl/CoberturaService.wsdl`):
+    operaciones, mensajes, tipos campo por campo, enumeraciones y binding. Verifica también que un contrato alterado a
+    propósito se detecte.
+  - Pruebas de integración con Arquillian ([`src/it/java`](src/it/java), `mvn -P integracion verify`): se despliegan en
+    el WildFly levantado y usan su PostgreSQL y su broker, sin mocks. `RepositoriosIT` prueba las consultas de los DAO,
+    el cifrado del afiliado en la columna y la idempotencia por la clave de la base; `ConsumidoresDeMensajesIT`
+    publica un evento real en el tópico y verifica que los MDB de la aplicación lo procesen una sola vez aunque llegue
+    dos veces. Las corre el pipeline en el grupo 3.
+  - [`pruebas/manual/`](pruebas/manual): los scripts de apoyo de las pruebas manuales del 19/11 (CP-90 y CP-92). No son
+    suites: registran lo observado para que una persona lo revise.
   - [`pruebas/prueba_inyeccion.py`](pruebas/prueba_inyeccion.py): SQL, XSS y expresiones EL en todos los campos
     de texto. Se verifica en cada pantalla donde se muestran: que se vean literales, que no se ejecute nada y que
     no haya errores 500 ni rastros de la base.

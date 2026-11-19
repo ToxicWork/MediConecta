@@ -7,3 +7,6 @@ docs/**/*.tmp.html
 # Bytecode de Python que generan las pruebas al correr
 __pycache__/
 *.pyc
+
+# Capturas de las pruebas manuales asistidas (la evidencia elegida va a docs/qa/img/manual/)
+resultados-manual/

@@ -3,7 +3,7 @@ Bloqueante, Crítica, Mayor (máximo 3 abiertos, con alternativa documentada), M
 
 Estados: Cerrado (corregido en main y verificado por una prueba), Resuelto en rama (corregido y verificado en una rama
 que todavía no está en main), Abierto, Limitación aceptada (se decidió no corregirlo; tiene alternativa documentada).
-Los D-13 a D-43 tienen tarjeta en el tablero; los D-01 a D-12 salen de los informes del 14/11 y del 16/11.
+Los D-13 a D-47 tienen tarjeta en el tablero; los D-01 a D-12 salen de los informes del 14/11 y del 16/11.
 """
 
 
@@ -36,9 +36,9 @@ DEFECTOS = [
     defecto("D-07", "Sólo el paciente podía cancelar un turno", "Mayor", "Media", "Cerrado", "HU-03", "Informe del 14/11",
             "La profesional o el administrativo intentan cancelar", "Pueden cancelar (lo preveía el diseño)", "No había opción",
             "Faltaba implementar la cancelación por rol. Agregada el 14/11", "prueba_cancelacion.py A y B (CP-16, CP-17)"),
-    defecto("D-08", "Al escribir la fecha para publicar, el calendario queda abierto y tapa el botón Publicar", "Menor", "Baja", "Abierto", "HU-06", "Pruebas del 14/11",
+    defecto("D-08", "Al escribir la fecha para publicar, el calendario queda abierto y tapa el botón Publicar", "Menor", "Baja", "Resuelto en rama", "HU-06", "Pruebas del 14/11",
             "Escribir la fecha y la hora en el campo", "Poder hacer clic en Publicar", "El calendario sigue abierto hasta hacer clic afuera o apretar Escape",
-            "El selector se abre al tomar el foco y no se cierra al escribir. Alternativa: Escape o clic afuera (las pruebas apretan Escape)", "-"),
+            "El selector se abre al tomar el foco y no se cierra al escribir. Arreglo (19/11): el calendario se abre sólo con el botón del ícono (showOnFocus="false"); escribir la fecha ya no lo abre", "-"),
     defecto("D-09", "No se verificaba que los logs enmascaren los emails", "Menor", "Media", "Cerrado", "Seguridad (SEC-D02)", "Informe del 14/11",
             "Revisar el log después de un alta", "Emails enmascarados, sin datos personales", "No había prueba: no se podía afirmar",
             "Faltaba la prueba. Agregada (D02) junto con el enmascarador", "prueba_seguridad.py D02 (CP-54)"),
@@ -48,7 +48,7 @@ DEFECTOS = [
     defecto("D-11", "La base gratuita de Supabase se pausa tras una semana sin uso", "Menor", "Baja", "Limitación aceptada", "Entorno", "14/11",
             "No usar la base durante una semana y desplegar", "La aplicación despliega", "FATAL: tenant/user not found hasta reanudar el proyecto",
             "Plan gratuito de Supabase. Alternativa: reanudarlo desde el panel (SETUP.md) y revisarlo antes de cada demo", "SETUP.md"),
-    defecto("D-12", "Sin pruebas automáticas de la carga de la historia ni de los mensajes del registro", "Menor", "Media", "Resuelto en rama", "HU-08, HU-10", "Informe del 14/11",
+    defecto("D-12", "Sin pruebas automáticas de la carga de la historia ni de los mensajes del registro", "Menor", "Media", "Cerrado", "HU-08, HU-10", "Informe del 14/11",
             "Buscar una prueba que cubra esos criterios", "Una prueba automática por criterio", "Se mostraban a mano",
             "Faltaban pruebas. La carga de la historia la cubre prueba_seguridad D01; el registro, prueba_defectos D-12 (19/11)", "prueba_seguridad.py D01, prueba_defectos.py D-12 (CP-26, CP-39)"),
     defecto("D-13", "Se podía cancelar un turno que ya pasó, y si estaba pagado se reintegraba el copago", "Crítica", "Alta", "Cerrado", "HU-03", EXPLORATORIA,
@@ -109,7 +109,7 @@ DEFECTOS = [
     defecto("D-38", "La pantalla Pagos tardaba 30 s con cientos de cobros", "Mayor", "Alta", "Cerrado", "HU-02, HU-03", "Regresión del 18/11",
             "Ingresar como administrativo con 355 cobros y 165 reclamos", "Abre en pocos segundos", "30 s: 518 consultas por carga (N+1), repetidas cada 5 s",
             "Cada fila leía su turno en una consulta aparte. Arreglo: entity graph de JPA", "prueba_defectos.py D-38 (CP-45)"),
-    defecto("D-39", "El selector redondeaba los minutos a 5, pero el servidor aceptaba cualquiera", "Menor", "Media", "Resuelto en rama", "HU-06", "Pipeline del 19/11",
+    defecto("D-39", "El selector redondeaba los minutos a 5, pero el servidor aceptaba cualquiera", "Menor", "Media", "Cerrado", "HU-06", "Pipeline del 19/11",
             "Escribir 14:18 a mano y publicar", "Se publica lo escrito o se avisa", "A veces 14:20, a veces 14:18", "Validación sólo en el cliente. Arreglo: el servidor exige múltiplos de 5 y sugiere los más cercanos",
             "prueba_defectos.py D-39 (CP-31), ServicioDeTurnosBeanTest (CP-61)"),
     defecto("D-40", "La Agenda de la profesional se pasaba del ancho de la pantalla", "Menor", "Media", "Cerrado", "HU-06", "prueba_responsive.py, 19/11",
@@ -120,8 +120,31 @@ DEFECTOS = [
     defecto("D-42", "La falla de demostración del flujo crítico vive en la aplicación (era D-14 del informe del 16/11)", "Menor", "Baja", "Abierto", "HU-02", "Informe del 16/11",
             "Levantar WildFly con -Dmediconecta.demo.fallas=true", "La demostración de la compensación, en una prueba", "Un control del administrativo arma la falla",
             "Herramienta de la defensa. Apagada salvo con la propiedad del servidor; se prometió retirarla o pasarla a una prueba de integración", "prueba_entrega4.py F (CP-11)"),
-    defecto("D-43", "Después de 5 minutos sin uso, la Agenda daba error 500 hasta volver a ingresar", "Mayor", "Alta", "Resuelto en rama", "HU-01, HU-02, HU-03, HU-08", "Pipeline del 19/11",
+    defecto("D-43", "Después de 5 minutos sin uso, la Agenda daba error 500 hasta volver a ingresar", "Mayor", "Alta", "Cerrado", "HU-01, HU-02, HU-03, HU-08", "Pipeline del 19/11",
             "Dejar la Agenda sin usar más de 5 minutos y recargar", "La Agenda abre; si había un turno en espera, avisa que venció", "NoSuchEJBException (WFLYEJB0168) en cada pedido",
             "Los beans de la web guardaban la referencia al componente con estado, que el contenedor destruye a los 5 minutos (@StatefulTimeout). Arreglo: ConversacionDeTurnos la renueva",
             "prueba_hold_vence.py (CP-04), ConversacionDeTurnosTest (CP-62)"),
+    defecto("D-44", "Una entrada vacía se guardaba en la historia clínica y una de más de 2000 caracteres daba un error de la base", "Menor", "Media", "Resuelto en rama", "HU-08", "Revisión del código al implementar el cifrado (19/11)",
+            "Como profesional, guardar una entrada con la descripción vacía; o pegar un texto de más de 2000 caracteres", "La entrada no se guarda y se pide el texto, o se informa el largo máximo",
+            "La vacía quedaba en la línea de tiempo; la larga terminaba en un error de la base (columna varchar(2000))",
+            "El servicio no validaba la descripción: sólo la columna tenía un largo. Arreglo: ServicioDeHistoriaClinicaBean.validarDescripcion y maxlength en la pantalla",
+            "prueba_datos_protegidos.py, escenario D (CP-85); ServicioDeHistoriaClinicaBeanTest (CP-64)"),
+    defecto("D-45", "Con la página abierta desde antes, cancelar un turno que otro ya había cancelado cancelaba otro turno", "Crítica", "Alta", "Resuelto en rama", "HU-03", "Prueba exploratoria CP-92, cargo «Dos usuarios a la vez» (19/11)",
+            "El paciente tiene dos turnos y la Agenda abierta; la profesional cancela el primero desde la suya; el paciente toca Cancelar en el primero y confirma",
+            "«No se puede cancelar un turno cancelado.» y el otro turno sigue confirmado",
+            "«Turno cancelado. El reintegro...»: se canceló y reintegró el turno siguiente, aunque el diálogo nombraba el primero. Lo mismo podía pasar en la Agenda del profesional con el turno de otro paciente",
+            "Faces toma la fila por su posición en la lista, que se volvía a leer de la base al enviar. Arreglo: los botones sin confirmación mandan el id (f:param); los que tienen p:confirm usan la lista guardada en la vista (ListasDeLaVista)",
+            "prueba_defectos.py, escenario D-45; pruebas/manual/cp92_fila_vieja.py (reproducción); img/manual/cp92-08-*.png"),
+    defecto("D-46", "Con la sesión vencida, un botón mostraba «Ocurrió un error... de nuestro lado» y, en AJAX, no hacía nada", "Menor", "Media", "Resuelto en rama", "Todas", "Prueba exploratoria CP-92, cargo «Sesión vencida» (19/11)",
+            "Dejar una pantalla abierta hasta que venza la sesión (o borrar la cookie) y tocar un botón, por ejemplo «Ver turnos disponibles» o «Ver ficha»",
+            "Una página que diga que la sesión venció y lleve a ingresar de nuevo",
+            "La página de error genérica, que culpa al sistema; en un botón AJAX, nada visible",
+            "La ViewExpiredException caía en la página de error de java.lang.Throwable, y en AJAX volvía como un error que la pantalla ignora. Arreglo: ManejadorDeSesionVencida lleva a sesion-vencida.xhtml en los dos casos",
+            "prueba_defectos.py, escenario D-46; ManejadorDeSesionVencidaTest; img/manual/cp92-10-*.png y cp92-11-*.png"),
+    defecto("D-47", "El manual de usuario (v0.2, octubre) no describe la aplicación actual", "Menor", "Media", "Abierto", "Documentación", "Prueba manual CP-91 (19/11)",
+            "Elegir al azar una tarea por rol y hacerla siguiendo sólo el manual",
+            "Cada rol encuentra su tarea y la completa como dice el manual",
+            "No hay nada para el administrativo. Faltan el pago, la cobertura, la ficha y el diálogo de cancelación; dice que Telemedicina y Pagos están «Pronto» y que el registro pide el tipo de usuario",
+            "El manual es de la Entrega Parcial N.º 2 y no se actualizó con las entregas siguientes. Falta una versión nueva, que el equipo tiene que aprobar",
+            "img/manual/cp91-*.jpg y cp91-tareas-del-manual.gif"),
 ]

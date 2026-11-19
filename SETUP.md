@@ -353,6 +353,8 @@ python pruebas/demo_api_jwt_409.py --sin-cancelar   # guion del login con JWT (n
 python pruebas/prueba_broker.py      # el broker se cae y vuelve a levantar sin perder mensajes (reinicia el servidor)
 python pruebas/prueba_permisos_broker.py  # de afuera, nadie publica ni lee en el broker (sección 2.3)
 python pruebas/prueba_datos_protegidos.py # ficha del paciente (Decorator) y cifrado AES-GCM mirado en la base (sección 2.4)
+python pruebas/prueba_contrato_wsdl.py   # el WSDL que publica el legado contra el contrato del que se genera el cliente
+mvn -P integracion verify                 # integración con Arquillian: repositorios (PostgreSQL) y consumidores (Artemis) reales
 python pruebas/prueba_inyeccion.py   # SQL, XSS y expresiones EL en todos los campos de texto
 python pruebas/prueba_contrato_api.py  # la API REST contra su OpenAPI (docs/api/openapi.json)
 python pruebas/prueba_responsive.py  # cada pantalla de cada rol a 360, 768 y 1280 px, con capturas (no modifica datos)

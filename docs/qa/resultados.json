@@ -14,8 +14,8 @@
     "openapi": "https://github.com/ToxicWork/MediConecta/blob/main/docs/api/openapi.json"
   },
   "junit": {
-    "pruebas": 289,
-    "clases": 46
+    "pruebas": 317,
+    "clases": 50
   },
   "e2e": {
     "suites": 13
@@ -110,18 +110,32 @@
     "zap": {
       "texto": "Pasó (0 High; 3 Medium justificadas)"
     },
-    "manual": {
-      "texto": "Manual: pendiente de ejecutar por el equipo"
+    "cp90": {
+      "texto": "Pasó: el aviso apareció a los 6,9 s, sin recargar"
+    },
+    "cp91": {
+      "texto": "Pasó en parte: paciente y profesional sí; el administrativo no tiene tareas en el manual (D-47)"
+    },
+    "cp92": {
+      "texto": "Falló: encontró D-45 (crítico) y D-46; corregidos y con regresión automática"
+    },
+    "prueba_contrato_wsdl": {
+      "ok": 18,
+      "fallas": 0,
+      "tiempo": "1 s"
+    },
+    "integracion": {
+      "texto": "Pasó (4 de 4 en una PC el 19/11; el pipeline la corre en el grupo 3)"
     }
   },
   "niveles": [
     {
       "nivel": "Unitario",
-      "ejecutados": 289,
-      "pasados": 289,
+      "ejecutados": 317,
+      "pasados": 317,
       "fallados": 0,
       "bloqueados": 0,
-      "detalle": "46 clases de JUnit 5; tres corridas idénticas"
+      "detalle": "50 clases de JUnit 5; tres corridas idénticas"
     },
     {
       "nivel": "Mutación",
@@ -157,11 +171,11 @@
     },
     {
       "nivel": "Manual",
-      "ejecutados": 0,
-      "pasados": 0,
-      "fallados": 0,
+      "ejecutados": 3,
+      "pasados": 1,
+      "fallados": 2,
       "bloqueados": 0,
-      "detalle": "CP-90 a CP-92: pendientes del equipo"
+      "detalle": "CP-90 pasó; CP-91 sólo en 2 de 3 roles (D-47); CP-92 encontró D-45 (crítico) y D-46, ya corregidos con regresión automática"
     }
   ],
   "metricas": [
@@ -480,15 +494,15 @@
     ],
     [
       "Diagnóstico y n.º de afiliado cifrados por columna con AES-GCM (diseño 8.6)",
-      "Revisión del código",
-      "NO CUMPLE",
-      "No implementado; pendiente de decisión del equipo"
+      "E2E mirando la base y unitarias",
+      "CUMPLE",
+      "AES-256-GCM con la clave en el credential store de Elytron (ADR-0022); prueba_datos_protegidos.py, escenario C (CP-85), y CifradorDeColumnasTest (CP-86)"
     ],
     [
       "Datos clínicos enmascarados con el Decorator PacienteEnmascarado (diseño 4.8)",
-      "Revisión del código",
-      "NO CUMPLE",
-      "No implementado; pendiente de decisión del equipo. El acceso ya se limita por rol y por turno confirmado (SEC-D01)"
+      "E2E y unitarias",
+      "CUMPLE",
+      "Ficha del paciente decorada por PacienteEnmascarado (ADR-0023); prueba_datos_protegidos.py, escenario B (CP-84), y PacienteEnmascaradoTest (CP-86)"
     ]
   ],
   "hallazgos": [
@@ -496,13 +510,14 @@
     "Contraseñas: PBKDF2 usaba las 2048 iteraciones por defecto de la implementación, unas 290 veces menos que lo que recomienda OWASP. Se pasó a 600.000 (ADR-0021, aceptado; 120 ms por hash y 0,2 s por ingreso medidos). PBKDF2 se mantiene frente a bcrypt o Argon2 porque es parte de Jakarta EE y está aprobado por NIST; las alternativas exigirían una biblioteca externa y un identity store propio.",
     "Supabase: Hibernate crea las tablas nuevas sin Row Level Security (D-10). Tratamiento: correr sql/02-habilitar-rls.sql, que es idempotente, después de cada despliegue con entidades nuevas. Verificado el 19/11: las 15 tablas tienen RLS.",
     "Análisis de dependencias: el diseño mencionaba OWASP Dependency-Check; se usa Trivy, que los criterios aceptan, porque analiza los dos proyectos en segundos y no necesita descargar la base del NVD en cada corrida. Resultado: 0 CVE altas o críticas.",
-    "Secretos: gitleaks recorre todo el historial en cada corrida sin hallazgos. La contraseña de demo de las pruebas (demo1234) es un dato de prueba documentado; la del administrador inicial llega por variable de entorno."
+    "Secretos: gitleaks recorre todo el historial en cada corrida sin hallazgos. La contraseña de demo de las pruebas (demo1234) es un dato de prueba documentado; la del administrador inicial llega por variable de entorno.",
+    "Botones de fila: con una página abierta desde antes, cancelar un turno que otro ya había cancelado cancelaba el de la fila siguiente, y lo reintegraba (D-45, crítico). Lo encontró la prueba exploratoria (CP-92) y se reprodujo a propósito con el paciente y con el administrativo antes de corregirlo."
   ],
   "ia": {
     "herramientas": [
       [
         "Claude Code (CLI) con Claude Opus 5.5, de Anthropic (19/11; en las etapas anteriores, los modelos Claude disponibles en cada momento)",
-        "Escribir y mantener las suites de punta a punta, las pruebas unitarias, el pipeline, los ADR y este documento; diagnosticar las fallas del pipeline",
+        "Escribir y mantener las suites de punta a punta, las pruebas unitarias, el pipeline, los ADR y este documento; diagnosticar las fallas del pipeline; ejecutar las pruebas manuales CP-90 a CP-92 en el navegador (Claude in Chrome y Playwright), con capturas, para que un integrante las revise",
         "Pedido del equipo (resumido): que el servidor exija minutos múltiplos de 5, con su prueba; preparar los permisos del broker con una prueba de que un cliente sin permiso no puede mandar mensajes",
         "Las pruebas que fallan sin el arreglo y pasan con él: por ejemplo, prueba_permisos_broker falló en 10 verificaciones antes del script y pasó después",
         "Diagnósticos equivocados y verificaciones demasiado débiles (ver la lista siguiente); los descartes quedaron en los commits",
@@ -523,7 +538,9 @@
       "El arreglo del D-39, propuesto por la IA, rompió el escenario E de prueba_cancelacion, que publicaba un turno con minutos sueltos. Lo detectó el pipeline de la rama antes de integrarla.",
       "prueba_inyeccion marcaba un XSS ejecutado cuando el ataque sólo aparecía escapado dentro de un texto de JavaScript de PrimeFaces (falso positivo). Se revisó el código de la página y el detector pasó a buscar ejecución real.",
       "La IA informó 75 verificaciones de la prueba responsive cuando eran 57; se corrigió al correr la suite.",
-      "Numeró un ADR nuevo como ADR-0018, número que ya tenía el de RLS; se detectó al revisar el índice y pasó a ADR-0019."
+      "Numeró un ADR nuevo como ADR-0018, número que ya tenía el de RLS; se detectó al revisar el índice y pasó a ADR-0019.",
+      "En la exploratoria (CP-92), el script de la IA contaba los cobros por fecha y marcó un posible cobro doble al recargar: eran dos turnos del mismo día. Se descartó mirando la pantalla Pagos, que muestra cada cobro con su hora.",
+      "La primera corrección del D-45 (mandar el id con f:param) rompió los botones con confirmación: PrimeFaces pierde el parámetro al confirmar. La reproducción lo mostró antes del commit y esos botones pasaron a usar la lista guardada en la vista."
     ],
     "firma": "Todo el código de pruebas generado con IA está en Git con autor Sergio Casanova y la marca Co-Authored-By de Claude. Antes de la defensa, cada integrante revisa las pruebas de su área y tiene que poder explicarlas; la revisión queda registrada en el tablero.",
     "plan": [
@@ -576,5 +593,35 @@
     "World Wide Web Consortium. (2023). Web Content Accessibility Guidelines (WCAG) 2.2.",
     "Nottingham, M., Wilde, E. y Dalal, S. (2023). RFC 9457: Problem Details for HTTP APIs. IETF.",
     "Ley 25.326 de Protección de los Datos Personales. (2000). Boletín Oficial de la República Argentina."
-  ]
+  ],
+  "manuales": [
+    [
+      "CP-90",
+      "Aviso sin recargar la página",
+      "19/11, 17:37. Chrome: la Dra. Ana Lopez con Notificaciones abierta; Edge (Playwright): un paciente nuevo reserva y paga un turno con ella. Un observador en la página midió cuándo apareció el aviso.",
+      "El aviso «Paciente CP90 86948 confirmó un turno para el 30/12/2026 16:20 hs.» apareció a los 6,9 s de la confirmación, sin recargar (la misma navegación), y el contador del menú subió. Pasó.",
+      "img/manual/cp90-1-bandeja-antes.jpg, cp90-2-aviso-sin-recargar.jpg"
+    ],
+    [
+      "CP-91",
+      "Tarea del manual elegida al azar",
+      "Manual de usuario v0.2 (octubre). Sorteo: paciente «Cancelar un turno» (cap. 3), profesional «Ver tus notificaciones» (cap. 5); el administrativo no tiene ninguna tarea en el manual.",
+      "Paciente y profesional completaron la tarea siguiendo sólo el manual. El manual no menciona el diálogo de confirmación ni el reintegro, dice que «Mis turnos» está arriba de todo, que el aviso al paciente tiene la etiqueta «Email» y que Telemedicina y Pagos están «Pronto»; el registro ya no pide tipo de usuario. Pasó en parte: D-47.",
+      "img/manual/cp91-*.jpg y cp91-tareas-del-manual.gif"
+    ],
+    [
+      "CP-92",
+      "Exploratoria guiada",
+      "19/11. Un cargo por tema (tabla de charters), con pruebas/manual/cp92_exploratoria.py, que sólo registra lo observado y una captura por paso; cada observación la revisó y la reprodujo la IA, y queda para la revisión de un integrante.",
+      "Encontró D-45 (crítico: con la página desactualizada se cancelaba otro turno) y D-46 (sesión vencida con la página de error genérica). Sin hallazgos en doble clic, recarga, volver atrás e inyección en la ficha. Falló, por los defectos nuevos; los dos están corregidos y tienen escenario en prueba_defectos.py.",
+      "img/manual/cp92-*.png"
+    ]
+  ],
+  "charters_resultado": {
+    "Datos inválidos": "Sin errores 500: cada formulario dice qué corregir. El registro informa un problema por vez (observación, no defecto)",
+    "Doble clic y volver atrás": "Un solo cobro y una sola entrada; atrás después de cerrar sesión vuelve al ingreso",
+    "Sesión vencida": "D-46: página de error genérica y, en AJAX, nada. Corregido: «Tu sesión venció»",
+    "Recarga a mitad de operación": "Recargar después de pagar no cobra otra vez: avisa que no hay turno en espera",
+    "Dos usuarios a la vez": "D-45 (crítico): con la página vieja se cancelaba el turno de la fila siguiente. Corregido"
+  }
 }

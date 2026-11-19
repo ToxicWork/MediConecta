@@ -28,6 +28,7 @@ que ya empezó) y D-21 (el paciente confirma antes de cancelar) están en prueba
         (lee el datasource de MediConecta y usa el driver de PostgreSQL de WildFly) y Java; sin WILDFLY_HOME se omite.
   D-38. La pantalla Pagos del administrativo (su página de inicio) abre en pocos segundos aunque haya cientos de
         cobros y reclamos: cada listado sale en una sola consulta, no una por fila.
+  D-08. Al escribir la fecha para publicar, el calendario no se abre y no tapa «Publicar» (se abre con el ícono).
   D-45. Con la Agenda abierta desde antes, el paciente cancela un turno que la profesional ya canceló: se le informa y
         no se cancela otro turno en su lugar (antes Faces tomaba la fila por su posición en la lista nueva).
   D-46. Con la sesión vencida, un botón (común o AJAX) lleva a «Tu sesión venció», no a la página de error genérica.
@@ -594,6 +595,20 @@ with sync_playwright() as p:
           and ancho.locator(".sidebar a.user-chip[title='Mi perfil']").count() == 1)
     ancho.context.close()
 
+    # ---- D-08. El calendario no tapa «Publicar» ---------------------------------------------------------------
+    print("-- D-08. Escribir la fecha para publicar")
+    prof.goto(B + "agenda.xhtml")
+    prof.click("#formPublicar\\:fecha_input")
+    prof.keyboard.type(dia_desde_hoy(40) + " 10:00")
+    prof.wait_for_timeout(400)
+    check("D-08. al hacer clic y escribir la fecha, el calendario no se abre ni tapa «Publicar»",
+          prof.locator("[id='formPublicar:fecha_panel']").is_hidden()
+          and prof.locator("#formPublicar button:has-text('Publicar')").is_visible())
+    prof.click("#formPublicar .ui-datepicker-trigger")
+    prof.wait_for_timeout(600)
+    check("D-08. el botón del ícono sí abre el calendario", prof.locator("[id='formPublicar:fecha_panel']").is_visible())
+    prof.keyboard.press("Escape")
+
     # ---- D-45. Un botón de una fila con la página desactualizada ------------------------------------------
     # Faces toma la fila por su posición en la lista: si cambió desde que se abrió la página (la profesional canceló
     # un turno), la misma posición era otro turno. El paciente confirmaba cancelar uno y se cancelaba el siguiente.
@@ -611,10 +626,12 @@ with sync_playwright() as p:
     pac.goto(B + "agenda.xhtml")  # la página del paciente queda abierta
     dia, hora = primero.split(" ")
     prof.goto(B + "agenda.xhtml")
-    prof.locator("#formTurnosProfesional\:tablaConfirmadosProfesional tr", has_text=nombre).filter(has_text=dia)         .filter(has_text=hora).locator("button:has-text('Cancelar')").click()
+    prof.locator("#formTurnosProfesional\\:tablaConfirmadosProfesional tr", has_text=nombre).filter(has_text=dia) \
+        .filter(has_text=hora).locator("button:has-text('Cancelar')").click()
     with prof.expect_navigation():
         prof.click(".ui-confirm-dialog:visible button:has-text('Sí, cancelar el turno')")
-    pac.locator("#formAgenda\:tablaMisTurnos tr").filter(has_text=dia).filter(has_text=hora)         .locator("button:has-text('Cancelar')").click()
+    pac.locator("#formAgenda\\:tablaMisTurnos tr").filter(has_text=dia).filter(has_text=hora) \
+        .locator("button:has-text('Cancelar')").click()
     with pac.expect_navigation():
         pac.click(".ui-confirm-dialog:visible button:has-text('Sí, cancelar el turno')")
     respuesta = mensajes(pac)

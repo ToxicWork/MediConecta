@@ -121,8 +121,8 @@ partes.append('<section class="salto"><h1 id="intro">Introducción</h1>' + p(
 # 1. Plan
 niveles = [
     ["Unitario", "JUnit 5 y Mockito; JaCoCo; PIT (mutación del dominio)", "Reglas del dominio y de los servicios EJB, sin contenedor", "%d pruebas en %d clases" % (R["junit"]["pruebas"], R["junit"]["clases"])],
-    ["Integración", "Pruebas de punta a punta contra WildFly, PostgreSQL y el broker reales", "Repositorios (JPA sobre PostgreSQL), consumidores de mensajes (MDB sobre Artemis), SOAP y REST externos", "Cubierto dentro de las suites de punta a punta; sin Arquillian (ver riesgos)"],
-    ["Contrato", "prueba_contrato_api.py contra el OpenAPI; WSDL publicado", "Cada respuesta documentada de la API REST", "29 de 30 respuestas; el WSDL se verifica publicado, no con validación de esquema"],
+    ["Integración", "Arquillian (contenedor remoto) dentro del WildFly del pipeline, con su PostgreSQL y su broker Artemis; además, las suites de punta a punta", "Repositorios (JPA sobre PostgreSQL, cifrado de columnas, idempotencia) y consumidores de mensajes (los MDB de la aplicación con el evento real), SOAP y REST externos", "RepositoriosIT y ConsumidoresDeMensajesIT (src/it/java, mvn -P integracion verify), sin mocks"],
+    ["Contrato", "prueba_contrato_api.py contra el OpenAPI; prueba_contrato_wsdl.py contra el WSDL del cliente", "Cada respuesta documentada de la API REST; operaciones, tipos y enumeraciones del servicio SOAP", "29 de 30 respuestas; el WSDL publicado por el legado coincide campo por campo con el contrato"],
     ["E2E", "Playwright (Python) con Chrome, en el pipeline", "Flujos completos de los tres roles, defectos y seguridad", "%d suites" % R["e2e"]["suites"]],
     ["No funcional", "k6 (carga), OWASP ZAP (seguridad), axe-core (accesibilidad), prueba responsive, gitleaks y Trivy", "Rendimiento, vulnerabilidades, WCAG 2.2 AA, diseño a 360/768/1280 px, secretos y dependencias", "Todas en el pipeline"],
     ["Manual", "Exploratoria guiada; tarea del manual de usuario", "Lo que el docente prueba sin guion", "Charters en la sección 3"],
@@ -131,7 +131,7 @@ entornos = [["Pipeline (evidencia de este informe)", "GitHub Actions, ubuntu-24.
             ["Desarrollo (Windows y macOS)", "WildFly 41 con standalone-full, base en Supabase (PostgreSQL), sistemas externos simulados (externos.war)"],
             ["Demostración en clase", "El entorno de desarrollo de un integrante con los datos de demo (SETUP.md)"]]
 riesgos = [
-    ["R-01", "Dos operaciones simultáneas sobre un turno (doble reserva, doble cancelación)", "Alta", "Alto", "CP-05, CP-20, CP-46"],
+    ["R-01", "Dos operaciones simultáneas sobre un turno (doble reserva, doble cancelación)", "Alta", "Alto", "CP-05, CP-20, CP-46, CP-92 (D-45)"],
     ["R-02", "Pérdida de mensajes si el broker o un suscriptor se cae", "Media", "Alto", "CP-14, CP-35, CP-23"],
     ["R-03", "El legado de la obra social caído, lento o con Fault", "Alta", "Alto", "CP-09, CP-10, CP-13, CP-72"],
     ["R-04", "La pasarela falla durante el cobro o el reintegro", "Media", "Alto", "CP-07, CP-11, CP-23 (D-06 y D-41 abiertos)"],
@@ -140,7 +140,7 @@ riesgos = [
     ["R-07", "Datos personales o de salud en logs y mensajes", "Baja", "Alto", "CP-54, CP-67"],
     ["R-08", "Inyección de eventos falsos en el broker", "Baja", "Alto", "CP-59"],
     ["R-09", "Pantallas lentas con volumen real (N+1)", "Media", "Medio", "CP-45, CP-79"],
-    ["R-10", "Sesión o conversación vencida que rompe la pantalla", "Media", "Medio", "CP-04, CP-62 (D-43)"],
+    ["R-10", "Sesión o conversación vencida que rompe la pantalla", "Media", "Medio", "CP-04, CP-62 (D-43), CP-92 (D-46)"],
     ["R-11", "Pruebas inestables que esconden defectos", "Media", "Medio", "CP-83 y tres corridas idénticas"],
     ["R-12", "Base de Supabase pausada o bloqueada por la red el día de la demo", "Media", "Alto", "Lista de control previa (D-11); el pipeline no depende de Supabase"],
 ]
@@ -215,7 +215,8 @@ partes.append('<section class="salto"><h1 id="casos">3. Especificación de casos
                                                                    automatizados, len(CASOS) - automatizados)) +
     T("Especificación de casos de prueba", ["Id", "Caso y HU", "Precondición", "Datos", "Pasos", "Resultado esperado", "Tipo, prioridad y nivel", "Automatizado"],
       filas_casos, ["5%", "13%", "13%", "11%", "15%", "21%", "9%", None]) +
-    T("Charters de la prueba exploratoria (CP-92)", ["Cargo", "Qué se explora", "Qué se espera"], charters, ["20%", "45%", None]) + "</section>")
+    T("Charters de la prueba exploratoria (CP-92)", ["Cargo", "Qué se explora", "Qué se espera", "Resultado (19/11)"],
+      [c + [e(R.get("charters_resultado", {}).get(c[0], "Sin ejecutar"))] for c in charters], ["15%", "30%", "25%", None]) + "</section>")
 
 # 4. Ejecución
 niveles_ej = [[n["nivel"], str(n["ejecutados"]), str(n["pasados"]), str(n["fallados"]), str(n["bloqueados"]), e(n["detalle"])] for n in R["niveles"]]
@@ -230,7 +231,15 @@ partes.append('<section class="salto"><h1 id="ejecucion">4. Informe de ejecució
     T("Prueba de carga con k6 (CP-79): 50 usuarios durante 5 minutos", ["Endpoint", "Pedidos", "Mediana", "p95", "p99", "Errores"],
       [[e(f[0]), f[1], f[2], f[3], f[4], f[5]] for f in R["carga"]["filas"]], ["40%", None, None, None, None, None], nota=e(R["carga"]["nota"])) +
     ('<div class="figura"><div class="num">Figura 1</div><div class="tit">Quality Gate de SonarCloud</div><img src="%s" alt="Quality Gate de SonarCloud"></div>' % R["captura_sonar"]
-     if R.get("captura_sonar") else "") + "</section>")
+     if R.get("captura_sonar") else "") +
+    (T("Pruebas manuales (CP-90 a CP-92), ejecutadas con asistencia de IA y pendientes de la revisión de un integrante",
+       ["Caso", "Qué", "Cómo se ejecutó", "Resultado", "Evidencia"],
+       [["<b>%s</b>" % m[0], e(m[1]), e(m[2]), e(m[3]), '<span class="mono">%s</span>' % e(m[4])] for m in R["manuales"]],
+       ["7%", "13%", "30%", "34%", None]) +
+     '<div class="figura"><div class="num">Figura 2</div><div class="tit">CP-90: el aviso del paciente en la bandeja de la '
+     'profesional, sin recargar la página (6,9 s después de confirmar)</div><img src="img/manual/cp90-2-aviso-sin-recargar.jpg" '
+     'alt="Bandeja de notificaciones de la Dra. Ana Lopez con el aviso nuevo arriba"></div>'
+     if R.get("manuales") else "") + "</section>")
 
 # 5. Defectos
 filas_def = [["<b>%s</b>" % d["id"], e(d["titulo"]), "%s<br>%s" % (d["severidad"], d["prioridad"]), e(d["hu"]), e(d["pasos"]),

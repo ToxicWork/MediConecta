@@ -318,7 +318,7 @@
                             <label for="formPublicar:fecha_input">Fecha y hora</label>
                             <p:datePicker id="fecha" value="#{agendaBean.nuevaFechaHora}" showTime="true" hourFormat="24"
                                           stepMinute="5" pattern="dd/MM/yyyy HH:mm" locale="es" mindate="#{agendaBean.hoy}"
-                                          showIcon="true" showButtonBar="true" placeholder="Elegí fecha y hora"
+                                          showIcon="true" showOnFocus="false" showButtonBar="true" placeholder="Elegí fecha y hora"
                                           styleClass="selector-fecha" appendTo="@(body)"
                                           required="true" requiredMessage="Elegí la fecha y la hora del turno"
                                           converterMessage="Elegí una fecha y hora válidas (dd/mm/aaaa hh:mm)"/>
