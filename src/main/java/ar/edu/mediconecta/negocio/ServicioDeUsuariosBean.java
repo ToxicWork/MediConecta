@@ -10,6 +10,7 @@ import ar.edu.mediconecta.negocio.factory.DatosRegistro;
 import ar.edu.mediconecta.negocio.factory.UsuarioFactory;
 import ar.edu.mediconecta.seguridad.Enmascarador;
 import ar.edu.mediconecta.seguridad.LimiteDeIntentos;
+import ar.edu.mediconecta.seguridad.ParametrosDeHash;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
 import jakarta.annotation.security.DeclareRoles;
@@ -20,7 +21,6 @@ import jakarta.ejb.Stateless;
 import jakarta.inject.Inject;
 import jakarta.security.enterprise.identitystore.Pbkdf2PasswordHash;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Logger;
@@ -57,7 +57,7 @@ public class ServicioDeUsuariosBean implements ServicioDeUsuarios {
 
     @PostConstruct
     void init() {
-        passwordHash.initialize(Collections.emptyMap());
+        passwordHash.initialize(ParametrosDeHash.PBKDF2);
     }
 
     @Override

@@ -16,7 +16,9 @@ import jakarta.security.enterprise.identitystore.Pbkdf2PasswordHash;
         dataSourceLookup = "java:/mediconectaDS",
         callerQuery = "SELECT password FROM usuario WHERE email = ?",
         groupsQuery = "SELECT rol FROM usuario WHERE email = ?",
-        hashAlgorithm = Pbkdf2PasswordHash.class
+        hashAlgorithm = Pbkdf2PasswordHash.class,
+        // ADR-0021: los mismos parámetros que usan los servicios al generar los hashes (ParametrosDeHash).
+        hashAlgorithmParameters = {ParametrosDeHash.ALGORITMO, ParametrosDeHash.ITERACIONES, ParametrosDeHash.SAL}
 )
 public class ConfiguracionSeguridad {
 }

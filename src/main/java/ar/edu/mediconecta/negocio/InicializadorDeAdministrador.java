@@ -14,11 +14,11 @@ import jakarta.ejb.Startup;
 import jakarta.ejb.TransactionManagement;
 import jakarta.ejb.TransactionManagementType;
 import jakarta.inject.Inject;
+import ar.edu.mediconecta.seguridad.ParametrosDeHash;
 import jakarta.security.enterprise.identitystore.Pbkdf2PasswordHash;
 import jakarta.transaction.Status;
 import jakarta.transaction.UserTransaction;
 
-import java.util.Collections;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -83,7 +83,7 @@ public class InicializadorDeAdministrador {
                     + sinContrasena.getMessage());
             return;
         }
-        passwordHash.initialize(Collections.emptyMap());
+        passwordHash.initialize(ParametrosDeHash.PBKDF2);
         Usuario admin = usuarioFactory.crear(Rol.ADMINISTRATIVO,
                 new DatosRegistro("Administrador", EMAIL, null, null, null, null),
                 passwordHash.generate(inicial.toCharArray()));
