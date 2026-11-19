@@ -181,7 +181,7 @@ def dia_desde_hoy(dias):
 
 def fecha_al_azar(dia):
     """Un horario del día "01" a "04" de la prueba: a 13-16 días de hoy, lejos de los que usan las otras."""
-    return "%s %02d:%02d" % (dia_desde_hoy(12 + int(dia)), random.randint(7, 19), random.randint(0, 59))
+    return "%s %02d:%02d" % (dia_desde_hoy(12 + int(dia)), random.randint(7, 19), random.randint(0, 11) * 5)
 
 
 def publicar_libre(prof, dia, modalidad="PRESENCIAL"):
