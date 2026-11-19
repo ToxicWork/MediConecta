@@ -112,7 +112,7 @@ with sync_playwright() as p:
     check("1. la profesional tiene el Monitor de eventos en el menú", prof.locator("a.nav-item", has_text="Monitor de eventos").count() == 1)
     # Un horario libre: si ya existe uno igual de otra corrida (D-23 no lo deja repetir), se elige otro.
     for _ in range(15):
-        fecha = "%s %02d:%02d" % (dia_desde_hoy(random.randint(32, 40)), random.randint(7, 19), random.randint(0, 59))
+        fecha = "%s %02d:%02d" % (dia_desde_hoy(random.randint(32, 40)), random.randint(7, 19), random.randint(0, 11) * 5)
         prof.goto(B + "agenda.xhtml")
         prof.fill("#formPublicar\\:fecha_input", fecha)
         prof.keyboard.press("Escape")

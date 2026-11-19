@@ -35,7 +35,7 @@ def login(br, email):
 def mis(pg):
     m=re.search(r"(\d+) turno\(s\) confirmado\(s\)", pg.content()); return int(m.group(1))
 import random
-HORA="%02d:%02d" % (random.randint(7,19), random.randint(0,59))
+HORA="%02d:%02d" % (random.randint(7,19), random.randint(0, 11) * 5)
 DIA=dia_desde_hoy(8)
 FECHA=DIA+" "+HORA
 FECHA_TABLA=DIA+" · "+HORA
@@ -57,7 +57,7 @@ with sync_playwright() as p:
         prof.fill("#formPublicar\\:fecha_input",FECHA); prof.keyboard.press("Escape")
         with prof.expect_navigation(): prof.locator("#formPublicar button:has-text('Publicar')").evaluate("b => b.click()")
         if "Disponibilidad publicada" in prof.content(): break
-        HORA="%02d:%02d" % (random.randint(7,19), random.randint(0,59)); FECHA=DIA+" "+HORA; FECHA_TABLA=DIA+" · "+HORA
+        HORA="%02d:%02d" % (random.randint(7,19), random.randint(0, 11) * 5); FECHA=DIA+" "+HORA; FECHA_TABLA=DIA+" · "+HORA
     check("profesional publica disponibilidad", "Disponibilidad publicada" in prof.content())
     prof.goto(B+"historia.xhtml"); check("profesional abre historia clínica", "Historia" in prof.title() or "Historia" in prof.content())
     pac=login(br,"juan.perez@mediconecta.test")
