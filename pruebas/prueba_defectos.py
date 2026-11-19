@@ -17,6 +17,8 @@ que ya empezó) y D-21 (el paciente confirma antes de cancelar) están en prueba
   D-14, D-31, D-25, D-26 y micrófono. El profesional abre la sala de una teleconsulta: al paciente le llega el aviso;
         Telemedicina no muestra el id interno; la sala no tiene notas técnicas y tiene micrófono con «Silenciar». Al
         finalizar la consulta, la sala se cierra para los dos y la teleconsulta sale de las listas.
+  D-12. El registro (HU-10) nombra cada dato que falta, no crea la cuenta si falta uno, e informa un email ya
+        registrado sin crear otra cuenta.
   D-24, D-27 y D-28. Sin jerga técnica en las pantallas del paciente, el contenido aprovecha un monitor ancho y el
         perfil se abre desde la tarjeta del usuario (no se repite en el menú).
   D-36. Dos pacientes reservan el mismo horario al mismo tiempo: uno se lo queda y al otro se le dice que ya no está
@@ -536,6 +538,36 @@ with sync_playwright() as p:
     check("D-38. el administrativo entra a Pagos en pocos segundos (%.1f s, %d cobros)" % (demora, cobros),
           "pagos.xhtml" in adm.url and cobros > 0 and demora < 10)
     adm.context.close()
+
+    # ---- D-12. Registro: avisa qué falta y no repite emails (HU-10) ----------------------------------
+    print("-- D-12. Registro (HU-10): lo que falta y el email repetido")
+    reg = pagina(br)
+    reg.goto(B + "registro.xhtml")
+    with reg.expect_navigation():
+        reg.click("#formRegistro button:has-text('Registrarme')")
+    texto = reg.inner_text("body")
+    faltan = [m for m in ("Completá tu nombre", "Completá tu email", "Elegí una contraseña", "Repetí la contraseña")
+              if m not in texto]
+    check("D-12. sin datos, el registro nombra cada dato que falta y no avanza (sin mensaje: %s)" % (", ".join(faltan) or "ninguno"),
+          not faltan and "registro.xhtml" in reg.url)
+    sin_nombre = "sin.nombre.%d@mediconecta.test" % random.randint(10000, 99999)
+    reg.goto(B + "registro.xhtml")
+    for campo, valor in (("email", sin_nombre), ("password", "demo1234"), ("repeticion", "demo1234")):
+        reg.fill("#formRegistro\\:" + campo, valor)
+    with reg.expect_navigation():
+        reg.click("#formRegistro button:has-text('Registrarme')")
+    check("D-12. sin el nombre lo pide y no crea la cuenta (el login de ese email responde 401)",
+          "Completá tu nombre" in reg.inner_text("body")
+          and api("auth/login", "POST", {"email": sin_nombre, "password": "demo1234"})[0] == 401)
+    reg.goto(B + "registro.xhtml")
+    for campo, valor in (("nombre", "Otro Juan"), ("email", "juan.perez@mediconecta.test"), ("password", "demo1234"),
+                         ("repeticion", "demo1234")):
+        reg.fill("#formRegistro\\:" + campo, valor)
+    with reg.expect_navigation():
+        reg.click("#formRegistro button:has-text('Registrarme')")
+    check("D-12. con un email ya registrado lo informa y no crea otra cuenta",
+          "ya está registrado" in reg.inner_text("body") and "registro.xhtml" in reg.url)
+    reg.context.close()
 
     # ---- D-24, D-27 y D-28. Pantallas ---------------------------------------------------------------
     print("-- D-24, D-27 y D-28. Pantallas")

@@ -315,7 +315,14 @@ with sync_playwright() as p:
     publicar(prof, f6)
     check("E. el paciente confirma y paga un turno que empieza a las %s" % f6[-5:], reservar_y_pagar(pac, f6))
     id6 = turno_id(tk_pac, f6)
-    en_agenda = lambda pg, tabla: pg.locator(tabla + " tr", has_text=f6.replace(" ", " · ") if "MisTurnos" in tabla else f6).count()
+
+    def en_agenda(pg, tabla):
+        """Cuántas veces figura el turno de E en la tabla; None si la página no es la Agenda (un error o el login),
+        para que "ya no figura" no se dé por bueno con una página que no cargó (así se escondió el D-43)."""
+        if pg.locator("#formAgenda\\:profesional, #formPublicar").count() == 0:
+            return None
+        return pg.locator(tabla + " tr", has_text=f6.replace(" ", " · ") if "MisTurnos" in tabla else f6).count()
+
     pac.goto(B + "agenda.xhtml")
     check("E. antes de la hora figura en los próximos turnos del paciente", en_agenda(pac, "#formAgenda\\:tablaMisTurnos") == 1)
     time.sleep(max(0.0, (inicio - datetime.now()).total_seconds()) + 3)

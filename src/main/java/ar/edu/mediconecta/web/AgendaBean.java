@@ -50,8 +50,9 @@ public class AgendaBean implements Serializable {
     @Inject
     private ServicioDeUsuarios servicioDeUsuarios;
 
+    /** La conversación de reserva (@Stateful), que se renueva sola si venció (D-43). */
     @Inject
-    private ServicioDeTurnos servicioDeTurnos;
+    private ConversacionDeTurnos turnos;
 
     @Inject
     private CatalogoPrestaciones catalogo;
@@ -86,7 +87,7 @@ public class AgendaBean implements Serializable {
 
     public void buscarDisponibilidad() {
         if (profesionalSeleccionadoId != null) {
-            disponibilidad = servicioDeTurnos.buscarDisponibilidad(profesionalSeleccionadoId);
+            disponibilidad = turnos.llamar(s -> s.buscarDisponibilidad(profesionalSeleccionadoId));
         }
     }
 
@@ -108,7 +109,7 @@ public class AgendaBean implements Serializable {
         }
         Map<String, Object> request = FacesContext.getCurrentInstance().getExternalContext().getRequestMap();
         return (List<Turno>) request.computeIfAbsent(MIS_TURNOS,
-                clave -> servicioDeTurnos.buscarProximosConfirmados(usuario.getId()));
+                clave -> turnos.llamar(s -> s.buscarProximosConfirmados(usuario.getId())));
     }
 
     @SuppressWarnings("unchecked")
@@ -119,7 +120,7 @@ public class AgendaBean implements Serializable {
         }
         Map<String, Object> request = FacesContext.getCurrentInstance().getExternalContext().getRequestMap();
         return (List<Turno>) request.computeIfAbsent(TURNOS_PROFESIONAL,
-                clave -> servicioDeTurnos.buscarProximosConfirmados(usuario.getId()));
+                clave -> turnos.llamar(s -> s.buscarProximosConfirmados(usuario.getId())));
     }
 
     private void invalidarMisTurnos() {
@@ -136,7 +137,7 @@ public class AgendaBean implements Serializable {
     /** El paciente cancela un turno suyo; el profesional, uno de su agenda (el horario no se vuelve a ofrecer). */
     public void cancelar(Long turnoId) {
         try {
-            Turno cancelado = servicioDeTurnos.cancelar(turnoId);
+            Turno cancelado = turnos.llamar(s -> s.cancelar(turnoId));
             invalidarMisTurnos();
             boolean habiaPago = cancelado.getImportePaciente() != null && cancelado.getImportePaciente().signum() > 0;
             String reintegro = habiaPago ? pesos(cancelado.getImportePaciente()) : "";
@@ -160,7 +161,7 @@ public class AgendaBean implements Serializable {
                 error(SESION_VENCIDA);
                 return;
             }
-            turnoEnHold = servicioDeTurnos.reservarHold(turnoId, usuario.getId());
+            turnoEnHold = turnos.llamar(s -> s.reservarHold(turnoId, usuario.getId()));
             datosPago = new DatosPago();
             cotizar();
             buscarDisponibilidad();
@@ -172,7 +173,7 @@ public class AgendaBean implements Serializable {
     /** Consulta la cobertura a la obra social (SOAP) y calcula el copago del turno en espera. */
     public void cotizar() {
         try {
-            cotizacion = servicioDeTurnos.cotizarTurnoEnHold();
+            cotizacion = turnos.llamar(ServicioDeTurnos::cotizarTurnoEnHold);
         } catch (ErrorDeNegocioException e) {
             sincronizarHold();
             error(e.getMessage());
@@ -241,7 +242,8 @@ public class AgendaBean implements Serializable {
                 return;
             }
             String ultimos = conPago ? datosPago.getUltimosDigitos() : "";
-            Turno confirmado = servicioDeTurnos.confirmar(conPago ? datosPago : null);
+            DatosPago pago = conPago ? datosPago : null;
+            Turno confirmado = turnos.llamar(s -> s.confirmar(pago));
             invalidarMisTurnos();
             turnoEnHold = null;
             cotizacion = null;
@@ -270,7 +272,7 @@ public class AgendaBean implements Serializable {
 
     public void liberarHold() {
         try {
-            servicioDeTurnos.liberarHold();
+            turnos.ejecutar(ServicioDeTurnos::liberarHold);
             info("Liberaste el turno: volvió a estar disponible.");
         } catch (ErrorDeNegocioException e) {
             error(e.getMessage());
@@ -282,7 +284,7 @@ public class AgendaBean implements Serializable {
 
     /** Tras un error, la vista vuelve a reflejar lo que la conversación (@Stateful) tiene realmente en espera. */
     private void sincronizarHold() {
-        turnoEnHold = servicioDeTurnos.getTurnoEnHold();
+        turnoEnHold = turnos.llamar(ServicioDeTurnos::getTurnoEnHold);
         if (turnoEnHold == null) {
             cotizacion = null;
         }
@@ -295,7 +297,8 @@ public class AgendaBean implements Serializable {
                 error(SESION_VENCIDA);
                 return;
             }
-            servicioDeTurnos.publicarDisponibilidad(actual.getId(), nuevaFechaHora, nuevaModalidad);
+            LocalDateTime fechaHora = nuevaFechaHora;
+            turnos.llamar(s -> s.publicarDisponibilidad(actual.getId(), fechaHora, nuevaModalidad));
             nuevaFechaHora = null;
             info("Disponibilidad publicada");
         } catch (EJBAccessException e) {

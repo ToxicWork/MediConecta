@@ -5,6 +5,8 @@
   3. Nadie confirma. Pasados los 5 minutos del hold, el horario vuelve a estar disponible.
   4. D-33: al vencer la conversación (@StatefulTimeout), el @PreDestroy no falla. Lo verifica en el log del servidor
      si está definida WILDFLY_HOME (sin ella, avisa que no lo puede verificar).
+  5. D-43: con la conversación vencida, la Agenda del paciente sigue abriendo (antes daba error 500 hasta volver a
+     ingresar) y el horario liberado se puede reservar otra vez.
 
 Tarda entre 5 y 7 minutos porque espera el vencimiento real. Requisitos: los de prueba_entrega4.py.
 Uso:  python pruebas/prueba_hold_vence.py
@@ -123,6 +125,21 @@ with sync_playwright() as p:
               else "el temporizador de respaldo (LiberadorDeHolds), que llegó primero")
     else:
         print("     D-33: definí WILDFLY_HOME para revisar el log del servidor")
+        time.sleep(60)  # el minuto que necesita el contenedor para destruir la conversación vencida
+
+    # D-43: la página del paciente quedó quieta más de 5 minutos, así que su conversación ya no existe.
+    pac.goto(B + "agenda.xhtml")
+    check("D-43. vencida la conversación, la Agenda del paciente abre sin error",
+          pac.locator("#formAgenda\\:profesional").count() == 1)
+    sel = pac.locator("#formAgenda\\:profesional")
+    sel.select_option(sel.locator("option", has_text="Ana Lopez").first.get_attribute("value"))
+    with pac.expect_navigation():
+        pac.click("button:has-text('Ver turnos disponibles')")
+    with pac.expect_navigation():
+        pac.locator("#formAgenda\\:tablaTurnos tr", has_text=dia + " · " + hora).locator("button:has-text('Reservar')").click()
+    check("D-43. y puede volver a reservar el horario liberado", "Turno reservado temporalmente" in pac.content())
+    with pac.expect_navigation():
+        pac.click("button:has-text('Liberar turno')")
     br.close()
 
 print("RESULTADO:", "TODO OK" if ok else "HAY FALLAS")

@@ -7,7 +7,6 @@ import ar.edu.mediconecta.modelo.TipoEntrada;
 import ar.edu.mediconecta.modelo.Turno;
 import ar.edu.mediconecta.modelo.Usuario;
 import ar.edu.mediconecta.negocio.ServicioDeHistoriaClinica;
-import ar.edu.mediconecta.negocio.ServicioDeTurnos;
 import ar.edu.mediconecta.negocio.dto.AccesoHistoriaDTO;
 import jakarta.annotation.PostConstruct;
 import jakarta.faces.application.FacesMessage;
@@ -35,8 +34,9 @@ public class HistoriaBean implements Serializable {
     @Inject
     private ServicioDeHistoriaClinica servicioDeHistoriaClinica;
 
+    /** La conversación de reserva (@Stateful), que se renueva sola si venció (D-43). */
     @Inject
-    private ServicioDeTurnos servicioDeTurnos;
+    private ConversacionDeTurnos turnos;
 
     @Inject
     private LoginBean loginBean;
@@ -107,7 +107,7 @@ public class HistoriaBean implements Serializable {
         }
         Map<String, Object> request = FacesContext.getCurrentInstance().getExternalContext().getRequestMap();
         return (List<Turno>) request.computeIfAbsent(TURNOS_DEL_PROFESIONAL,
-                clave -> servicioDeTurnos.buscarConfirmadosDeProfesional(actual.getId()));
+                clave -> turnos.llamar(s -> s.buscarConfirmadosDeProfesional(actual.getId())));
     }
 
     /** Pacientes con algún turno confirmado con el profesional, una sola vez cada uno y por nombre (D-15). */
