@@ -348,6 +348,9 @@ jobs:
           codigo=0
           k6 run --quiet pruebas/carga/carga_api.js || codigo=$?
           cat resultados-carga/reporte.md >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
+          # La tabla también en una anotación, para leerla en la página del run sin bajar el artefacto.
+          tabla=$({ grep -E '^[|] GET|^Total' resultados-carga/reporte.md || true; } | sed ':a;N;$!ba;s/%/%25/g;s/\n/%0A/g')
+          echo "::notice title=k6::$tabla"
           cp -r resultados-carga resultados-e2e/carga
           if [ "$codigo" -ne 0 ]; then echo "::error title=k6::no se cumplió algún umbral de la prueba de carga (código $codigo)"; fi
           exit "$codigo"
