@@ -131,7 +131,8 @@ try:
 
         prof = login(br, PROFESIONAL)
         for _ in range(15):  # un horario libre (D-23 no deja repetir uno de otra corrida)
-            fecha = "%s %02d:%02d" % (dia_desde_hoy(random.randint(42, 48)), random.randint(7, 19), random.randint(0, 59))
+            # Minutos de a 5: el selector de fecha (stepMinute="5") redondea lo que no lo es.
+            fecha = "%s %02d:%02d" % (dia_desde_hoy(random.randint(42, 48)), random.randint(7, 19), random.randint(0, 11) * 5)
             prof.goto(B + "agenda.xhtml")
             prof.fill("#formPublicar\\:fecha_input", fecha)
             prof.keyboard.press("Escape")
@@ -156,11 +157,12 @@ try:
             pac.click("button:has-text('Ver turnos disponibles')")
         with pac.expect_navigation():
             pac.locator("#formAgenda\\:tablaTurnos tr", has_text=dia + " · " + hora).locator("button:has-text('Reservar')").first.click()
-        pac.fill("#formConfirmacion\\:titular", "Paciente Broker")
-        pac.fill("#formConfirmacion\\:numeroTarjeta", "4111 1111 1111 1111")
-        pac.fill("#formConfirmacion\\:vencimiento", "")
-        pac.fill("#formConfirmacion\\:vencimiento", "12/29")
-        pac.fill("#formConfirmacion\\:codigoSeguridad", "123")
+        if pac.locator("#formConfirmacion\\:titular").count():  # copago con OSDE: se paga con tarjeta
+            pac.fill("#formConfirmacion\\:titular", "Paciente Broker")
+            pac.fill("#formConfirmacion\\:numeroTarjeta", "4111 1111 1111 1111")
+            pac.fill("#formConfirmacion\\:vencimiento", "")
+            pac.fill("#formConfirmacion\\:vencimiento", "12/29")
+            pac.fill("#formConfirmacion\\:codigoSeguridad", "123")
         pac.click("#formConfirmacion\\:btnConfirmar")
         with pac.expect_navigation():
             pac.click(".ui-confirm-dialog:visible button:has-text('Sí, pagar')")
