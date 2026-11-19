@@ -55,7 +55,8 @@ def pagina(br):
 
 
 def ingresar(br, email, clave, inicio):
-    pg = pagina(br)
+    global actual
+    pg = actual = pagina(br)
     pg.goto(B + "login.xhtml")
     pg.fill("#formLogin\\:email", email)
     pg.fill("#formLogin\\:password", clave)
@@ -73,6 +74,25 @@ def cambiar_contrasena(pg, actual, nueva, inicio):
     pg.wait_for_url("**/" + inicio + "*", timeout=60000)
 
 
+paso, actual = "arrancar el navegador", None
+
+
+def fallar(error):
+    """Dice en qué paso se cortó, en qué página quedó y qué mensaje mostraba (en el pipeline, como anotación)."""
+    mensajes = ""
+    if actual is not None:
+        try:
+            mensajes = " | ".join(t.strip() for t in actual.locator(
+                ".ui-messages, .ui-growl-message, .ui-message, .mensaje").all_inner_texts() if t.strip())[:300]
+        except Exception:  # la página pudo haberse cerrado
+            pass
+    detalle = "%s: %s (página: %s; mensajes: %s)" % (paso, (str(error).strip().splitlines() or ["?"])[0][:250],
+                                                    actual.url if actual is not None else "-", mensajes or "ninguno")
+    if os.environ.get("GITHUB_ACTIONS"):
+        print("::error title=Usuarios de demo::" + detalle)
+    sys.exit("No se pudo " + detalle)
+
+
 def faltan():
     todos = [PACIENTE["email"]] + [u["email"] for u in POR_EL_ADMIN]
     return [email for email in todos if not entra_por_api(email, CLAVE_DEMO)]
@@ -83,11 +103,13 @@ if not pendientes:
     print("Los usuarios de demo ya existen: no hay nada que crear.")
     sys.exit(0)
 
-with sync_playwright() as p:
+try:
+  with sync_playwright() as p:
     br = p.chromium.launch(channel=NAVEGADOR, headless=True)
 
     if PACIENTE["email"] in pendientes:
-        pg = pagina(br)
+        paso = "registrar al paciente " + PACIENTE["email"]
+        pg = actual = pagina(br)
         pg.goto(B + "registro.xhtml")
         for campo in ("nombre", "email", "obraSocial", "nroAfiliado"):
             pg.fill("#formRegistro\\:" + campo, PACIENTE[campo])
@@ -105,10 +127,13 @@ with sync_playwright() as p:
             sys.exit("Falta MEDICONECTA_ADMIN_PASSWORD (la contraseña inicial del administrador) para dar de alta a "
                      + ", ".join(u["email"] for u in altas))
         nueva = os.environ.get("MEDICONECTA_ADMIN_NUEVA") or "Admin." + secrets.token_hex(8)
+        paso = "primer ingreso del administrador por defecto (" + ADMIN + ")"
         adm = ingresar(br, ADMIN, inicial, "perfil.xhtml")
+        paso = "cambio de la contraseña inicial del administrador"
         cambiar_contrasena(adm, inicial, nueva, "pagos.xhtml")
         for usuario in altas:
             temporal = "Temporal." + secrets.token_hex(4)
+            paso, actual = "alta de " + usuario["email"] + " por el administrador", adm
             adm.goto(B + "usuarios.xhtml")
             adm.select_option("#formAlta\\:rol", usuario["rol"])
             if usuario["rol"] == "PROFESIONAL":
@@ -120,12 +145,15 @@ with sync_playwright() as p:
             adm.fill("#formAlta\\:passwordTemporal", temporal)
             adm.click("#formAlta button:has-text('Crear usuario')")
             adm.wait_for_load_state()
+            paso = "primer ingreso de " + usuario["email"] + " y cambio de su contraseña temporal"
             nuevo = ingresar(br, usuario["email"], temporal, "perfil.xhtml")
             cambiar_contrasena(nuevo, temporal, CLAVE_DEMO, usuario["inicio"])
             nuevo.context.close()
             print("%s creado: %s" % (usuario["rol"].capitalize(), usuario["nombre"]))
         adm.context.close()
     br.close()
+except Exception as error:  # noqa: BLE001 - cualquier corte se informa con el paso en que ocurrió
+    fallar(error)
 
 siguen = faltan()
 if siguen:
