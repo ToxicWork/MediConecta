@@ -11,7 +11,7 @@ RESUMEN=${GITHUB_STEP_SUMMARY:-/dev/null}
 SUITES=("$@")
 if [ ${#SUITES[@]} -eq 0 ]; then
   SUITES=(prueba_e2e prueba_seguridad prueba_cancelacion prueba_defectos prueba_monitor prueba_entrega4
-          prueba_hold_vence demo_api_jwt_409)
+          prueba_hold_vence demo_api_jwt_409 prueba_broker)
 fi
 mkdir -p "$SALIDA"
 fallo=0
