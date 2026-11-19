@@ -222,9 +222,11 @@ jobs:
       matrix:
         include:
           - grupo: 1 de 2
-            suites: prueba_hold_vence prueba_e2e prueba_monitor demo_api_jwt_409
+            suites: prueba_hold_vence prueba_e2e prueba_entrega4 demo_api_jwt_409
+          # prueba_monitor va al final, después de las suites que generan avisos: su escenario 4 (la carga de a
+          # tandas de 10) necesita más de 10 avisos de la profesional.
           - grupo: 2 de 2
-            suites: prueba_cancelacion prueba_seguridad prueba_defectos prueba_entrega4
+            suites: prueba_cancelacion prueba_seguridad prueba_defectos prueba_monitor
     env:
       WILDFLY_HOME: ${{ github.workspace }}/wildfly-41.0.0.Final
       NAVEGADOR: chrome
