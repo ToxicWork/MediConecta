@@ -307,7 +307,10 @@ with sync_playwright() as p:
 
     # ---- E. D-13: un turno que ya empezó no se cancela -------------------------------------------
     print("-- E. Un turno que ya empezó no se cancela (D-13)")
+    # Los horarios van de 5 en 5 minutos (D-39): el primero que deje al menos 2 minutos para publicarlo,
+    # reservarlo y pagarlo antes de que empiece.
     inicio = (datetime.now() + timedelta(minutes=3)).replace(second=0, microsecond=0)
+    inicio += timedelta(minutes=(-inicio.minute) % 5)
     f6 = inicio.strftime("%d/%m/%Y %H:%M")
     publicar(prof, f6)
     check("E. el paciente confirma y paga un turno que empieza a las %s" % f6[-5:], reservar_y_pagar(pac, f6))
