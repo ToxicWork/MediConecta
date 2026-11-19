@@ -1,11 +1,13 @@
 package ar.edu.mediconecta.api;
 
 import ar.edu.mediconecta.Fixtures;
+import ar.edu.mediconecta.TransicionesInvalidas;
 import ar.edu.mediconecta.api.dto.ProblemaApi;
 import ar.edu.mediconecta.modelo.DatosConfirmacion;
 import ar.edu.mediconecta.modelo.ErrorDeNegocioException;
 import ar.edu.mediconecta.modelo.EstadoAutorizacion;
 import ar.edu.mediconecta.modelo.EstadoCobertura;
+import ar.edu.mediconecta.modelo.EstadoTurno;
 import ar.edu.mediconecta.modelo.Rol;
 import ar.edu.mediconecta.modelo.TransicionInvalidaException;
 import ar.edu.mediconecta.modelo.Turno;
@@ -17,9 +19,12 @@ import ar.edu.mediconecta.negocio.excepciones.TurnoInexistenteException;
 import jakarta.ejb.EJBAccessException;
 import jakarta.json.bind.JsonbException;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -47,6 +52,20 @@ class MapeadorDeExcepcionesTest {
         assertEquals("Transición de estado inválida", problema.title());
         assertEquals("No se puede cancelar un turno disponible.", problema.detail());
         assertEquals(RUTA, problema.instance());
+    }
+
+    /** Toda transición que el State no admite (las doce) se responde con 409 y su mensaje como detalle. */
+    @ParameterizedTest(name = "{0} + {1} → 409")
+    @MethodSource("ar.edu.mediconecta.TransicionesInvalidas#casos")
+    void todaTransicionInvalidaDelStateEs409(EstadoTurno estado, String operacion, Consumer<Turno> aplicar, String mensaje) {
+        Turno turno = TransicionesInvalidas.enEstado(estado);
+        TransicionInvalidaException transicion = assertThrows(TransicionInvalidaException.class, () -> aplicar.accept(turno));
+
+        ProblemaApi problema = MapeadorDeExcepciones.clasificar(transicion, true, RUTA);
+
+        assertEquals(409, problema.status());
+        assertEquals(TipoDeProblema.TRANSICION_INVALIDA.uri(), problema.type());
+        assertEquals(mensaje, problema.detail());
     }
 
     /** D-13: cancelar por la API un turno que ya empezó también es una transición inválida: 409, no 200. */
