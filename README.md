@@ -159,6 +159,16 @@ defectos D-01, D-02, D-04, D-07 y D-09 del informe del 16/11.
   vulnerabilidades en las dependencias (Trivy). El análisis estático de SonarCloud corre cuando el repositorio
   tiene el secreto `SONAR_TOKEN`. Los hallazgos de gitleaks revisados, ninguno un secreto, están con su motivo en
   [`.gitleaksignore`](.gitleaksignore).
+  Las pruebas de punta a punta también corren en el pipeline, sin contenedores. El trabajo levanta la aplicación
+  completa en el runner:
+  - WildFly 41, bajado de Maven Central con verificación de checksum y configurado con los scripts de `wildfly/`;
+  - el PostgreSQL y el Google Chrome que ya trae la imagen de Ubuntu;
+  - los usuarios de demo, creados con
+    [`pruebas/sembrar_usuarios_demo.py`](pruebas/sembrar_usuarios_demo.py);
+  - las contraseñas de cada corrida, generadas al azar y enmascaradas.
+
+  Las suites corren en dos grupos paralelos, así el pipeline completo tarda unos 8 minutos. El resultado de cada
+  suite queda como aviso en la página del run, y el `server.log` como artefacto.
 - De punta a punta con navegador real (requieren `pip install playwright` y Google Chrome, o Edge con
   `NAVEGADOR=msedge`, con la app desplegada; ver `SETUP.md`):
   - [`pruebas/prueba_seguridad.py`](pruebas/prueba_seguridad.py): las pruebas de seguridad del diseño (SEC-W01,
@@ -173,11 +183,14 @@ defectos D-01, D-02, D-04, D-07 y D-09 del informe del 16/11.
     telemedicina, auditoría, temas, roles y alta de usuarios con contraseña temporal).
   - [`pruebas/prueba_e2e.py`](pruebas/prueba_e2e.py): 13 verificaciones del recorrido básico.
   - [`pruebas/prueba_defectos.py`](pruebas/prueba_defectos.py): un escenario por cada defecto de la prueba
-    exploratoria (D-13 a D-36), incluidos el doble clic y dos usuarios sobre el mismo turno.
+    exploratoria y de las regresiones (D-13 a D-38), incluidos el doble clic, dos usuarios sobre el mismo turno
+    y otra transacción que modifica el turno mientras el paciente cancela (este último necesita `WILDFLY_HOME`).
   - [`pruebas/prueba_hold_vence.py`](pruebas/prueba_hold_vence.py): el hold de 5 minutos vence solo (tarda
     unos 6 minutos).
   - [`pruebas/demo_api_jwt_409.py`](pruebas/demo_api_jwt_409.py): guion por consola del login con JWT, los
     401 y 403 y el 409 del patrón State (sólo necesita Python).
+  - [`pruebas/sembrar_usuarios_demo.py`](pruebas/sembrar_usuarios_demo.py): no es una prueba. Crea los usuarios
+    de demo en una base vacía a través de la propia aplicación, igual que el pipeline (ver `SETUP.md`).
 
 ## Declaración de uso de inteligencia artificial generativa
 

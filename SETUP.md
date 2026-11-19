@@ -69,6 +69,16 @@ Usuarios de demo ya cargados en Supabase (contraseña `demo1234` en los tres):
 | Paciente | `juan.perez@mediconecta.test` | OSDE 210 (la obra social simulada cubre el 70 %, copago del 30 %) |
 | Administrativo | `carla.admin@mediconecta.test` | Pagos (todos los cobros y reclamos), Turnos y Usuarios. Lo usan las pruebas de punta a punta |
 
+En una base vacía, por ejemplo otra instancia de PostgreSQL o el pipeline, se crean los tres con
+`python pruebas/sembrar_usuarios_demo.py`, a través de la propia aplicación:
+- el paciente se registra solo;
+- el administrador por defecto (ver abajo) da de alta a la profesional y a la administrativa;
+- cada una cambia su contraseña temporal por `demo1234` en Mi perfil.
+
+El script necesita `MEDICONECTA_ADMIN_PASSWORD` con la contraseña inicial del administrador, la misma que se le dio
+al servidor. Opcionalmente acepta `MEDICONECTA_ADMIN_NUEVA`, la contraseña que queda después de su primer ingreso;
+si no está, se genera al azar. Si los usuarios ya existen, no hace nada.
+
 **Administrador por defecto.** Al desplegar, `InicializadorDeAdministrador` crea
 `admin@mediconecta.test` si no existe, con la contraseña inicial que se le configura al servidor: la
 variable de entorno `MEDICONECTA_ADMIN_PASSWORD` o la propiedad `-Dmediconecta.admin.password=...` al
@@ -279,17 +289,26 @@ python pruebas/prueba_e2e.py         # 13 verificaciones del recorrido básico
 python pruebas/prueba_seguridad.py   # tarjetas SEC-*: bloqueo, HTTPS y cookie, inyección SQL, DLQ, historia, logs
 python pruebas/prueba_monitor.py     # HU-09: Monitor de eventos (suscriptor caído y recuperado, paginación)
 python pruebas/prueba_cancelacion.py # cancelación por paciente, profesional, administrativo y API
-python pruebas/prueba_defectos.py    # un escenario por cada defecto de la prueba exploratoria (D-13 a D-36)
+python pruebas/prueba_defectos.py    # un escenario por cada defecto de la exploratoria y de las regresiones (D-13 a D-38)
 python pruebas/prueba_hold_vence.py  # el hold vence solo (tarda unos 6 minutos)
 python pruebas/demo_api_jwt_409.py --sin-cancelar   # guion del login con JWT (no modifica datos)
+python pruebas/sembrar_usuarios_demo.py             # sólo en una base vacía: crea los usuarios de demo (ver arriba)
 ```
 
 Todas usan `https://localhost:8443/mediconecta/` y aceptan el certificado autofirmado de WildFly. Dos variables:
 
 - `NAVEGADOR=msedge` para usar Microsoft Edge en vez de Google Chrome (el valor por defecto es `chrome`).
-- `WILDFLY_HOME` con la carpeta de WildFly: la necesitan `prueba_seguridad.py` (consulta la DLQ y lee el log
-  del servidor), `prueba_monitor.py` (frena y reactiva un MDB con `jboss-cli`) y `prueba_entrega4.py` (habilita
-  con `jboss-cli` la falla de demostración del escenario F, que está apagada salvo `-Dmediconecta.demo.fallas=true`).
+- `WILDFLY_HOME` con la carpeta de WildFly. La necesitan:
+  - `prueba_seguridad.py`, que consulta la DLQ y lee el log del servidor;
+  - `prueba_monitor.py`, que frena y reactiva un MDB con `jboss-cli`;
+  - `prueba_entrega4.py`, que habilita con `jboss-cli` la falla de demostración del escenario F (está apagada salvo
+    `-Dmediconecta.demo.fallas=true`);
+  - `prueba_defectos.py`, para el escenario del D-36: lee el datasource de MediConecta y, con el driver de
+    PostgreSQL de WildFly y Java, simula otra transacción que modifica el turno mientras el paciente cancela. Sin
+    `WILDFLY_HOME` ese escenario se omite.
+
+En el pipeline corren todas, con la aplicación levantada en el runner (ver la sección de integración continua del
+`README.md`).
 
 En Windows, por ejemplo: `set NAVEGADOR=msedge` y `set WILDFLY_HOME=C:\WildFly\wildfly-41.0.0.Final`. Las pruebas
 crean pacientes de prueba con email `@mediconecta.test`; nunca bloquean ni cancelan turnos de los usuarios de demo.
