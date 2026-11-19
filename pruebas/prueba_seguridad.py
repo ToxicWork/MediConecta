@@ -198,7 +198,7 @@ def dia_desde_hoy(dias):
 
 def fecha_libre():
     """Un horario al azar a 32-40 días de hoy, lejos de los que usan las otras pruebas."""
-    return "%s %02d:%02d" % (dia_desde_hoy(random.randint(32, 40)), random.randint(7, 19), random.randint(0, 59))
+    return "%s %02d:%02d" % (dia_desde_hoy(random.randint(32, 40)), random.randint(7, 19), random.randint(0, 11) * 5)
 
 
 def publicar_horario(br, fecha):
