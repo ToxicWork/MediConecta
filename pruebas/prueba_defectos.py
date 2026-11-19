@@ -346,9 +346,18 @@ with sync_playwright() as p:
 
     # ---- D-16. Una notificación por vez -------------------------------------------------------------
     print("-- D-16. Notificaciones")
-    pac.goto(B + "notificaciones.xhtml")
     resumen = lambda: int(re.search(r"(\d+) sin leer", pac.inner_text("#formNotificaciones")).group(1))
     badge = lambda: int((pac.locator(".sidebar .count-badge").all_inner_texts() or ["0"])[0])
+    # Las notificaciones llegan de forma asincrónica (la autorización de la obra social de los turnos de recién
+    # aparece unos segundos después): antes de marcar se espera a que el conteo no cambie, si no una que llega en el
+    # medio compensa la marcada y el contador parece no bajar.
+    anterior, fin = None, time.time() + 30
+    while True:
+        pac.goto(B + "notificaciones.xhtml")
+        if resumen() == anterior or time.time() > fin:
+            break
+        anterior = resumen()
+        pac.wait_for_timeout(3000)
     antes, badge_antes = resumen(), badge()
     primera = pac.locator(".notif-unread").first
     asunto = primera.locator("strong").inner_text()
