@@ -11,4 +11,8 @@
             <supported-locale>es_AR</supported-locale>
         </locale-config>
     </application>
+    <!-- D-46: con la sesión vencida, a la página que lo explica (también en los botones AJAX). -->
+    <factory>
+        <exception-handler-factory>ar.edu.mediconecta.web.ManejadorDeSesionVencida$Fabrica</exception-handler-factory>
+    </factory>
 </faces-config>

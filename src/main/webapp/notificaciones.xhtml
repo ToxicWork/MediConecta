@@ -43,9 +43,9 @@
                             <span class="tag #{n.canal == 'EMAIL' ? 'tag-info' : 'tag-success'}">
                                 #{n.canal == 'EMAIL' ? 'Email' : 'En la app'}
                             </span>
-                            <p:commandLink value="Marcar como leída" action="#{notificacionesBean.marcarLeida(n.id)}"
+                            <p:commandLink value="Marcar como leída" action="#{notificacionesBean.marcarLeida(param.notificacion)}"
                                            update="@form :badgeNotificaciones" rendered="#{not n.leida}"
-                                           styleClass="notif-marcar"/>
+                                           styleClass="notif-marcar"><f:param name="notificacion" value="#{n.id}"/></p:commandLink>
                         </div>
                         <div class="notif-body">#{n.cuerpo}</div>
                         <div class="notif-meta">

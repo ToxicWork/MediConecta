@@ -31,7 +31,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -98,35 +97,28 @@ public class AgendaBean implements Serializable {
 
     /**
      * Próximos turnos del paciente: los que ya empezaron no se pueden cancelar y salen de esta pantalla (D-13).
-     * Se evalúa varias veces por página: se guarda en el request y se invalida en las acciones que cambian
+     * Se evalúa varias veces por página: se guarda en la vista y se invalida en las acciones que cambian
      * los turnos del paciente (la tabla lo lee antes de la acción).
      */
-    @SuppressWarnings("unchecked")
     public List<Turno> getMisTurnos() {
         Usuario usuario = loginBean.getUsuarioActual();
         if (usuario == null || !loginBean.isPaciente()) {
             return List.of();
         }
-        Map<String, Object> request = FacesContext.getCurrentInstance().getExternalContext().getRequestMap();
-        return (List<Turno>) request.computeIfAbsent(MIS_TURNOS,
-                clave -> turnos.llamar(s -> s.buscarProximosConfirmados(usuario.getId())));
+        // En la vista y no en el pedido: el botón Cancelar de cada fila usa la misma lista que se mostró (D-45).
+        return ListasDeLaVista.de(MIS_TURNOS, () -> turnos.llamar(s -> s.buscarProximosConfirmados(usuario.getId())));
     }
 
-    @SuppressWarnings("unchecked")
     public List<Turno> getTurnosConfirmadosProfesional() {
         Usuario usuario = loginBean.getUsuarioActual();
         if (usuario == null || !loginBean.isProfesional()) {
             return List.of();
         }
-        Map<String, Object> request = FacesContext.getCurrentInstance().getExternalContext().getRequestMap();
-        return (List<Turno>) request.computeIfAbsent(TURNOS_PROFESIONAL,
-                clave -> turnos.llamar(s -> s.buscarProximosConfirmados(usuario.getId())));
+        return ListasDeLaVista.de(TURNOS_PROFESIONAL, () -> turnos.llamar(s -> s.buscarProximosConfirmados(usuario.getId())));
     }
 
     private void invalidarMisTurnos() {
-        Map<String, Object> request = FacesContext.getCurrentInstance().getExternalContext().getRequestMap();
-        request.remove(MIS_TURNOS);
-        request.remove(TURNOS_PROFESIONAL);
+        ListasDeLaVista.olvidar(MIS_TURNOS, TURNOS_PROFESIONAL);
     }
 
     /** Fecha y hora como se muestran en las tablas y en los mensajes ("dd/MM/yyyy HH:mm"). */

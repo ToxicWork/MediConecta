@@ -21,6 +21,8 @@ public class TelemedicinaBean {
     @Inject
     private LoginBean loginBean;
 
+    private static final String TURNOS_DEL_PROFESIONAL = TelemedicinaBean.class.getName() + ".turnosDelProfesional";
+
     private List<Turno> turnos;
 
     public String verificarAcceso() {
@@ -29,7 +31,11 @@ public class TelemedicinaBean {
 
     public List<Turno> getTurnos() {
         if (turnos == null) {
-            turnos = servicioDeTelemedicina.turnosVirtualesDelUsuarioActual();
+            // El profesional finaliza la consulta con un botón con confirmación: la lista del envío tiene que ser la
+            // que vio (D-45). La del paciente no, porque se refresca sola cada 5 segundos y sus botones no cambian nada.
+            turnos = loginBean.isProfesional()
+                    ? ListasDeLaVista.de(TURNOS_DEL_PROFESIONAL, servicioDeTelemedicina::turnosVirtualesDelUsuarioActual)
+                    : servicioDeTelemedicina.turnosVirtualesDelUsuarioActual();
         }
         return turnos;
     }
@@ -38,6 +44,7 @@ public class TelemedicinaBean {
         try {
             servicioDeTelemedicina.iniciarVideoconsulta(turnoId);
             turnos = null;
+            ListasDeLaVista.olvidar(TURNOS_DEL_PROFESIONAL);
             FacesContext.getCurrentInstance().addMessage(null, new FacesMessage(FacesMessage.SEVERITY_INFO,
                     "Abriste la sala. Ya podés entrar; le avisamos a tu paciente.", null));
         } catch (ErrorDeNegocioException e) {
@@ -51,6 +58,7 @@ public class TelemedicinaBean {
         try {
             Turno turno = servicioDeTelemedicina.finalizarVideoconsulta(turnoId);
             turnos = null;
+            ListasDeLaVista.olvidar(TURNOS_DEL_PROFESIONAL);
             FacesContext.getCurrentInstance().addMessage(null, new FacesMessage(FacesMessage.SEVERITY_INFO,
                     "Finalizaste la videoconsulta con " + turno.getPaciente().getNombreCompleto() + ". La sala quedó cerrada.", null));
         } catch (ErrorDeNegocioException e) {

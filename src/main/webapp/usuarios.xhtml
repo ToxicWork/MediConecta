@@ -105,8 +105,8 @@
                                 <span class="tag tag-danger">Bloqueada hasta&#160;
                                     <h:outputText value="#{u.bloqueadoHasta}"><f:convertDateTime type="localDateTime" pattern="HH:mm"/></h:outputText>
                                 </span>
-                                <p:commandButton value="Desbloquear" action="#{usuariosBean.desbloquear(u)}" ajax="false"
-                                                 styleClass="btn btn-secondary btn-sm"/>
+                                <p:commandButton value="Desbloquear" action="#{usuariosBean.desbloquear(param.usuario)}" ajax="false"
+                                                 styleClass="btn btn-secondary btn-sm"><f:param name="usuario" value="#{u.id}"/></p:commandButton>
                             </h:panelGroup>
                         </p:column>
                     </p:dataTable>

@@ -39,8 +39,8 @@
                             <span class="tag #{turno.salaAbierta ? 'tag-success' : 'tag-neutral'}">#{turno.salaAbierta ? 'Abierta' : 'Sin abrir'}</span>
                         </p:column>
                         <p:column headerText="" style="text-align:right;width:300px;">
-                            <p:commandButton value="Iniciar videoconsulta" action="#{telemedicinaBean.iniciar(turno.id)}" ajax="false"
-                                             styleClass="btn btn-primary btn-sm" rendered="#{loginBean.profesional and turno.salaId == null}"/>
+                            <p:commandButton value="Iniciar videoconsulta" action="#{telemedicinaBean.iniciar(param.turno)}" ajax="false"
+                                             styleClass="btn btn-primary btn-sm" rendered="#{loginBean.profesional and turno.salaId == null}"><f:param name="turno" value="#{turno.id}"/></p:commandButton>
                             <h:outputLink value="#{telemedicinaBean.enlace(turno)}" target="_blank" styleClass="btn btn-primary btn-sm"
                                           rendered="#{turno.salaAbierta}">#{loginBean.profesional ? 'Entrar a la sala' : 'Unirme a la consulta'}</h:outputLink>
                             <p:commandButton value="Finalizar consulta" action="#{telemedicinaBean.finalizar(turno.id)}" ajax="false"

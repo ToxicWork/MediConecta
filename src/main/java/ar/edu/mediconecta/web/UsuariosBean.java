@@ -58,10 +58,16 @@ public class UsuariosBean implements Serializable {
         }
     }
 
-    public void desbloquear(Usuario usuario) {
+    /**
+     * El id llega con el botón ({@code f:param}), no por la posición de la fila: si la lista cambió desde que se abrió
+     * la página, la posición apuntaría a otro usuario (D-45).
+     */
+    public void desbloquear(Long usuarioId) {
         try {
-            servicioDeUsuarios.desbloquear(usuario.getId());
-            Mensajes.info("Desbloqueaste la cuenta de " + usuario.getNombreCompleto() + ". Ya puede volver a ingresar.");
+            servicioDeUsuarios.desbloquear(usuarioId);
+            String nombre = getUsuarios().stream().filter(u -> u.getId().equals(usuarioId)).findFirst()
+                    .map(Usuario::getNombreCompleto).orElse("el usuario");
+            Mensajes.info("Desbloqueaste la cuenta de " + nombre + ". Ya puede volver a ingresar.");
         } catch (ErrorDeNegocioException e) {
             Mensajes.error(e.getMessage());
         }

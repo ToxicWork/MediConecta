@@ -66,6 +66,7 @@
     </user-data-constraint>
   </security-constraint>
 
+  <!-- La sesión vencida (D-46) no llega acá: la atrapa antes ManejadorDeSesionVencida (faces-config.xml). -->
   <error-page>
     <error-code>500</error-code>
     <location>/error.xhtml</location>

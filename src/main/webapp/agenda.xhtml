@@ -184,7 +184,7 @@
                                 <h:outputText styleClass="importe" value="#{agendaBean.precio(turno)}"><f:convertNumber type="currency" currencySymbol="$ " locale="es_AR"/></h:outputText>
                             </p:column>
                             <p:column headerText="" style="text-align:right;width:150px;">
-                                <p:commandButton value="Reservar" action="#{agendaBean.reservarHold(turno.id)}" ajax="false" styleClass="btn btn-secondary btn-sm"/>
+                                <p:commandButton value="Reservar" action="#{agendaBean.reservarHold(param.turno)}" ajax="false" styleClass="btn btn-secondary btn-sm"><f:param name="turno" value="#{turno.id}"/></p:commandButton>
                             </p:column>
                         </p:dataTable>
                     </h:panelGroup>

@@ -28,6 +28,9 @@ que ya empezó) y D-21 (el paciente confirma antes de cancelar) están en prueba
         (lee el datasource de MediConecta y usa el driver de PostgreSQL de WildFly) y Java; sin WILDFLY_HOME se omite.
   D-38. La pantalla Pagos del administrativo (su página de inicio) abre en pocos segundos aunque haya cientos de
         cobros y reclamos: cada listado sale en una sola consulta, no una por fila.
+  D-45. Con la Agenda abierta desde antes, el paciente cancela un turno que la profesional ya canceló: se le informa y
+        no se cancela otro turno en su lugar (antes Faces tomaba la fila por su posición en la lista nueva).
+  D-46. Con la sesión vencida, un botón (común o AJAX) lleva a «Tu sesión venció», no a la página de error genérica.
   D-39. Un horario que no va de 5 en 5 minutos (el paso del selector de fecha) lo rechaza el servidor, con los
         dos horarios válidos más cercanos: el mismo horario escrito ya no puede quedar publicado de dos maneras.
 
@@ -590,6 +593,56 @@ with sync_playwright() as p:
           "Mi perfil" not in ancho.inner_text(".sidebar .nav")
           and ancho.locator(".sidebar a.user-chip[title='Mi perfil']").count() == 1)
     ancho.context.close()
+
+    # ---- D-45. Un botón de una fila con la página desactualizada ------------------------------------------
+    # Faces toma la fila por su posición en la lista: si cambió desde que se abrió la página (la profesional canceló
+    # un turno), la misma posición era otro turno. El paciente confirmaba cancelar uno y se cancelaba el siguiente.
+    print("-- D-45. Cancelar desde una página que quedó abierta desde antes")
+    token = api("auth/login", "POST", {"email": email, "password": "demo1234"})[1]["token"]
+    nuevos = []
+    for _ in range(2):
+        fecha = publicar_libre(prof)
+        reservar(pac, fecha)
+        tarjeta(pac)
+        check("D-45. el paciente confirma un turno más (%s)" % fecha, "Turno confirmado" in pagar(pac))
+        nuevos.append(fecha)
+    primero = min(nuevos, key=lambda f: (f[6:10], f[3:5], f[:2], f[11:]))
+    confirmados_antes = {t["id"] for t in api("turnos", token=token)[1] if t["estado"] == "CONFIRMADO"}
+    pac.goto(B + "agenda.xhtml")  # la página del paciente queda abierta
+    dia, hora = primero.split(" ")
+    prof.goto(B + "agenda.xhtml")
+    prof.locator("#formTurnosProfesional\:tablaConfirmadosProfesional tr", has_text=nombre).filter(has_text=dia)         .filter(has_text=hora).locator("button:has-text('Cancelar')").click()
+    with prof.expect_navigation():
+        prof.click(".ui-confirm-dialog:visible button:has-text('Sí, cancelar el turno')")
+    pac.locator("#formAgenda\:tablaMisTurnos tr").filter(has_text=dia).filter(has_text=hora)         .locator("button:has-text('Cancelar')").click()
+    with pac.expect_navigation():
+        pac.click(".ui-confirm-dialog:visible button:has-text('Sí, cancelar el turno')")
+    respuesta = mensajes(pac)
+    confirmados_despues = {t["id"] for t in api("turnos", token=token)[1] if t["estado"] == "CONFIRMADO"}
+    perdidos = confirmados_antes - confirmados_despues
+    check("D-45. con la página vieja, cancelar el turno que la profesional ya canceló lo informa (%s)" % respuesta,
+          any("No se puede cancelar un turno cancelado" in m for m in respuesta))
+    check("D-45. y no cancela ningún otro turno del paciente (%d dejaron de estar confirmados; esperado 1)" % len(perdidos),
+          len(perdidos) == 1)
+
+    # ---- D-46. Sesión vencida ------------------------------------------------------------------------------
+    print("-- D-46. Sesión vencida")
+    vencida = login(br, email)
+    vencida.goto(B + "agenda.xhtml")
+    vencida.context.clear_cookies()  # como si la sesión se hubiera cerrado con la página abierta
+    with vencida.expect_navigation():
+        vencida.click("button:has-text('Ver turnos disponibles')")
+    vencida.wait_for_load_state()
+    check("D-46. un botón con la sesión vencida lleva a «Tu sesión venció», no al error genérico (%s)" % vencida.title(),
+          "sesion-vencida.xhtml" in vencida.url and "Tu sesión venció" in vencida.inner_text("body"))
+    vencida.context.close()
+    adm_vencida = login(br, ADMINISTRATIVO)
+    adm_vencida.goto(B + "usuarios.xhtml")
+    adm_vencida.context.clear_cookies()
+    with adm_vencida.expect_navigation(timeout=15000):
+        adm_vencida.locator("a:has-text('Ver ficha')").first.click()
+    check("D-46. también en un botón AJAX (Ver ficha del administrativo)", "sesion-vencida.xhtml" in adm_vencida.url)
+    adm_vencida.context.close()
 
     prof.context.close()
     pac.context.close()

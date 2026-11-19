@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<!-- Sesión vencida (D-46): adonde lleva ManejadorDeSesionVencida ante una ViewExpiredException, en lugar de la página de error genérica. -->
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="jakarta.faces.html"
+      lang="es-AR" data-tema="#{temaBean.actual}">
+<h:head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>MediConecta - Tu sesión venció</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+    <h:outputStylesheet library="css" name="mediconecta.css"/>
+</h:head>
+<h:body>
+    <div class="auth-shell">
+        <div class="auth-brand">
+            <span class="brand-mark">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21c-4.5-2.8-8-6.2-8-10.2A5.3 5.3 0 0 1 12 6a5.3 5.3 0 0 1 8 4.8c0 4-3.5 7.4-8 10.2Z"/><path d="M9 11h6M12 8v6"/></svg>
+            </span>
+            <h1>MediConecta</h1>
+            <p>Por seguridad, la sesión se cierra sola después de un rato sin uso.</p>
+        </div>
+
+        <div class="auth-panel">
+            <div class="auth-card">
+                <h2>Tu sesión venció</h2>
+                <p class="page-subtitle">
+                    La página estaba abierta desde antes y la sesión ya se cerró, así que no hicimos nada de lo
+                    que pediste. Volvé a ingresar y repetilo.
+                </p>
+                <h:link id="volverAIngresar" outcome="/login.xhtml" styleClass="btn btn-primary btn-block">Volver a ingresar</h:link>
+            </div>
+        </div>
+    </div>
+</h:body>
+</html>
