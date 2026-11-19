@@ -94,7 +94,14 @@ jobs:
         # como anotaciones del run: se ven sin abrir el log.
         run: |
           fallo=0
-          mvn -B -ntp test-compile org.pitest:pitest-maven:mutationCoverage > pit.log 2>&1 || fallo=1
+          # Hasta 3 intentos sólo si falló la descarga del plugin (Maven Central puede responder 429).
+          for intento in 1 2 3; do
+            fallo=0
+            mvn -B -ntp test-compile org.pitest:pitest-maven:mutationCoverage > pit.log 2>&1 || fallo=1
+            if [ "$fallo" = 0 ] || ! grep -q "could not be resolved\|Too Many Requests" pit.log; then break; fi
+            echo "::warning::Maven Central no entregó el plugin de PIT (intento $intento); se reintenta"
+            sleep $((30 * intento))
+          done
           cat pit.log
           if [ "$fallo" = 1 ]; then
             { grep -E 'ERROR|FAIL|did not pass|mutation score|threshold|Exception' pit.log || true; } | head -15 | while read -r linea; do
@@ -264,16 +271,25 @@ jobs:
           sudo -u postgres psql -v ON_ERROR_STOP=1 -q \
             -c "CREATE ROLE mediconecta LOGIN PASSWORD '$PG_CLAVE'" \
             -c "CREATE DATABASE mediconecta OWNER mediconecta"
+      # Cinco máquinas bajaban el mismo zip a la vez y Maven Central empezó a responder 429 (Too Many Requests):
+      # el zip y el driver se guardan en la caché de Actions y se bajan sólo si no están.
+      - name: Caché de WildFly y del driver de PostgreSQL
+        uses: actions/cache@v4
+        with:
+          path: descargas
+          key: descargas-wildfly-41.0.0.Final-postgresql-42.7.13
       - name: WildFly 41 y el driver de PostgreSQL (Maven Central, checksums estrictos)
         run: |
-          # Hasta 3 intentos: un corte de red del runner con Maven Central no tiene que tirar el pipeline.
+          # Hasta 4 intentos con espera creciente: un corte o un 429 de Maven Central no tiene que tirar el pipeline.
           for artefacto in org.wildfly:wildfly-dist:41.0.0.Final:zip org.postgresql:postgresql:42.7.13; do
-            for intento in 1 2 3; do
+            archivo="descargas/$(echo "$artefacto" | awk -F: '{ print $2 "-" $3 "." ($4 ? $4 : "jar") }')"
+            if [ -s "$archivo" ]; then echo "En la caché: $archivo"; continue; fi
+            for intento in 1 2 3 4; do
               mvn -B -ntp -C -q org.apache.maven.plugins:maven-dependency-plugin:3.8.1:copy \
                 -Dartifact="$artefacto" -DoutputDirectory=descargas && break
-              [ "$intento" = 3 ] && { echo "::error::No se pudo bajar $artefacto de Maven Central"; exit 1; }
+              [ "$intento" = 4 ] && { echo "::error::No se pudo bajar $artefacto de Maven Central"; exit 1; }
               echo "::warning::Falló la descarga de $artefacto (intento $intento); se reintenta"
-              sleep 15
+              sleep $((30 * intento))
             done
           done
           unzip -q descargas/wildfly-dist-41.0.0.Final.zip
