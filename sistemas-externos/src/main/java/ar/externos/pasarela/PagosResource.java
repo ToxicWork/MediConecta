@@ -46,7 +46,7 @@ public class PagosResource {
 
     @POST
     public Response crear(@HeaderParam("Idempotency-Key") String claveIdempotencia, PedidoPago pedido) {
-        if (estado.getPasarela() == EstadoSimuladores.ModoServicio.CAIDO) {
+        if (estado.getPasarela() == EstadoSimuladores.ModoPasarela.CAIDO) {
             estado.registrar("Pasarela (REST)", "POST /pagos", "503 servicio no disponible");
             return noDisponible();
         }
@@ -80,7 +80,7 @@ public class PagosResource {
     @POST
     @Path("/{id}/reembolso")
     public Response reembolsar(@PathParam("id") String id, PedidoReembolso pedido) {
-        if (estado.getPasarela() == EstadoSimuladores.ModoServicio.CAIDO) {
+        if (estado.getPasarela() != EstadoSimuladores.ModoPasarela.EN_LINEA) { // caída, o sin reembolsos
             estado.registrar("Pasarela (REST)", "POST /pagos/" + id + "/reembolso", "503 servicio no disponible");
             return noDisponible();
         }

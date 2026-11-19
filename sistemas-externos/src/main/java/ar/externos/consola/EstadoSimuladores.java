@@ -24,11 +24,14 @@ public class EstadoSimuladores {
 
     public enum ModoServicio { EN_LINEA, CAIDO }
 
+    /** La pasarela, además: SIN_REEMBOLSOS cobra bien pero responde 503 a los reembolsos (para provocar el D-06). */
+    public enum ModoPasarela { EN_LINEA, CAIDO, SIN_REEMBOLSOS }
+
     private static final int MAXIMO_REGISTROS = 60;
 
     private volatile ModoObraSocial obraSocial = ModoObraSocial.EN_LINEA;
     private volatile ModoAutorizacion autorizaciones = ModoAutorizacion.APROBAR;
-    private volatile ModoServicio pasarela = ModoServicio.EN_LINEA;
+    private volatile ModoPasarela pasarela = ModoPasarela.EN_LINEA;
     private volatile ModoServicio videoconsulta = ModoServicio.EN_LINEA;
     private volatile long demoraAutorizacionMs = 1500;
 
@@ -61,11 +64,11 @@ public class EstadoSimuladores {
         this.autorizaciones = autorizaciones;
     }
 
-    public ModoServicio getPasarela() {
+    public ModoPasarela getPasarela() {
         return pasarela;
     }
 
-    public void setPasarela(ModoServicio pasarela) {
+    public void setPasarela(ModoPasarela pasarela) {
         this.pasarela = pasarela;
     }
 

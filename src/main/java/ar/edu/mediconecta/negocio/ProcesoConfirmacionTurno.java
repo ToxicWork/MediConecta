@@ -83,9 +83,6 @@ public class ProcesoConfirmacionTurno {
     @Inject
     private PublicadorEventosTurno publicador;
 
-    @Inject
-    private InyectorDeFallas inyectorDeFallas;
-
     /** Sin transacción: es una consulta, y no tiene sentido retener una conexión mientras se espera al legado. */
     @TransactionAttribute(TransactionAttributeType.NOT_SUPPORTED)
     public CotizacionTurnoDTO cotizar(Long turnoId) {
@@ -145,8 +142,6 @@ public class ProcesoConfirmacionTurno {
         // 7. Evento de dominio al tópico (notificaciones, auditoría, facturación)
         publicador.publicar(EventoTurno.builder().tipo(TipoEventoTurno.TURNO_CONFIRMADO).turno(turno).build());
 
-        // Demo: falla inyectada después de todos los pasos y antes del commit
-        inyectorDeFallas.fallarSiEstaArmada();
 
         LOG.info("Turno " + turno.getId() + " confirmado: cobertura " + cobertura.getEstado() + ", a cargo del paciente $"
                 + importe.getImportePaciente() + ", autorización " + autorizacion + ".");

@@ -8,6 +8,7 @@ import ar.edu.mediconecta.integracion.pagos.PagosGateway;
 import ar.edu.mediconecta.integracion.pagos.ResultadoCobro;
 import ar.edu.mediconecta.integracion.resiliencia.IntegracionNoDisponibleException;
 import ar.edu.mediconecta.modelo.EstadoPago;
+import ar.edu.mediconecta.modelo.OrigenReintegro;
 import ar.edu.mediconecta.modelo.Pago;
 import ar.edu.mediconecta.modelo.Paciente;
 import ar.edu.mediconecta.modelo.Turno;
@@ -38,6 +39,8 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /** Cobro por la pasarela (con su compensación si la transacción no se confirma) y reintegro al cancelar. */
@@ -51,6 +54,7 @@ class ServicioDePagosBeanTest {
     private final Validator validador = mock(Validator.class);
     private final TransactionSynchronizationRegistry transaccion = mock(TransactionSynchronizationRegistry.class);
     private final SessionContext contexto = mock(SessionContext.class);
+    private final ServicioDeReintegros reintegros = mock(ServicioDeReintegros.class);
     private final Turno turno = Fixtures.conId(Fixtures.turno(LocalDateTime.now().plusDays(1)), 10L);
     private ServicioDePagosBean servicio;
     private DatosPago tarjeta;
@@ -64,6 +68,7 @@ class ServicioDePagosBeanTest {
         Inyectar.en(servicio, "validador", validador);
         Inyectar.en(servicio, "transaccion", transaccion);
         Inyectar.en(servicio, "contexto", contexto);
+        Inyectar.en(servicio, "reintegros", reintegros);
         tarjeta = new DatosPago();
         tarjeta.setTitular("Juan Perez");
         tarjeta.setNumeroTarjeta("4111 1111 1111 1111");
@@ -143,7 +148,7 @@ class ServicioDePagosBeanTest {
         verify(pasarela, never()).reembolsar(anyString(), anyString(), anyString());
     }
 
-    /** D-35: si la pasarela no conoce el pago, no se marca reembolsado (queda para conciliar a mano). */
+    /** D-35 y D-41: si la pasarela no conoce el pago, no se marca reembolsado y queda para conciliar en Pagos. */
     @Test
     void siLaPasarelaNoConoceElPagoNoSeMarcaReembolsado() {
         Pago pago = new Pago(turno, IMPORTE, "ARS", "pay_1", "VISA", "1111");
@@ -154,6 +159,8 @@ class ServicioDePagosBeanTest {
         servicio.reembolsarPagoDeTurno(10L, "Cancelación");
 
         assertEquals(EstadoPago.APROBADO, pago.getEstado());
+        verify(reintegros).registrarParaConciliar(eq("pay_1"), eq("turno-10"), eq(10L), eq(IMPORTE), eq("Cancelación"),
+                eq(OrigenReintegro.CANCELACION), argThat(d -> d.contains("no conoce")));
     }
 
     /** Con la pasarela caída el reintegro falla: el mensaje vuelve a la cola y, tras los reintentos, a la DLQ. */
@@ -184,9 +191,16 @@ class ServicioDePagosBeanTest {
 
     // ---- Compensación ------------------------------------------------------------------------------
 
+    private static final ResultadoCobro REEMBOLSADO =
+            new ResultadoCobro(false, "pay_1", "REEMBOLSADO", null, null, null, null, null);
+
+    private CompensacionDePago compensacion() {
+        return new CompensacionDePago(pasarela, reintegros, "pay_1", "turno-10", 10L, IMPORTE);
+    }
+
     @Test
     void siLaTransaccionSeConfirmaNoSeCompensa() {
-        CompensacionDePago compensacion = new CompensacionDePago(pasarela, "pay_1", "turno-10");
+        CompensacionDePago compensacion = compensacion();
 
         compensacion.beforeCompletion();
         compensacion.afterCompletion(Status.STATUS_COMMITTED);
@@ -197,21 +211,47 @@ class ServicioDePagosBeanTest {
     /** Falla a mitad del flujo crítico: la base hace rollback y el cobro ya hecho se reembolsa. */
     @Test
     void siLaTransaccionSeRevierteSeReembolsaElCobro() {
-        CompensacionDePago compensacion = new CompensacionDePago(pasarela, "pay_1", "turno-10");
+        when(pasarela.reembolsarCompensacion(anyString(), anyString(), anyString())).thenReturn(REEMBOLSADO);
 
-        compensacion.afterCompletion(Status.STATUS_ROLLEDBACK);
+        compensacion().afterCompletion(Status.STATUS_ROLLEDBACK);
 
         verify(pasarela).reembolsarCompensacion(eq("pay_1"), argThat(m -> m.startsWith("Reversión automática")), eq("turno-10"));
+        verifyNoInteractions(reintegros);
+    }
+
+    /** D-06: con la pasarela caída, el reintegro queda pendiente y se reintenta solo (antes, sólo en el log). */
+    @Test
+    void siLaPasarelaNoRespondeElReintegroQuedaPendiente() {
+        when(pasarela.reembolsarCompensacion(anyString(), anyString(), anyString()))
+                .thenThrow(new IntegracionNoDisponibleException("sin respuesta", true));
+
+        compensacion().afterCompletion(Status.STATUS_ROLLEDBACK); // no propaga: no rompe el cierre de la transacción
+
+        verify(reintegros).registrarParaReintentar(eq("pay_1"), eq("turno-10"), eq(10L), eq(IMPORTE),
+                argThat(m -> m.startsWith("Reversión automática")), eq(OrigenReintegro.COMPENSACION), eq("sin respuesta"));
     }
 
     @Test
-    void siLaCompensacionFallaNoRompeElCierreDeLaTransaccion() {
+    void siLaPasarelaNoConoceElPagoDeLaCompensacionQuedaParaConciliar() {
+        when(pasarela.reembolsarCompensacion(anyString(), anyString(), anyString()))
+                .thenReturn(new ResultadoCobro(false, "pay_1", ResultadoCobro.INEXISTENTE, null, null, null, null, null));
+
+        compensacion().afterCompletion(Status.STATUS_ROLLEDBACK);
+
+        verify(reintegros).registrarParaConciliar(eq("pay_1"), eq("turno-10"), eq(10L), eq(IMPORTE), anyString(),
+                eq(OrigenReintegro.COMPENSACION), eq("La pasarela no conoce el pago"));
+        verify(reintegros, never()).registrarParaReintentar(any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void siTampocoSePuedeRegistrarNoRompeElCierreDeLaTransaccion() {
         when(pasarela.reembolsarCompensacion(anyString(), anyString(), anyString()))
                 .thenThrow(new IntegracionNoDisponibleException("sin respuesta", true));
-        CompensacionDePago compensacion = new CompensacionDePago(pasarela, "pay_1", "turno-10");
+        doThrow(new IllegalStateException("sin base")).when(reintegros)
+                .registrarParaReintentar(any(), any(), any(), any(), any(), any(), any());
 
-        compensacion.afterCompletion(Status.STATUS_ROLLEDBACK); // no propaga: queda para conciliar a mano
+        compensacion().afterCompletion(Status.STATUS_ROLLEDBACK); // queda en el log para conciliar a mano
 
-        verify(pasarela).reembolsarCompensacion(anyString(), anyString(), anyString());
+        verify(reintegros).registrarParaReintentar(any(), any(), any(), any(), any(), any(), any());
     }
 }

@@ -73,6 +73,26 @@ public class BaseDePruebas {
         return paciente;
     }
 
+    /** Sin obra social: paga el total del turno, así la confirmación cobra en la pasarela. */
+    public Paciente pacienteParticular(String sufijo) {
+        Paciente paciente = new Paciente("Paciente Integración " + sufijo, "it.paciente." + sufijo + "@mediconecta.test",
+                "sin-ingreso", null, null);
+        em.persist(paciente);
+        return paciente;
+    }
+
+    /** Un turno retenido a nombre del paciente por 5 minutos, listo para confirmar. */
+    public Turno turnoEnHold(Profesional profesional, Paciente paciente, LocalDateTime fechaHora) {
+        Turno turno = new Turno(profesional, fechaHora);
+        turno.reservar(paciente, LocalDateTime.now().plusMinutes(5));
+        em.persist(turno);
+        return turno;
+    }
+
+    public Object valor(String sql, Object parametro) {
+        return em.createNativeQuery(sql).setParameter(1, parametro).getResultStream().findFirst().orElse(null);
+    }
+
     public Turno turnoConfirmado(Profesional profesional, Paciente paciente, LocalDateTime fechaHora) {
         Turno turno = new Turno(profesional, fechaHora);
         turno.reservar(paciente, LocalDateTime.now().plusMinutes(5));

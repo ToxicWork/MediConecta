@@ -8,9 +8,8 @@ Recorre con un navegador real (y con llamadas HTTP directas) todo lo que se defi
   N. Patrón State por la API: cancelar un turno ya cancelado o todavía en espera devuelve 409.
   C. Flujo crítico: cotización por SOAP, pago rechazado por la pasarela (el turno sigue en espera) y pago aprobado.
   D. Cola punto a punto: la autorización se resuelve sola, llega la notificación y Facturación genera el reclamo.
-  F. Falla a mitad del flujo crítico (apagada salvo -Dmediconecta.demo.fallas=true; la prueba la habilita con
-     jboss-cli si está WILDFLY_HOME y la arma el administrativo): rollback de la base y de los mensajes, y
-     reembolso compensatorio del cobro, visible en la pasarela.
+  F. La falla a mitad del flujo crítico ya no está en la aplicación (D-42): Pagos no tiene la herramienta de
+     demostración y sí los reintegros pendientes. El rollback y la compensación los prueba CompensacionIT (Arquillian).
   G. Legado caído: la cotización usa el fallback (caché o cobertura pendiente) y el turno se confirma igual.
   G2. SOAP Fault de negocio (afiliado de baja): el paciente ve un mensaje propio, no el Fault; el turno se cotiza
       como particular y se confirma.
@@ -26,11 +25,10 @@ Requisitos: WildFly levantado (perfil standalone-full) con mediconecta.war y ext
 Google Chrome y  pip install playwright
 Uso:  python pruebas/prueba_entrega4.py
 Usa los usuarios de demo (ver SETUP.md). Deja en la base un paciente y un profesional de prueba por corrida.
-El escenario F volvió el 15/11: la falla se arma desde Pagos del administrativo. El Monitor de eventos tiene su
-propia prueba (prueba_monitor.py).
+El Monitor de eventos tiene su propia prueba (prueba_monitor.py).
 """
 import os
-import base64, json, random, subprocess, sys, time, urllib.error, urllib.request
+import base64, json, random, sys, time, urllib.error, urllib.request
 from datetime import date, timedelta
 from playwright.sync_api import sync_playwright
 import ssl
@@ -45,7 +43,6 @@ except AttributeError:
     pass
 
 B = "https://localhost:8443/mediconecta/"
-WILDFLY_HOME = os.environ.get("WILDFLY_HOME")
 EXT = "http://localhost:8080/externos/"
 PACIENTE, PROFESIONAL = "juan.perez@mediconecta.test", "ana.lopez@mediconecta.test"
 ADMINISTRATIVO = "carla.admin@mediconecta.test"
@@ -98,14 +95,6 @@ def turno_id(fecha):
 
 def b64url(texto):
     return base64.urlsafe_b64encode(texto.encode()).decode().rstrip("=")
-
-
-def jboss_cli(comando):
-    """Ejecuta una operación de administración de WildFly (necesita WILDFLY_HOME) y devuelve su salida."""
-    script = os.path.join(WILDFLY_HOME, "bin", "jboss-cli.bat" if os.name == "nt" else "jboss-cli.sh")
-    r = subprocess.run([script, "--connect", "--command=" + comando], capture_output=True, text=True, timeout=90,
-                       stdin=subprocess.DEVNULL, env={**os.environ, "NOPAUSE": "true"})
-    return r.stdout
 
 
 def consola(**cambios):
@@ -268,41 +257,12 @@ with sync_playwright() as p:
     check("D. Facturación genera el reclamo a la obra social (TURNO_AUTORIZADO), visible para el administrativo",
           esperar(adm, B + "pagos.xhtml", lambda c: "Pendiente de presentación" in c, 15))
 
-    # ---- F. Falla a mitad del flujo crítico: rollback + compensación -------------------------
-    # La falla está apagada salvo que el servidor la habilite (-Dmediconecta.demo.fallas=true): se habilita en caliente
-    # con jboss-cli sólo para este escenario.
+    # ---- F. La falla a mitad del flujo crítico ya no vive en la aplicación (D-42) ----------------------
+    # El rollback y la compensación los prueba CompensacionIT (Arquillian), que provoca la falla desde la prueba.
     adm.goto(B + "pagos.xhtml")
-    check("F. apagada (lo normal), el administrativo no ve la falla de demostración en Pagos",
-          "Armar falla antes del commit" not in adm.content())
-    if not WILDFLY_HOME:
-        print("     F: definí WILDFLY_HOME para habilitar la falla de demostración con jboss-cli; se saltea el escenario")
-    else:
-        jboss_cli("/system-property=mediconecta.demo.fallas:add(value=true)")
-        try:
-            adm.goto(B + "pagos.xhtml")
-            adm.click("button:has-text('Armar falla antes del commit')")
-            adm.wait_for_selector("text=Falla armada")
-            check("F. el administrativo arma la falla de demostración desde Pagos", "Falla armada" in adm.content())
-            f2 = publicar_libre(prof, "02")
-            confirmados = lambda: sum(1 for t in json.loads(http(B + "api/v1/turnos", token=TOKEN)[1]) if t["estado"] == "CONFIRMADO")
-            antes = confirmados()
-            reservar(pac, f2)
-            msg = pagar(pac)
-            check("F. la confirmación falla después de cobrar, antes del commit, y se informa la reversión", "Falla simulada" in msg)
-            check("F. el turno NO quedó confirmado (rollback de la base) y sigue en espera para reintentar",
-                  confirmados() == antes and "Turno reservado temporalmente" in pac.content())
-            ultimo = json.loads(http(EXT + "api/consola/pagos")[1])[0]
-            check("F. la pasarela muestra el cobro REEMBOLSADO por la compensación (" + ultimo["id"] + ")",
-                  ultimo["estado"] == "REEMBOLSADO" and "Reversión automática" in (ultimo.get("motivoReembolso") or ""))
-            time.sleep(6)
-            pac.goto(B + "notificaciones.xhtml")
-            check("F. no salió ningún aviso de ese turno (el envío JMS se revirtió con la transacción)",
-                  f2.replace(" ", " · ") not in pac.content() and f2 not in pac.content())
-            pac.goto(B + "agenda.xhtml")
-            msg = pagar(pac)
-            check("F. al reintentar (la falla se desarma sola) el turno se confirma", "Turno confirmado" in msg)
-        finally:
-            jboss_cli("/system-property=mediconecta.demo.fallas:remove")
+    check("F. Pagos ya no tiene la falla de demostración (D-42: se probó con Arquillian y se retiró de la aplicación)",
+          "Armar falla antes del commit" not in adm.content() and "Demostración" not in adm.inner_text(".content"))
+    check("F. y muestra los reintegros pendientes (D-06 y D-41)", "Reintegros pendientes" in adm.inner_text(".content"))
 
     # ---- G2. SOAP Fault de negocio: el legado responde, pero rechaza al afiliado (Eje C) ----------
     # Antes que G: el legado caído abre el circuito 30 s y en ese lapso la consulta ni llegaría al legado.

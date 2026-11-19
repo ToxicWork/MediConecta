@@ -26,7 +26,6 @@ import ar.edu.mediconecta.negocio.copago.SelectorCalculoCopago;
 import ar.edu.mediconecta.negocio.copago.TarifaParticular;
 import ar.edu.mediconecta.negocio.dto.CotizacionTurnoDTO;
 import ar.edu.mediconecta.negocio.dto.DatosPago;
-import ar.edu.mediconecta.negocio.excepciones.FallaSimuladaException;
 import ar.edu.mediconecta.negocio.excepciones.PagoRequeridoException;
 import ar.edu.mediconecta.negocio.excepciones.ReservaInvalidaException;
 import ar.edu.mediconecta.negocio.validacion.CadenaDeValidacion;
@@ -65,7 +64,6 @@ class ProcesoConfirmacionTurnoTest {
     private final SolicitudAutorizacionDAO solicitudes = mock(SolicitudAutorizacionDAO.class);
     private final ProductorSolicitudesAutorizacion cola = mock(ProductorSolicitudesAutorizacion.class);
     private final PublicadorEventosTurno publicador = mock(PublicadorEventosTurno.class);
-    private final InyectorDeFallas inyector = new InyectorDeFallas();
     private final CatalogoPrestaciones catalogo = new CatalogoPrestaciones();
     private final Paciente paciente = Fixtures.paciente(PACIENTE, "OSDE");
     private ProcesoConfirmacionTurno proceso;
@@ -94,7 +92,6 @@ class ProcesoConfirmacionTurnoTest {
         Inyectar.en(proceso, "solicitudes", solicitudes);
         Inyectar.en(proceso, "colaAutorizaciones", cola);
         Inyectar.en(proceso, "publicador", publicador);
-        Inyectar.en(proceso, "inyectorDeFallas", inyector);
 
         turno = Fixtures.conId(Fixtures.turno(LocalDateTime.now().plusDays(2)), TURNO);
         turno.reservar(paciente, LocalDateTime.now().plusMinutes(5));
@@ -168,34 +165,6 @@ class ProcesoConfirmacionTurnoTest {
         assertEquals(EstadoTurno.HOLD, turno.getEstado());
     }
 
-    /** La falla de demostración salta después de todos los pasos: la transacción entera tiene que revertirse. */
-    @Test
-    void laFallaDeDemostracionArmadaSaltaDespuesDeTodosLosPasosYSeDesarma() {
-        System.setProperty(InyectorDeFallas.PROPIEDAD, "true");
-        try {
-            conCobertura(ResultadoCobertura.sinObraSocial());
-            inyector.armar();
-
-            assertThrows(FallaSimuladaException.class, () -> proceso.confirmar(TURNO, PACIENTE, new DatosPago()));
-
-            verify(publicador).publicar(any());
-            assertEquals(false, inyector.isArmada());
-        } finally {
-            System.clearProperty(InyectorDeFallas.PROPIEDAD);
-        }
-    }
-
-    /** Apagada (lo normal: el informe del núcleo prometió retirarla), no se puede armar y nunca hace fallar nada. */
-    @Test
-    void sinHabilitarlaLaFallaDeDemostracionNoSePuedeArmarNiFalla() {
-        conCobertura(ResultadoCobertura.sinObraSocial());
-
-        assertThrows(ErrorDeNegocioException.class, inyector::armar);
-        assertEquals(false, inyector.isHabilitada());
-
-        assertSame(turno, proceso.confirmar(TURNO, PACIENTE, new DatosPago()));
-        assertEquals(EstadoTurno.CONFIRMADO, turno.getEstado());
-    }
 
     @Test
     void cotizarDevuelveLaPrestacionLaCoberturaYElImporte() {

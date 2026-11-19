@@ -112,7 +112,8 @@ defectos D-01, D-02, D-04, D-07 y D-09 del informe del 16/11.
   del commit: la base y los mensajes se revierten y el cobro se reembolsa (escenario F de `prueba_entrega4.py`).
   Desde el 18/11 está apagada salvo que el servidor se levante con `-Dmediconecta.demo.fallas=true` (o, en caliente,
   `/system-property=mediconecta.demo.fallas:add(value=true)` en jboss-cli): el informe del núcleo prometió retirarla
-  de la entrega final. El escenario F la habilita sólo mientras corre.
+  de la entrega final. **Se retiró el 19/11 (D-42)**: ahora la falla la provoca la prueba de integración
+  `CompensacionIT` (Arquillian), sin ningún gancho en el código de la aplicación.
 - **Pago inexistente en la pasarela**: un 404 al reintegrar ya no cuenta como caída para el Circuit Breaker ni se
   reintenta; queda en el log para conciliación manual.
 - Guion y diapositivas nuevos (`docs/entrega-nucleo/`, con `generar_presentacion.py`), informe actualizado y
@@ -133,6 +134,12 @@ defectos D-01, D-02, D-04, D-07 y D-09 del informe del 16/11.
   (SETUP, sección 2.4). Sin clave la aplicación no despliega.
 - Las entradas de la historia clínica ya no se guardan vacías ni de más de 2000 caracteres, y el n.º de afiliado
   tiene hasta 40.
+- **Reintegros que la pasarela no pudo hacer** (D-06 y D-41, [ADR-0024](docs/adr/0024-reintegros-pendientes.md)): si la
+  compensación no puede devolver el cobro porque la pasarela no responde, el reintegro queda pendiente y se reintenta
+  solo cada minuto, con espera creciente. Si la pasarela no conoce el pago, queda para conciliación manual. El
+  administrativo los ve en **Pagos** y los puede reintentar o marcar como conciliados. Antes quedaban sólo en el log.
+- **La falla de demostración salió de la aplicación** (D-42): la reemplaza `CompensacionIT`, una prueba de
+  integración que hace fallar la confirmación real antes del commit.
 
 ## Documentación
 

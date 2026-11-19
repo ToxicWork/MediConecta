@@ -86,7 +86,7 @@ public class ConsolaResource {
 
     public record CambioEstado(EstadoSimuladores.ModoObraSocial obraSocial,
                                EstadoSimuladores.ModoAutorizacion autorizaciones,
-                               EstadoSimuladores.ModoServicio pasarela,
+                               EstadoSimuladores.ModoPasarela pasarela,
                                EstadoSimuladores.ModoServicio videoconsulta,
                                Long demoraAutorizacionMs) {
     }

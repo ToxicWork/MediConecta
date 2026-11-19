@@ -5,9 +5,10 @@ import ar.edu.mediconecta.modelo.EstadoPago;
 import ar.edu.mediconecta.modelo.EstadoReclamo;
 import ar.edu.mediconecta.modelo.Pago;
 import ar.edu.mediconecta.modelo.ReclamoObraSocial;
-import ar.edu.mediconecta.negocio.ControlDeDemostracion;
+import ar.edu.mediconecta.modelo.ReintegroPendiente;
 import ar.edu.mediconecta.negocio.ServicioDeFacturacion;
 import ar.edu.mediconecta.negocio.ServicioDePagos;
+import ar.edu.mediconecta.negocio.ServicioDeReintegros;
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.faces.application.FacesMessage;
 import jakarta.faces.context.FacesContext;
@@ -29,13 +30,14 @@ public class PagosBean {
     private ServicioDeFacturacion servicioDeFacturacion;
 
     @Inject
-    private ControlDeDemostracion demostracion;
+    private ServicioDeReintegros servicioDeReintegros;
 
     @Inject
     private LoginBean loginBean;
 
     private List<Pago> pagos;
     private List<ReclamoObraSocial> reclamos;
+    private List<ReintegroPendiente> reintegros;
 
     public String verificarAcceso() {
         return loginBean.exigirRol("PACIENTE", "ADMINISTRATIVO");
@@ -71,31 +73,40 @@ public class PagosBean {
                 .map(ReclamoObraSocial::getImporte).reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    /**
-     * Falla de demostración del flujo crítico (sólo administrativo; el rol lo exige {@link ControlDeDemostracion}).
-     * Armada, la próxima confirmación de turno falla antes del commit: se ve el rollback y el reembolso del cobro.
-     */
-    public boolean isFallaArmada() {
-        return loginBean.isAdministrativo() && demostracion.isFallaArmada();
-    }
-
-    /** El panel de la falla sólo aparece si el servidor la habilitó para una demostración. */
-    public boolean isFallaHabilitada() {
-        return loginBean.isAdministrativo() && demostracion.isFallaHabilitada();
-    }
-
-    public void armarFalla() {
-        try {
-            demostracion.armarFalla();
-            FacesContext.getCurrentInstance().addMessage(null, new FacesMessage(FacesMessage.SEVERITY_WARN,
-                    "Falla armada: la próxima confirmación de turno va a revertirse antes del commit.", null));
-        } catch (ErrorDeNegocioException apagada) {
-            FacesContext.getCurrentInstance().addMessage(null,
-                    new FacesMessage(FacesMessage.SEVERITY_ERROR, apagada.getMessage(), null));
+    /** D-06 y D-41: reintegros que la pasarela no pudo hacer en el momento (sólo el administrativo). */
+    public List<ReintegroPendiente> getReintegros() {
+        if (reintegros == null) {
+            reintegros = loginBean.isAdministrativo() ? servicioDeReintegros.abiertos() : List.of();
         }
+        return reintegros;
     }
 
-    public void desarmarFalla() {
-        demostracion.desarmarFalla();
+    /** El id llega con el botón (f:param): la lista se refresca sola cada 5 segundos (D-45). */
+    public void reintentarReintegro(Long id) {
+        try {
+            mensaje(FacesMessage.SEVERITY_INFO, servicioDeReintegros.reintentarAhora(id));
+        } catch (ErrorDeNegocioException e) {
+            mensaje(FacesMessage.SEVERITY_ERROR, e.getMessage());
+        }
+        refrescar();
+    }
+
+    public void conciliarReintegro(Long id) {
+        try {
+            servicioDeReintegros.marcarConciliado(id);
+            mensaje(FacesMessage.SEVERITY_INFO, "Marcaste el reintegro como conciliado a mano.");
+        } catch (ErrorDeNegocioException e) {
+            mensaje(FacesMessage.SEVERITY_ERROR, e.getMessage());
+        }
+        refrescar();
+    }
+
+    private void refrescar() {
+        reintegros = null;
+        pagos = null;
+    }
+
+    private static void mensaje(FacesMessage.Severity severidad, String texto) {
+        FacesContext.getCurrentInstance().addMessage(null, new FacesMessage(severidad, texto, null));
     }
 }

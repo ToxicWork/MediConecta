@@ -6,6 +6,7 @@ import ar.edu.mediconecta.integracion.pagos.PagosGateway;
 import ar.edu.mediconecta.integracion.pagos.PedidoCobro;
 import ar.edu.mediconecta.integracion.pagos.ResultadoCobro;
 import ar.edu.mediconecta.integracion.resiliencia.IntegracionNoDisponibleException;
+import ar.edu.mediconecta.modelo.OrigenReintegro;
 import ar.edu.mediconecta.modelo.Pago;
 import ar.edu.mediconecta.modelo.Turno;
 import ar.edu.mediconecta.modelo.Usuario;
@@ -43,6 +44,9 @@ public class ServicioDePagosBean implements ServicioDePagos {
 
     @Inject
     private PagoDAO pagoDAO;
+
+    @Inject
+    private ServicioDeReintegros reintegros;
 
     @Inject
     private UsuarioDAO usuarioDAO;
@@ -87,8 +91,8 @@ public class ServicioDePagosBean implements ServicioDePagos {
         Pago pago = new Pago(turno, importe, MONEDA, resultado.idPago(), resultado.marca(), resultado.ultimos4());
         pagoDAO.guardar(pago);
         // Desde acá el dinero ya se movió: si la transacción no llega al commit, hay que devolverlo.
-        transaccion.registerInterposedSynchronization(new CompensacionDePago(pasarela, resultado.idPago(),
-                "turno-" + turno.getId()));
+        transaccion.registerInterposedSynchronization(new CompensacionDePago(pasarela, reintegros, resultado.idPago(),
+                "turno-" + turno.getId(), turno.getId(), importe));
         LOG.info("Cobro aprobado " + resultado.idPago() + " por $" + importe + " (turno " + turno.getId() + ").");
         return pago;
     }
@@ -110,8 +114,9 @@ public class ServicioDePagosBean implements ServicioDePagos {
         if (resultado.inexistente()) {
             // La pasarela está en línea pero no conoce el pago: reintentar no lo arregla. El pago no se marca como
             // reembolsado y queda para conciliación manual, sin devolver el mensaje al broker ni abrir el circuito.
-            LOG.warning("La pasarela no conoce el pago " + pago.get().getIdPasarela() + " del turno " + turnoId
-                    + ": el reintegro requiere conciliación manual.");
+            // D-41: antes quedaba sólo en el log; ahora el administrativo lo ve en Pagos y lo resuelve.
+            reintegros.registrarParaConciliar(pago.get().getIdPasarela(), "turno-" + turnoId, turnoId,
+                    pago.get().getImporte(), motivo, OrigenReintegro.CANCELACION, "La pasarela no conoce el pago");
             return;
         }
         pago.get().marcarReembolsado(motivo);

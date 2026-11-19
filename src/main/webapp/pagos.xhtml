@@ -79,6 +79,45 @@
                     </h:panelGroup>
                 </div>
 
+                <h:panelGroup id="cardReintegros" layout="block" styleClass="card" rendered="#{loginBean.administrativo}">
+                    <div class="card-header">
+                        <div>
+                            <h3>Reintegros pendientes</h3>
+                            <div class="subtle">Los que la pasarela no pudo hacer en el momento: los que no respondió se reintentan solos; los que no reconoce los resolvés acá</div>
+                        </div>
+                    </div>
+                    <h:panelGroup layout="block" styleClass="table-wrap" rendered="#{not empty pagosBean.reintegros}">
+                        <p:dataTable id="tablaReintegros" value="#{pagosBean.reintegros}" var="r">
+                            <p:column headerText="Desde">
+                                <h:outputText value="#{r.creadoEn}"><f:convertDateTime pattern="dd/MM/yyyy HH:mm" type="localDateTime"/></h:outputText>
+                            </p:column>
+                            <p:column headerText="Por qué">#{r.origen.etiqueta}<div class="texto-tenue mono-id">#{r.referencia}</div></p:column>
+                            <p:column headerText="Importe">
+                                <h:outputText styleClass="importe" value="#{r.importe}"><f:convertNumber type="currency" currencySymbol="$ " locale="es_AR"/></h:outputText>
+                            </p:column>
+                            <p:column headerText="Estado">
+                                <span class="tag #{r.estado == 'PENDIENTE' ? 'tag-warning' : 'tag-danger'}">#{r.estado.etiqueta}</span>
+                                <div class="texto-tenue">#{r.intentos} intento(s)<h:outputText rendered="#{r.proximoIntento != null}" value=" · próximo a las "/><h:outputText rendered="#{r.proximoIntento != null}" value="#{r.proximoIntento}"><f:convertDateTime pattern="HH:mm" type="localDateTime"/></h:outputText></div>
+                            </p:column>
+                            <p:column headerText="Qué dijo la pasarela"><span class="texto-tenue">#{r.ultimoError}</span></p:column>
+                            <p:column headerText="" styleClass="col-accion">
+                                <p:commandButton value="Reintentar ahora" action="#{pagosBean.reintentarReintegro(param.reintegro)}"
+                                                 update="panelPagos :mensajes" styleClass="btn btn-secondary btn-sm">
+                                    <f:param name="reintegro" value="#{r.id}"/>
+                                </p:commandButton>
+                                <p:commandButton value="Ya lo concilié" rendered="#{r.estado == 'CONCILIACION_MANUAL'}"
+                                                 action="#{pagosBean.conciliarReintegro(param.reintegro)}" update="panelPagos :mensajes"
+                                                 styleClass="btn btn-secondary btn-sm" title="Lo resolviste por fuera, con la pasarela o con el paciente">
+                                    <f:param name="reintegro" value="#{r.id}"/>
+                                </p:commandButton>
+                            </p:column>
+                        </p:dataTable>
+                    </h:panelGroup>
+                    <h:panelGroup layout="block" styleClass="empty-state" rendered="#{empty pagosBean.reintegros}">
+                        No hay reintegros pendientes: la pasarela hizo todos en el momento.
+                    </h:panelGroup>
+                </h:panelGroup>
+
                 <h:panelGroup layout="block" styleClass="card" rendered="#{loginBean.administrativo}">
                     <div class="card-header">
                         <div>
@@ -110,26 +149,6 @@
                 </h:panelGroup>
             </h:panelGroup>
 
-            <h:panelGroup id="panelFalla" layout="block" styleClass="card" rendered="#{pagosBean.fallaHabilitada}">
-                <div class="card-header">
-                    <div>
-                        <h3>Demostración: falla a mitad del flujo crítico</h3>
-                        <div class="subtle">La próxima confirmación de un turno con copago falla después de cobrar, encolar y publicar, justo antes del commit</div>
-                    </div>
-                    <h:outputText id="estadoFalla" value="#{pagosBean.fallaArmada ? 'Falla armada' : 'Normal'}"
-                                  styleClass="tag #{pagosBean.fallaArmada ? 'tag-danger' : 'tag-success'}"/>
-                </div>
-                <p class="texto-tenue">
-                    Qué se ve: el paciente recibe el aviso de la reversión y conserva su reserva; el turno, el pago, la
-                    solicitud de autorización y los eventos no quedan en la base ni salen del broker (rollback de la
-                    transacción); y en la consola de la pasarela el cobro figura reembolsado (compensación). Se desarma
-                    sola después de disparar.
-                </p>
-                <p:commandButton id="armarFalla" value="Armar falla antes del commit" action="#{pagosBean.armarFalla}"
-                                 update="panelFalla :mensajes" styleClass="btn btn-warning" rendered="#{not pagosBean.fallaArmada}"/>
-                <p:commandButton id="desarmarFalla" value="Desarmar" action="#{pagosBean.desarmarFalla}"
-                                 update="panelFalla" styleClass="btn btn-secondary" rendered="#{pagosBean.fallaArmada}"/>
-            </h:panelGroup>
         </h:form>
     </ui:define>
 </ui:composition>
