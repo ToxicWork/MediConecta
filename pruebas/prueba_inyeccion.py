@@ -156,7 +156,7 @@ with sync_playwright() as p:
     print("-- J03. Agenda y historia de la profesional")
     prof = login(br, PROFESIONAL)
     for _ in range(15):  # un horario libre (D-23 no deja repetir uno de otra corrida)
-        fecha = "%s %02d:%02d" % (dia_desde_hoy(random.randint(49, 55)), random.randint(7, 19), random.randint(0, 59))
+        fecha = "%s %02d:%02d" % (dia_desde_hoy(random.randint(49, 55)), random.randint(7, 19), random.randint(0, 11) * 5)
         prof.goto(B + "agenda.xhtml")
         prof.fill("#formPublicar\\:fecha_input", fecha)
         prof.keyboard.press("Escape")
