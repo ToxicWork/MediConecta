@@ -229,7 +229,38 @@ jobs:
             echo "::error title=Trivy::$(echo "${hallazgos:-sin detalle en la salida}" | sed ':a;N;$!ba;s/%/%25/g;s/\n/%0A/g')"
           fi
 
+  empaquetar:
+    # Los dos WAR se compilan una sola vez y pasan como artefacto a las máquinas de punta a punta: cinco máquinas
+    # compilando a la vez hacían que Maven Central respondiera 429 (Too Many Requests).
+    name: Empaquetar mediconecta.war y externos.war
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - name: Compilar los dos WAR (sin pruebas; las corre el trabajo de compilación)
+        run: |
+          for pom in pom.xml sistemas-externos/pom.xml; do
+            for intento in 1 2 3; do
+              mvn -B -ntp -q -f "$pom" package -DskipTests && break
+              [ "$intento" = 3 ] && { echo "::error::No se pudo compilar $pom"; exit 1; }
+              echo "::warning::Falló la compilación de $pom (intento $intento, posible 429 de Maven Central); se reintenta"
+              sleep $((30 * intento))
+            done
+          done
+          mkdir -p wars && cp target/mediconecta.war sistemas-externos/target/externos.war wars/
+      - uses: actions/upload-artifact@v7
+        with:
+          name: wars
+          path: wars/
+          retention-days: 1
+
   punta-a-punta:
+    needs: empaquetar
     # La aplicación completa en el runner, sin contenedores: WildFly del zip oficial (de Maven Central, con su
     # checksum), el PostgreSQL y el Google Chrome que ya trae la imagen de Ubuntu, y los usuarios de demo creados por
     # la propia aplicación. Las contraseñas de la corrida se generan acá, se enmascaran y mueren con el runner.
@@ -331,18 +362,13 @@ jobs:
           "$WILDFLY_HOME/bin/jboss-cli.sh" --file=wildfly/configurar-mensajeria.cli
           "$WILDFLY_HOME/bin/jboss-cli.sh" --file=wildfly/configurar-permisos-broker.cli
           "$WILDFLY_HOME/bin/jboss-cli.sh" --commands="embed-server --server-config=standalone-full.xml,data-source add --name=mediconectaDS --jndi-name=java:/mediconectaDS --driver-name=postgresql --connection-url=jdbc:postgresql://localhost:5432/mediconecta --user-name=mediconecta --password=$PG_CLAVE --enabled=true --jta=true --use-ccm=true --min-pool-size=2 --max-pool-size=20 --validate-on-match=true --background-validation=false,stop-embedded-server"
-      - name: Compilar y desplegar mediconecta.war y externos.war
-        run: |
-          # Hasta 3 intentos con espera: si Maven Central responde 429 al bajar una dependencia, se reintenta.
-          for pom in pom.xml sistemas-externos/pom.xml; do
-            for intento in 1 2 3; do
-              mvn -B -ntp -q -f "$pom" package -DskipTests && break
-              [ "$intento" = 3 ] && { echo "::error::No se pudo compilar $pom"; exit 1; }
-              echo "::warning::Falló la compilación de $pom (intento $intento, posible 429 de Maven Central); se reintenta"
-              sleep $((30 * intento))
-            done
-          done
-          cp target/mediconecta.war sistemas-externos/target/externos.war "$WILDFLY_HOME/standalone/deployments/"
+      - name: Los WAR del trabajo de empaquetado
+        uses: actions/download-artifact@v7
+        with:
+          name: wars
+          path: wars
+      - name: Desplegar mediconecta.war y externos.war
+        run: cp wars/mediconecta.war wars/externos.war "$WILDFLY_HOME/standalone/deployments/"
       - name: Levantar WildFly (perfil standalone-full)
         run: |
           nohup "$WILDFLY_HOME/bin/standalone.sh" -c standalone-full.xml -Dmediconecta.jwt.secreto="$JWT_SECRETO" \

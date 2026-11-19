@@ -1,6 +1,6 @@
 # ADR-0021: PBKDF2 con 600.000 iteraciones, y por qué no bcrypt ni Argon2
 
-- **Estado:** propuesto (19/11/2026, pendiente de aprobación del equipo)
+- **Estado:** aceptado (19/11/2026)
 - **Fecha:** 19/11/2026
 - **Patrón:** Seguridad (hash adaptativo de contraseñas)
 - **Precisa:** la elección de PBKDF2 del documento de diseño (8.6: "PBKDF2 con sal, nunca en texto plano"), que no
@@ -46,6 +46,9 @@ verificando y pasan a 600.000 cuando el usuario cambia la contraseña.
 
 - **A favor:** PBKDF2 es un hash adaptativo con sal, aprobado por NIST (SP 800-132), sin dependencias nuevas. Con
   600.000 iteraciones cumple la recomendación de OWASP.
+- **Impacto medido (19/11, WildFly local contra Supabase, mediana de 10 ingresos por la API):** 2,75 s con una cuenta
+  de 600.000 iteraciones contra 2,55 s con una de 2048. Casi todo el tiempo es la latencia hasta Supabase; el hash suma
+  unos 0,2 s. En el pipeline, las dos suites de punta a punta siguen en 8,5 y 9,2 minutos.
 - **En contra:** cada ingreso y cada alta cuestan unos 120 ms de CPU en lugar de 1 ms. Es poco para un usuario, pero
   limita cuántos ingresos por segundo atiende el servidor. La prueba de carga no lo mide: entra una vez y después usa
   el token. Los usuarios existentes conservan su hash de 2048 iteraciones hasta que cambian la contraseña; rehacerlo

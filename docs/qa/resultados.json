@@ -108,7 +108,7 @@
       "texto": "Pasó (tres corridas idénticas)"
     },
     "zap": {
-      "texto": "Sin ejecutar (el escaneo no llegó a generar el reporte; ver sección 6)"
+      "texto": "Pasó (0 High; 3 Medium justificadas)"
     },
     "manual": {
       "texto": "Manual: pendiente de ejecutar por el equipo"
@@ -149,11 +149,11 @@
     },
     {
       "nivel": "No funcional",
-      "ejecutados": 117,
-      "pasados": 117,
+      "ejecutados": 118,
+      "pasados": 118,
       "fallados": 0,
-      "bloqueados": 1,
-      "detalle": "Responsive 57, accesibilidad 57, carga 3 endpoints; ZAP bloqueado (sin reporte)"
+      "bloqueados": 0,
+      "detalle": "Responsive 57, accesibilidad 57, carga 3 endpoints y el escaneo de ZAP (0 High)"
     },
     {
       "nivel": "Manual",
@@ -251,9 +251,9 @@
     ],
     [
       "Alertas High de OWASP ZAP",
-      "Sin dato",
+      "0 (3 Medium justificadas, 1 Low)",
       "0",
-      "No verificado"
+      "Sí"
     ],
     [
       "CVE altas o críticas (Trivy)",
@@ -299,8 +299,39 @@
   },
   "captura_sonar": "img/quality-gate.png",
   "zap": {
-    "resumen": "PENDIENTE",
-    "alertas": []
+    "resumen": "OWASP ZAP 2.17.0 (Automation Framework) recorrió la web con la sesión del paciente de demo y la API con su JWT y el OpenAPI, en pasivo y en activo: 0 alertas High, 3 Medium, 1 Low y 4 informativas. Cada Medium se justifica abajo; el reporte completo (HTML y JSON) queda en el artefacto de la corrida.",
+    "alertas": [
+      [
+        "Medium",
+        "Absence of Anti-CSRF Tokens",
+        3,
+        "Falso positivo para JSF: cada formulario lleva jakarta.faces.ViewState, un valor por vista que el servidor valida y que un sitio ajeno no conoce; la cookie de sesión es SameSite=Lax. ZAP no reconoce ese nombre como token anti-CSRF. Se mantiene."
+      ],
+      [
+        "Medium",
+        "CSP: style-src unsafe-inline",
+        4,
+        "PrimeFaces escribe estilos en línea en sus componentes. Los scripts sí exigen nonce (sin unsafe-inline). Riesgo aceptado: una inyección de estilos no ejecuta código; mejora futura: hashes de estilos."
+      ],
+      [
+        "Medium",
+        "Sub Resource Integrity Attribute Missing",
+        3,
+        "La hoja de Google Fonts no admite integrity: su contenido cambia según el navegador. Riesgo aceptado (sólo tipografías); alternativa: servir las fuentes desde la propia aplicación."
+      ],
+      [
+        "Low",
+        "Cookie without SameSite Attribute",
+        2,
+        "Se revisa en el reporte qué cookie es: la de sesión y la del tema ya llevan SameSite=Lax (CP-50)."
+      ],
+      [
+        "Informativa",
+        "Authentication Request Identified; Session Management Response Identified; User Agent Fuzzer; Suspicious Comments",
+        10,
+        "Informativas: no requieren tratamiento."
+      ]
+    ]
   },
   "seguridad": [
     [
@@ -313,7 +344,7 @@
       "SEC-W02 Contraseñas con hash adaptativo con sal",
       "PBKDF2-HMAC-SHA256, sal de 32 bytes, 600.000 iteraciones (ADR-0021)",
       "CUMPLE",
-      "ParametrosDeHashTest (CP-65). En main, hasta integrar la rama pbkdf2-600k: 2048 iteraciones"
+      "ParametrosDeHashTest (CP-65); impacto medido: 0,2 s por ingreso (ADR-0021, aceptado)"
     ],
     [
       "SEC-W03 Páginas protegidas sin sesión redirigen al login",
@@ -402,8 +433,8 @@
     [
       "Escaneo OWASP ZAP pasivo y activo autenticado: 0 High",
       "Plan del Automation Framework en el pipeline",
-      "PENDIENTE",
-      "CP-80"
+      "CUMPLE",
+      "CP-80: 0 High, 3 Medium justificadas (tabla de alertas), 1 Low"
     ],
     [
       "Dependencias: 0 CVE críticas o altas",
@@ -444,8 +475,8 @@
     [
       "Row Level Security en todas las tablas de Supabase (ADR-0018)",
       "Consulta a pg_tables en la base de Supabase",
-      "NO CUMPLE",
-      "La tabla token_revocado, creada el 19/11, quedó sin RLS hasta volver a correr sql/02-habilitar-rls.sql (D-10)"
+      "CUMPLE",
+      "Verificado el 19/11: 15 de 15 tablas con RLS, incluida token_revocado (sql/02-habilitar-rls.sql)"
     ],
     [
       "Diagnóstico y n.º de afiliado cifrados por columna con AES-GCM (diseño 8.6)",
@@ -462,8 +493,8 @@
   ],
   "hallazgos": [
     "Broker: el rol guest que trae WildFly podía publicar en el tópico de turnos, escuchar todos los eventos y leer la cola de autorizaciones y la DLQ. Se confirmó con prueba_permisos_broker.py (10 verificaciones fallidas antes del arreglo) y se corrigió con permisos por destino (ADR-0020).",
-    "Contraseñas: PBKDF2 usaba las 2048 iteraciones por defecto de la implementación, unas 290 veces menos que lo que recomienda OWASP. Se pasó a 600.000 (ADR-0021; 120 ms por hash medidos). PBKDF2 se mantiene frente a bcrypt o Argon2 porque es parte de Jakarta EE y está aprobado por NIST; las alternativas exigirían una biblioteca externa y un identity store propio.",
-    "Supabase: Hibernate creó la tabla token_revocado sin Row Level Security (D-10). Tratamiento: volver a correr sql/02-habilitar-rls.sql, que es idempotente, después de cada despliegue con entidades nuevas.",
+    "Contraseñas: PBKDF2 usaba las 2048 iteraciones por defecto de la implementación, unas 290 veces menos que lo que recomienda OWASP. Se pasó a 600.000 (ADR-0021, aceptado; 120 ms por hash y 0,2 s por ingreso medidos). PBKDF2 se mantiene frente a bcrypt o Argon2 porque es parte de Jakarta EE y está aprobado por NIST; las alternativas exigirían una biblioteca externa y un identity store propio.",
+    "Supabase: Hibernate crea las tablas nuevas sin Row Level Security (D-10). Tratamiento: correr sql/02-habilitar-rls.sql, que es idempotente, después de cada despliegue con entidades nuevas. Verificado el 19/11: las 15 tablas tienen RLS.",
     "Análisis de dependencias: el diseño mencionaba OWASP Dependency-Check; se usa Trivy, que los criterios aceptan, porque analiza los dos proyectos en segundos y no necesita descargar la base del NVD en cada corrida. Resultado: 0 CVE altas o críticas.",
     "Secretos: gitleaks recorre todo el historial en cada corrida sin hallazgos. La contraseña de demo de las pruebas (demo1234) es un dato de prueba documentado; la del administrador inicial llega por variable de entorno."
   ],
