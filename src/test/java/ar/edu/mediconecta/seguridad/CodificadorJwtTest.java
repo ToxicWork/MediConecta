@@ -39,6 +39,17 @@ class CodificadorJwtTest {
         assertEquals(AHORA.plus(MEDIA_HORA).getEpochSecond(), identidad.get().venceEn());
     }
 
+    /** Cada token lleva su identificador (jti), distinto en cada emisión: con él se lo revoca al cerrar sesión. */
+    @Test
+    void cadaTokenTraeSuPropioIdentificador() {
+        CodificadorJwt codificador = codificador(AHORA);
+        String jti = codificador.validar(codificador.emitir("juan@test", "PACIENTE")).orElseThrow().jti();
+        String otro = codificador.validar(codificador.emitir("juan@test", "PACIENTE")).orElseThrow().jti();
+
+        assertTrue(jti.matches("[0-9a-f-]{36}"), jti);
+        assertFalse(jti.equals(otro), "dos tokens del mismo usuario no comparten jti");
+    }
+
     @Test
     void unTokenVencidoSeRechaza() {
         String token = codificador(AHORA).emitir("juan@test", "PACIENTE");

@@ -94,7 +94,7 @@ public final class CodificadorJwt {
             if (reloj.instant().getEpochSecond() >= vence) {
                 return Optional.empty();
             }
-            return Optional.of(new IdentidadJwt(email, rol, vence));
+            return Optional.of(new IdentidadJwt(email, rol, vence, texto(contenido, "jti")));
         } catch (IllegalArgumentException malFormado) {
             return Optional.empty();
         }

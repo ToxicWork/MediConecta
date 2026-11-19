@@ -35,6 +35,18 @@
         }
       }
     },
+    "/auth/logout": {
+      "post": {
+        "tags": ["Autenticación"],
+        "summary": "Cierra la sesión de la API: revoca el token del pedido (ADR-0019)",
+        "description": "Desde ese momento el token recibe 401 token_invalido aunque no haya vencido. Otro login da un token nuevo.",
+        "operationId": "logout",
+        "responses": {
+          "204": {"description": "Token revocado"},
+          "401": {"$ref": "#/components/responses/NoAutenticado"}
+        }
+      }
+    },
     "/profesionales": {
       "get": {
         "tags": ["Profesionales"],

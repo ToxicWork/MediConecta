@@ -2,6 +2,7 @@ package ar.edu.mediconecta.seguridad;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
@@ -31,6 +32,9 @@ public class ServicioDeTokens {
 
     private CodificadorJwt codificador;
 
+    @Inject
+    private RevocacionDeTokens revocacion;
+
     @PostConstruct
     void configurar() {
         String configurado = System.getProperty("mediconecta.jwt.secreto", System.getenv("MEDICONECTA_JWT_SECRETO"));
@@ -51,8 +55,14 @@ public class ServicioDeTokens {
         return codificador.emitir(email, rol);
     }
 
+    /** La identidad del token si es válido: bien firmado, sin vencer y sin revocar (ADR-0019). */
     public Optional<IdentidadJwt> validar(String token) {
-        return codificador.validar(token);
+        return codificador.validar(token).filter(identidad -> !revocacion.estaRevocado(identidad.jti()));
+    }
+
+    /** Cierra la sesión de la API: desde ya, ese token se rechaza con 401 aunque no haya vencido. */
+    public void revocar(IdentidadJwt identidad) {
+        revocacion.revocar(identidad);
     }
 
     public long vigenciaEnSegundos() {
