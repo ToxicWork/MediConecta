@@ -39,7 +39,9 @@ for nombre in "${SUITES[@]}"; do
       echo "::error title=$nombre::$linea"
     done
     if [ "$fallas" -eq 0 ]; then
-      echo "::error title=$nombre::terminó con código $codigo: $(tail -1 "$SALIDA/$nombre.txt")"
+      # Se cortó sin verificaciones fallidas: el final de su salida (el traceback) en una sola anotación.
+      final=$({ grep -v '^[[:space:]]*$' "$SALIDA/$nombre.txt" | tail -8 | cut -c1-250; } || true)
+      echo "::error title=$nombre::terminó con código $codigo%0A$(echo "$final" | sed ':a;N;$!ba;s/%/%25/g;s/\n/%0A/g')"
     fi
   else
     resultado="✅"
