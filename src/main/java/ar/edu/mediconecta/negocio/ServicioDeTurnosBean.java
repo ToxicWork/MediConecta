@@ -28,6 +28,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -113,6 +114,8 @@ public class ServicioDeTurnosBean implements ServicioDeTurnos {
         // dice que ya no está disponible (antes recibía un error 500 al hacer el commit).
         Turno turno = turnoId == null ? null : turnoDAO.buscarPorIdParaActualizar(turnoId);
         validaciones.paraReservar().validar(new SolicitudReserva(turno, pacienteId, ahora)); // Chain of Responsibility
+        // TurnoExistente, el primer eslabón de la cadena, ya rechazó un turno inexistente: acá nunca es null.
+        Objects.requireNonNull(turno, "turno validado");
         turno.reservar(usuarioDAO.obtenerReferenciaPaciente(pacienteId), ahora.plus(DURACION_HOLD)); // State
         turnoDAO.actualizar(turno);
         turnoEnHoldId = turno.getId();
