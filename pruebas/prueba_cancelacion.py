@@ -146,7 +146,12 @@ def ofrecido(pac, fecha):
 
 def reservar_y_pagar(pac, fecha):
     dia, hora = fecha.split(" ")
-    ofrecido(pac, fecha)
+    if not ofrecido(pac, fecha):
+        # Pasó una vez en el pipeline y no se pudo reproducir: si vuelve a pasar, que diga qué había en pantalla.
+        disponibles = [" ".join(t.split()) for t in pac.locator("#formAgenda\\:tablaTurnos tr").all_inner_texts()]
+        raise AssertionError("el horario %s no figura entre los disponibles de la Dra. Ana Lopez (página %s). "
+                             "Disponibles: %s. Mensajes: %s" % (fecha, pac.url.split("/")[-1], disponibles[1:9] or "ninguno",
+                                                               mensaje(pac) or "ninguno"))
     with pac.expect_navigation():
         pac.locator("#formAgenda\\:tablaTurnos tr", has_text=dia + " · " + hora).locator("button:has-text('Reservar')").first.click()
     pac.fill("#formConfirmacion\\:titular", "Paciente Cancelacion")
