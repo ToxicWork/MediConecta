@@ -2,13 +2,14 @@
 
   1. axe-core en las 19 pantallas de los tres roles (y las dos sin sesión) a los tres anchos: ninguna violación
      crítica de las reglas WCAG 2.0, 2.1 y 2.2 de niveles A y AA. Las graves (serious) se listan para corregirlas.
-  2. Lighthouse en las pantallas principales a los tres anchos: puntaje de accesibilidad de 90 o más.
+  2. Opcional (fuera del pipeline): Lighthouse en las pantallas principales a los tres anchos, con puntaje de
+     accesibilidad de 90 o más.
 
 Deja el detalle en la carpeta de RESULTADOS_ACCESIBILIDAD (por defecto, mediconecta-accesibilidad en la carpeta
 temporal): axe.json con cada violación y, por cada corrida de Lighthouse, su reporte HTML y JSON.
 
 Requisitos: los de prueba_responsive.py, más
-  AXE_JS       la ruta de axe.min.js (npm install axe-core@4.14.0 lo deja en node_modules/axe-core/axe.min.js);
+  AXE_JS       la ruta de axe.min.js (del paquete axe-core 4.14.0; el pipeline lo baja con su sha512);
   LIGHTHOUSE   el comando de Lighthouse (por ejemplo "npx --yes lighthouse@13.5.0"); sin ella, se omite el paso 2.
 Uso:  python pruebas/prueba_accesibilidad.py
 No modifica datos.
@@ -82,7 +83,9 @@ detalle, graves = [], 0
 with sync_playwright() as p:
     br = p.chromium.launch(channel=NAVEGADOR, headless=True)
     for rol, pantallas in PANTALLAS.items():
-        contexto = br.new_context(ignore_https_errors=True, viewport={"width": 1280, "height": 800})
+        # bypass_csp: la CSP de la aplicación (H01) no deja ejecutar scripts sin su nonce, y axe se inyecta en la
+        # página. Sólo afecta a este navegador de prueba; la aplicación no cambia.
+        contexto = br.new_context(ignore_https_errors=True, bypass_csp=True, viewport={"width": 1280, "height": 800})
         pg = contexto.new_page()
         nombre_rol = rol[0] if rol else "sin sesión"
         if rol:

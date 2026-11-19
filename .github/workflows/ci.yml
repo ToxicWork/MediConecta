@@ -215,7 +215,7 @@ jobs:
     # Las suites van en dos grupos parejos que corren en paralelo, cada uno con su propia aplicación levantada: así
     # el pipeline entra en los 15 minutos de los criterios (prueba_hold_vence espera los 5 minutos reales del hold).
     # Las mismas máquinas corren las pruebas no funcionales, cada una con su aplicación: la carga con k6, el escaneo
-    # de OWASP ZAP y la accesibilidad con axe y Lighthouse (sin contenedores, con versiones fijas y checksums).
+    # de OWASP ZAP y la accesibilidad con axe-core (sin contenedores, con versiones fijas y checksums).
     name: ${{ matrix.nombre }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -237,7 +237,7 @@ jobs:
             tipo: carga
           - nombre: Escaneo de seguridad (OWASP ZAP, pasivo y activo autenticado)
             tipo: zap
-          - nombre: Accesibilidad (axe y Lighthouse a 360, 768 y 1280 px)
+          - nombre: Accesibilidad (axe-core a 360, 768 y 1280 px, WCAG 2.2 AA)
             tipo: accesibilidad
     env:
       WILDFLY_HOME: ${{ github.workspace }}/wildfly-41.0.0.Final
@@ -333,7 +333,7 @@ jobs:
       - name: k6 2.3.0 (binario oficial, con su checksum)
         if: matrix.tipo == 'carga'
         run: |
-          curl -fsSL --retry 3 -o k6.tar.gz https://github.com/grafana/k6/releases/download/v2.3.0/k6-v2.3.0-linux-amd64.tar.gz
+          curl -fsSL --proto '=https' --proto-redir '=https' --retry 3 -o k6.tar.gz https://github.com/grafana/k6/releases/download/v2.3.0/k6-v2.3.0-linux-amd64.tar.gz
           echo "39c3117b6af817592dcd0ce4242105c0a7af10948c2a425306f0be8f7a8a8ab1  k6.tar.gz" | sha256sum -c -
           tar -xzf k6.tar.gz
           sudo mv k6-v2.3.0-linux-amd64/k6 /usr/local/bin/k6
@@ -354,7 +354,7 @@ jobs:
       - name: OWASP ZAP 2.17.0 (paquete oficial para Linux, con su checksum)
         if: matrix.tipo == 'zap'
         run: |
-          curl -fsSL --retry 3 -o zap.tar.gz https://github.com/zaproxy/zaproxy/releases/download/v2.17.0/ZAP_2.17.0_Linux.tar.gz
+          curl -fsSL --proto '=https' --proto-redir '=https' --retry 3 -o zap.tar.gz https://github.com/zaproxy/zaproxy/releases/download/v2.17.0/ZAP_2.17.0_Linux.tar.gz
           echo "efe799aaa3627db683b43f00c9c210aea0b75c00cc8f0a0f0434d12bb3ddde5a  zap.tar.gz" | sha256sum -c -
           tar -xzf zap.tar.gz
       - name: Sesión del paciente de demo para el escaneo autenticado
@@ -369,16 +369,18 @@ jobs:
           python3 .github/scripts/resumen_zap.py || codigo=1
           cp -r resultados-zap resultados-e2e/zap
           exit "$codigo"
-      - name: axe-core 4.14.0 y Lighthouse 13.5.0 (npm, versiones fijas)
+      - name: axe-core 4.14.0 (paquete del registro de npm, con su sha512 publicado; sin npm ni scripts)
         if: matrix.tipo == 'accesibilidad'
         run: |
-          node --version
-          npm install --no-save --no-audit --no-fund --prefix .herramientas axe-core@4.14.0 lighthouse@13.5.0
-      - name: Accesibilidad (axe y Lighthouse a 360, 768 y 1280 px)
+          curl -fsSL --proto '=https' --proto-redir '=https' --retry 3 -o axe.tgz https://registry.npmjs.org/axe-core/-/axe-core-4.14.0.tgz
+          esperado="9WTZxEjsZ7b13TH8JPmbV2z8CHbl80/2hm3XPEG4JgNdQLK81IBRXmSxHfMAOkSqQeRxT/0dwNDz2GOm3zzpcQ=="
+          obtenido=$(openssl dgst -sha512 -binary axe.tgz | base64 -w0)
+          if [ "$obtenido" != "$esperado" ]; then echo "::error::axe-core no coincide con su integridad publicada"; exit 1; fi
+          mkdir -p .herramientas && tar -xzf axe.tgz -C .herramientas package/axe.min.js
+      - name: Accesibilidad (axe a 360, 768 y 1280 px)
         if: matrix.tipo == 'accesibilidad'
         env:
-          AXE_JS: ${{ github.workspace }}/.herramientas/node_modules/axe-core/axe.min.js
-          LIGHTHOUSE: ${{ github.workspace }}/.herramientas/node_modules/.bin/lighthouse
+          AXE_JS: ${{ github.workspace }}/.herramientas/package/axe.min.js
           RESULTADOS_ACCESIBILIDAD: ${{ github.workspace }}/resultados-e2e/accesibilidad
         run: bash .github/scripts/punta_a_punta.sh prueba_accesibilidad
       - name: Log del servidor

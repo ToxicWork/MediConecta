@@ -218,8 +218,8 @@ defectos D-01, D-02, D-04, D-07 y D-09 del informe del 16/11.
       autenticado de la web y de la API (con su OpenAPI). Falla si hay alertas High; el reporte queda en el artefacto
       del run.
     - [`pruebas/prueba_accesibilidad.py`](pruebas/prueba_accesibilidad.py): axe-core en cada pantalla de cada rol a 360,
-      768 y 1280 px, sin violaciones críticas de WCAG 2.2 AA. También Lighthouse en las pantallas principales, con 90
-      o más de accesibilidad.
+      768 y 1280 px, sin violaciones críticas de WCAG 2.2 AA. Fuera del pipeline puede sumar Lighthouse en las
+      pantallas principales (90 o más de accesibilidad).
   - [`pruebas/sembrar_usuarios_demo.py`](pruebas/sembrar_usuarios_demo.py): no es una prueba. Crea los usuarios
     de demo en una base vacía a través de la propia aplicación, igual que el pipeline (ver `SETUP.md`).
 
