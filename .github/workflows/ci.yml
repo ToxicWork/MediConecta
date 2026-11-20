@@ -497,8 +497,7 @@ jobs:
           if [ "$codigo" != 0 ]; then
             # El detalle en una anotación: el log del trabajo pide iniciar sesión en GitHub para leerlo.
             detalle=$({ grep -hE "Tests run:.*FAIL|<<< (FAILURE|ERROR)|AssertionFailed|Exception:|\[ERROR\]" integracion.log || true; } | head -12 | cut -c1-230)
-            echo "::error title=Integración::$(echo "${detalle:-sin detalle en la salida}" | sed ':a;N;$!ba;s/%/%25/g;s/
-/%0A/g')"
+            echo "::error title=Integración::$(echo "${detalle:-sin detalle en la salida}" | sed ':a;N;$!ba;s/%/%25/g;s/\n/%0A/g')"
           fi
           exit "$codigo"
       - name: k6 2.3.0 (binario oficial, con su checksum)
