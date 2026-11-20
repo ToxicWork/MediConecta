@@ -1,21 +1,21 @@
 {
   "qa_responsable": "a designar por el equipo",
-  "fecha_documento": "19 de noviembre de 2026 (borrador)",
-  "corrida": "44619411275",
-  "fecha_corrida": "19/11/2026",
-  "rama": "decorator-y-cifrado",
-  "duracion_pipeline": "10,7 minutos (el trabajo más largo; corren en paralelo)",
-  "estado_ramas": "Estado del código: la corrida es de la rama decorator-y-cifrado, que reúne lo hecho el 19/11 a la tarde: el Decorator PacienteEnmascarado y el cifrado de columnas con AES-GCM (las dos promesas del diseño que faltaban), los arreglos de D-08 y D-44 a D-46, las pruebas de integración con Arquillian, el contrato del WSDL y las pruebas manuales CP-90 a CP-92. main ya tiene todo lo anterior (corrida 44604558217, en verde); esta rama espera la aprobación del equipo para integrarse. El tag v1.0-testing se crea en main al cierre, y este documento se regenera con la corrida del tag.",
+  "fecha_documento": "20/11/2026",
+  "corrida": "44661551573",
+  "fecha_corrida": "20/11/2026",
+  "rama": "rest-assured-y-d48",
+  "duracion_pipeline": "10,1 minutos (el trabajo más largo; corren en paralelo)",
+  "estado_ramas": "Estado del código: la corrida es de la rama rest-assured-y-d48, que está encima de main y suma las pruebas de la API con REST Assured y el arreglo del D-48. main ya tiene todo lo anterior: el Decorator y el cifrado AES-GCM, los reintegros pendientes (D-06 y D-41), la falla de demostración retirada (D-42), OWASP Dependency-Check, Arquillian y el contrato del WSDL. La rama espera la aprobación del equipo para integrarse. El tag v1.0-testing se crea en main al cierre, y este documento se regenera con la corrida del tag.",
   "enlaces": {
     "repo": "https://github.com/ToxicWork/MediConecta",
-    "run": "https://github.com/ToxicWork/MediConecta/actions/runs/44619411275",
+    "run": "https://github.com/ToxicWork/MediConecta/actions/runs/44661551573",
     "tablero": "https://trello.com/b/7c84ZN3J/mediconecta-grupo-04",
     "sonar": "https://sonarcloud.io/project/overview?id=ToxicWork_MediConecta",
     "openapi": "https://github.com/ToxicWork/MediConecta/blob/main/docs/api/openapi.json"
   },
   "junit": {
-    "pruebas": 317,
-    "clases": 50
+    "pruebas": 333,
+    "clases": 52
   },
   "e2e": {
     "suites": 15
@@ -24,12 +24,12 @@
     "prueba_broker": {
       "ok": 9,
       "fallas": 0,
-      "tiempo": "25 s"
+      "tiempo": "26 s"
     },
     "prueba_hold_vence": {
       "ok": 8,
       "fallas": 0,
-      "tiempo": "363 s"
+      "tiempo": "365 s"
     },
     "prueba_e2e": {
       "ok": 13,
@@ -37,49 +37,49 @@
       "tiempo": "9 s"
     },
     "prueba_entrega4": {
-      "ok": 62,
+      "ok": 57,
       "fallas": 0,
-      "tiempo": "31 s"
+      "tiempo": "23 s"
     },
     "prueba_responsive": {
       "ok": 57,
       "fallas": 0,
-      "tiempo": "42 s"
+      "tiempo": "45 s"
     },
     "prueba_permisos_broker": {
       "ok": 15,
       "fallas": 0,
-      "tiempo": "18 s"
+      "tiempo": "13 s"
     },
     "prueba_cancelacion": {
       "ok": 60,
       "fallas": 0,
-      "tiempo": "453 s"
+      "tiempo": "285 s"
     },
     "prueba_seguridad": {
       "ok": 70,
       "fallas": 0,
-      "tiempo": "95 s"
+      "tiempo": "88 s"
     },
     "prueba_defectos": {
       "ok": 64,
       "fallas": 0,
-      "tiempo": "87 s"
+      "tiempo": "85 s"
     },
     "prueba_inyeccion": {
       "ok": 24,
       "fallas": 0,
-      "tiempo": "9 s"
+      "tiempo": "8 s"
     },
     "prueba_contrato_api": {
       "ok": 39,
       "fallas": 0,
-      "tiempo": "8 s"
+      "tiempo": "5 s"
     },
     "prueba_monitor": {
       "ok": 14,
       "fallas": 0,
-      "tiempo": "22 s"
+      "tiempo": "18 s"
     },
     "prueba_accesibilidad": {
       "ok": 57,
@@ -90,13 +90,13 @@
       "texto": "Pasó (guion de demostración, sin verificaciones contadas)"
     },
     "junit": {
-      "texto": "Pasó (317 de 317)"
+      "texto": "Pasó (333 de 333)"
     },
     "pit": {
-      "texto": "Pasó (74,4 %; umbral 60 %)"
+      "texto": "Pasó (78,8 %; umbral 60 %)"
     },
     "k6": {
-      "texto": "Pasó (p95 de 10,7 a 11,1 ms; 0 % de errores)"
+      "texto": "Pasó (p95 de 8,7 a 11,3 ms; 0 % de errores)"
     },
     "gitleaks": {
       "texto": "Pasó (sin hallazgos)"
@@ -125,30 +125,30 @@
       "tiempo": "1 s"
     },
     "integracion": {
-      "texto": "Pasó (14 de 14 en una PC el 20/11: repositorios, consumidores, compensación y la API con REST Assured)"
+      "texto": "Pasó (14 de 14: repositorios, consumidores, compensación y la API con REST Assured)"
     },
     "prueba_datos_protegidos": {
       "ok": 17,
       "fallas": 0,
-      "tiempo": "7 s"
+      "tiempo": "6 s"
     }
   },
   "niveles": [
     {
       "nivel": "Unitario",
-      "ejecutados": 317,
-      "pasados": 317,
+      "ejecutados": 333,
+      "pasados": 333,
       "fallados": 0,
       "bloqueados": 0,
-      "detalle": "50 clases de JUnit 5; tres corridas idénticas"
+      "detalle": "52 clases de JUnit 5; tres corridas idénticas"
     },
     {
       "nivel": "Mutación",
-      "ejecutados": 219,
-      "pasados": 163,
-      "fallados": 56,
+      "ejecutados": 259,
+      "pasados": 204,
+      "fallados": 55,
       "bloqueados": 0,
-      "detalle": "Mutantes del dominio: 163 eliminados (74,4 %)"
+      "detalle": "Mutantes del dominio: 204 eliminados (78,8 %)"
     },
     {
       "nivel": "Integración",
@@ -160,8 +160,8 @@
     },
     {
       "nivel": "Punta a punta",
-      "ejecutados": 470,
-      "pasados": 470,
+      "ejecutados": 465,
+      "pasados": 465,
       "fallados": 0,
       "bloqueados": 0,
       "detalle": "Verificaciones de 14 suites con WildFly, PostgreSQL, el broker y Chrome reales"
@@ -194,25 +194,25 @@
   "metricas": [
     [
       "Cobertura de líneas, negocio y dominio (JaCoCo)",
-      "90,3 % (1299 de 1439)",
+      "90,9 % (1426 de 1569)",
       "80 %",
       "Sí"
     ],
     [
       "Cobertura de ramas, negocio y dominio (JaCoCo)",
-      "85,7 % (396 de 462)",
+      "86,4 % (438 de 507)",
       "70 %",
       "Sí"
     ],
     [
       "Mutation score del dominio (PIT)",
-      "74,4 % (163 de 219)",
+      "78,8 % (204 de 259)",
       "60 %",
       "Sí"
     ],
     [
-      "Quality Gate de SonarCloud (rama decorator-y-cifrado)",
-      "Aprobado (código nuevo: 97,1 % de cobertura)",
+      "Quality Gate de SonarCloud (rama rest-assured-y-d48)",
+      "Aprobado (código nuevo: 100 % de cobertura)",
       "Aprobado",
       "Sí"
     ],
@@ -242,7 +242,7 @@
     ],
     [
       "Tiempo del pipeline",
-      "10,7 minutos",
+      "10,1 minutos",
       "15 minutos o menos",
       "Sí"
     ],
@@ -254,7 +254,7 @@
     ],
     [
       "Carga: p95 por endpoint (k6)",
-      "10,7 / 10,8 / 11,1 ms",
+      "9,5 / 11,3 / 8,7 ms",
       "menos de 500 ms",
       "Sí"
     ],
