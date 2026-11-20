@@ -1,0 +1,107 @@
+@startuml 07-casos-de-uso-final
+!include _estilo.iuml
+title MediConecta — Casos de uso · Entrega final
+left to right direction
+
+actor Paciente
+actor Profesional
+actor Administrativo
+actor "Partner externo\n(API REST)" as PAR
+actor "Obra social\n(legado SOAP)" as OS
+actor "Pasarela de pago\n(REST)" as PG
+actor "Proveedor de video\n(REST)" as VID
+actor "Temporizador\ndel contenedor" as TIMER
+
+rectangle "MediConecta" {
+  package "Mi cuenta" {
+    usecase "Registrarse\n(sólo pacientes)" as UC1
+    usecase "Iniciar / cerrar sesión" as UC2
+    usecase "Cambiar la contraseña\ntemporal (1.er ingreso)" as UC21
+    usecase "Ver mi perfil y\ncambiar mi contraseña" as UC20
+    usecase "Elegir tema visual" as UC19
+  }
+  package "Atención" {
+    usecase "Publicar disponibilidad\n(calendario)" as UC3
+    usecase "Buscar disponibilidad" as UC4
+    usecase "Reservar turno (hold 5 min)" as UC5
+    usecase "Confirmar turno" as UC6
+    usecase "Pagar copago o\nturno particular" as UC14
+    usecase "Cancelar turno" as UC7
+    usecase "Consultar historia clínica" as UC10
+    usecase "Cargar diagnóstico / receta" as UC11
+    usecase "Realizar teleconsulta\n(cámara on/off)" as UC17
+    usecase "Ver notificaciones" as UC9
+    usecase "Ver mis pagos" as UC12
+    usecase "Ver la ficha del paciente\n(enmascarada según el rol)" as UC25
+    usecase "Ver el monitor de eventos" as UC31
+  }
+  package "Administración" {
+    usecase "Dar de alta usuarios\n(paciente, profesional,\nadministrativo)" as UC22
+    usecase "Consultar todos los pagos\ny reclamos a obras sociales" as UC23
+    usecase "Desbloquear usuarios" as UC27
+    usecase "Resolver reintegros pendientes\n(reintentar o conciliar)" as UC28
+  }
+  package "Procesos automáticos" {
+    usecase "Validar cobertura" as UC13
+    usecase "Autorizar prestación\n(asincrónico, cola)" as UC15
+    usecase "Notificar cambio de turno\n(asincrónico)" as UC8
+    usecase "Facturar y reintegrar\n(asincrónico)" as UC16
+    usecase "Vencer disponibilidad\nno reservada" as UC24
+    usecase "Consultar turnos por API" as UC18
+    usecase "Liberar holds vencidos" as UC30
+    usecase "Reintentar reintegros\npendientes" as UC29
+  }
+}
+
+Paciente --> UC1
+Paciente --> UC2
+Paciente --> UC20
+Paciente --> UC19
+Paciente --> UC4
+Paciente --> UC5
+Paciente --> UC6
+Paciente --> UC7
+Paciente --> UC10
+Paciente --> UC17
+Paciente --> UC9
+Paciente --> UC12
+Profesional --> UC2
+Profesional --> UC20
+Profesional --> UC3
+Profesional --> UC10
+Profesional --> UC11
+Profesional --> UC17
+Administrativo --> UC2
+Administrativo --> UC20
+Administrativo --> UC22
+Administrativo --> UC23
+Administrativo --> UC7
+Administrativo --> UC25
+Administrativo --> UC27
+Administrativo --> UC28
+Profesional --> UC7
+Profesional --> UC25
+Paciente --> UC31
+Profesional --> UC31
+PAR --> UC18
+UC24 <-- TIMER
+UC30 <-- TIMER
+UC29 <-- TIMER
+
+UC21 .> UC2 : <<extend>>\n[contraseña temporal]
+UC6 .> UC5 : <<include>>
+UC6 .> UC13 : <<include>>
+UC14 .> UC6 : <<extend>>\n[importe a cargo > 0]
+UC6 .> UC15 : <<include>>
+UC6 .> UC8 : <<include>>
+UC7 .> UC8 : <<include>>
+UC7 .> UC16 : <<include>>
+UC15 .> UC16 : <<include>>
+UC13 -- OS
+UC15 -- OS
+UC14 -- PG
+UC16 -- PG
+UC17 -- VID
+UC29 -- PG
+UC28 -- PG
+@enduml

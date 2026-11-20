@@ -187,7 +187,7 @@
 
   <p>MediConecta es la plataforma que venimos construyendo durante el cuatrimestre para conectar a pacientes con profesionales de la salud independientes y con clínicas chicas. Hoy un paciente puede registrarse, buscar a un profesional, reservar un turno, confirmarlo o cancelarlo, y consultar su historia clínica; el profesional, por su parte, publica sus horarios disponibles y carga diagnósticos y recetas. En esta entrega se sumó algo que no se ve a simple vista pero que cambia bastante la arquitectura: cada vez que un turno se confirma o se cancela, el sistema lo avisa por mensajería asincrónica, y otros componentes reaccionan por su cuenta sin que el paciente tenga que esperarlos.</p>
 
-  <p><strong>Versión final (20 de noviembre de 2026).</strong> Este documento se escribió para la Entrega Parcial N.º 2 y lo actualizamos para la entrega final. Las Figuras 1 a 10 conservan el recorrido original, pero los componentes (Figura 4), el despliegue (Figura 5) y el modelo de datos (Figura 9) se reemplazaron por su versión final; donde el texto describe el sistema de octubre, lo aclaramos. La sección «Lo que se sumó después», que reemplaza a «Lo que viene», reúne los once diagramas que se agregaron en las entregas siguientes: la integración SOAP y REST, el flujo transaccional, la compensación, la cola de autorizaciones, la autenticación con JWT y los patrones de la versión final.</p>
+  <p><strong>Versión final (20 de noviembre de 2026).</strong> Este documento se escribió para la Entrega Parcial N.º 2 y lo actualizamos para la entrega final. Las Figuras 1 a 10 conservan el recorrido original, pero los componentes (Figura 4), el despliegue (Figura 5) y el modelo de datos (Figura 9) se reemplazaron por su versión final, igual que los casos de uso (Figura 1) y el modelo de dominio (Figura 2); donde el texto describe el sistema de octubre, lo aclaramos. La sección «Lo que se sumó después», que reemplaza a «Lo que viene», reúne los once diagramas que se agregaron en las entregas siguientes: la integración SOAP y REST, el flujo transaccional, la compensación, la cola de autorizaciones, la autenticación con JWT y los patrones de la versión final.</p>
 
   <p>A lo largo del trabajo fuimos acumulando diagramas, y llegó un punto en que cada uno contaba una parte de la historia pero ninguno la contaba entera. Este documento existe para eso: para ordenar los diez diagramas de la solución, explicar qué muestra cada uno y, sobre todo, por qué está ahí. No pretende reemplazar al documento técnico ni repetir el código; la idea es que cualquiera, incluso alguien que no haya estado en las discusiones del grupo, pueda agarrar un diagrama y entender qué decisión hay detrás.</p>
 
@@ -237,8 +237,8 @@
   <div class="figura" id="fig-casos">
     <div class="num">Figura 1</div>
     <div class="tit">Casos de uso de MediConecta</div>
-    <img src="../diagramas/07-casos-de-uso.png" style="max-height:15.5cm">
-    <div class="nota"><em class="etq">Nota.</em> Los casos con borde punteado están planificados para la Entrega Obligatoria N.º 2. Archivo fuente: <span class="mono">07-casos-de-uso.puml</span>.</div>
+    <img src="diagramas/07-casos-de-uso-final.png" style="max-height:21cm">
+    <div class="nota"><em class="etq">Nota.</em> Versión final: todos los casos están implementados; se sumaron la ficha del paciente, el monitor de eventos, el desbloqueo de usuarios y los reintegros pendientes. Archivo fuente: <span class="mono">docs/final/diagramas/07-casos-de-uso-final.puml</span>.</div>
   </div>
 
   <p>Hay dos actores principales, el paciente y el profesional, y dos actores secundarios que no son personas sino sistemas externos: la obra social, que es un sistema viejo al que solo se le puede hablar por SOAP, y la pasarela de pago. Que un sistema figure como actor puede sonar raro, pero es justamente lo que UML propone: un actor es cualquier cosa externa que interactúa con el sistema, sea una persona o no.</p>
@@ -255,8 +255,8 @@
   <div class="figura" id="fig-modelo">
     <div class="num">Figura 2</div>
     <div class="tit">Modelo de dominio de MediConecta (entidades JPA)</div>
-    <img src="../diagramas/08-clases-modelo.png" style="max-height:15cm">
-    <div class="nota"><em class="etq">Nota.</em> Los números junto a las flechas indican la multiplicidad (cuántos objetos hay del otro lado). La leyenda del propio diagrama resume la notación. Archivo fuente: <span class="mono">08-clases-modelo.puml</span>.</div>
+    <img src="diagramas/08-clases-modelo-final.png" style="max-height:19cm">
+    <div class="nota"><em class="etq">Nota.</em> Los números junto a las flechas indican la multiplicidad (cuántos objetos hay del otro lado). La leyenda del propio diagrama resume la notación. Versión final: suma el administrativo, los pagos, las autorizaciones, los reclamos, los reintegros pendientes y las columnas cifradas. Archivo fuente: <span class="mono">docs/final/diagramas/08-clases-modelo-final.puml</span>.</div>
   </div>
 
   <p>La pieza central es el <em>Turno</em>. Cada turno pertenece a exactamente un profesional y puede tener, como máximo, un paciente; mientras está disponible no tiene ninguno. Esa diferencia, entre “uno” y “cero o uno”, no es un detalle de dibujo: es una regla del negocio que el diagrama deja a la vista. Usuario es una clase abstracta de la que heredan Paciente y Profesional, porque comparten nombre, email, contraseña y rol, pero cada uno tiene datos propios: la obra social en un caso, la matrícula y la especialidad en el otro.</p>
@@ -499,16 +499,16 @@
 
   <div class="figura">
     <div class="num">Figura 18</div>
-    <div class="tit">Usuarios, roles y vencimientos</div>
-    <img src="../diagramas/18-clases-usuarios-y-roles.png" style="max-height:21cm">
-    <div class="nota"><em class="etq">Nota.</em> Archivo fuente: <span class="mono">18-clases-usuarios-y-roles.puml</span>.</div>
+    <div class="tit">Usuarios, roles, bloqueo y vencimientos</div>
+    <img src="diagramas/18-clases-usuarios-y-roles-final.png" style="max-height:21cm">
+    <div class="nota"><em class="etq">Nota.</em> Archivo fuente: <span class="mono">docs/final/diagramas/18-clases-usuarios-y-roles-final.puml</span>.</div>
   </div>
 
   <div class="figura">
     <div class="num">Figura 19</div>
-    <div class="tit">Autenticación de la API REST con JWT</div>
-    <img src="../diagramas/19-secuencia-autenticacion-jwt.png" style="max-height:21cm">
-    <div class="nota"><em class="etq">Nota.</em> Archivo fuente: <span class="mono">19-secuencia-autenticacion-jwt.puml</span>.</div>
+    <div class="tit">Autenticación de la API REST con JWT, límite de intentos y cierre de sesión</div>
+    <img src="diagramas/19-secuencia-autenticacion-jwt-final.png" style="max-height:21cm">
+    <div class="nota"><em class="etq">Nota.</em> Archivo fuente: <span class="mono">docs/final/diagramas/19-secuencia-autenticacion-jwt-final.puml</span>.</div>
   </div>
 
   <div class="figura">

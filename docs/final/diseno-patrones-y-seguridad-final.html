@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="UTF-8">
+<title>MediConecta: diseño de patrones y seguridad, versión final</title>
+<meta name="author" content="Agustín Bodas, Máximo Bonarrico y Sergio Casanova">
+<style>
+  @page {
+    size: A4;
+    margin: 2.54cm;
+    @top-right {
+      content: counter(page);
+      font-family: Georgia, serif;
+      font-size: 11pt;
+      vertical-align: bottom;
+      padding-bottom: 0.6cm;
+    }
+  }
+  @page apaisada {
+    size: A4 landscape;
+  }
+  .figura-apaisada { page: apaisada; page-break-before: always; page-break-after: always; }
+  .figura-apaisada .figura { margin-top: 0; }
+  @page figura-grande {
+    margin: 1.8cm 1.6cm 1.6cm 1.6cm;
+  }
+
+  html { font-family: Georgia, serif; font-size: 11pt; color: #000; }
+  body { margin: 0; }
+
+  p {
+    line-height: 2;
+    margin: 0;
+    text-indent: 1.27cm;
+    text-align: left;
+    orphans: 3;
+    widows: 3;
+  }
+  p.sin-sangria { text-indent: 0; }
+
+  /* Niveles de título APA 7 */
+  h1 {
+    font-size: 11pt; font-weight: bold; text-align: center;
+    line-height: 2; margin: 0;
+    page-break-after: avoid;
+  }
+  h2 {
+    font-size: 11pt; font-weight: bold; text-align: left;
+    line-height: 2; margin: 0;
+    page-break-after: avoid;
+  }
+  h3 {
+    font-size: 11pt; font-weight: bold; font-style: italic; text-align: left;
+    line-height: 2; margin: 0;
+    page-break-after: avoid;
+  }
+  .salto { page-break-before: always; }
+
+  /* Carátula (formato APA de estudiante + datos institucionales) */
+  .caratula { text-align: center; line-height: 2; }
+  .caratula .institucion-cabecera {
+    margin-top: 0.4cm;
+    line-height: 1.5;
+  }
+  .caratula .sigla {
+    font-size: 26pt; font-weight: bold; letter-spacing: 0.18em;
+    line-height: 1.2;
+  }
+  .caratula .nombre-uni { font-size: 11pt; letter-spacing: 0.04em; }
+  .caratula .facultad { font-size: 11pt; }
+  .caratula .filete {
+    width: 6cm; margin: 0.5cm auto 0 auto; border-top: 0.8pt solid #000;
+  }
+  .caratula .titulo {
+    margin-top: 3.2cm; font-weight: bold; line-height: 2;
+  }
+  .caratula .subtitulo { font-weight: bold; }
+  .caratula .bloque { margin-top: 1.1cm; }
+  .caratula div { text-indent: 0; }
+
+  /* Índice */
+  .indice ul { list-style: none; padding: 0; margin: 0; }
+  .indice li { line-height: 2; }
+  .indice li.n2 { padding-left: 1.27cm; }
+  .indice a { color: #000; text-decoration: none; }
+  .indice a::after {
+    content: leader('.') target-counter(attr(href), page);
+  }
+
+  /* Figuras y tablas APA */
+  .figura { margin: 0.5cm 0 0.6cm 0; page-break-inside: avoid; }
+  .figura .num, .tabla .num { font-weight: bold; line-height: 2; text-indent: 0; }
+  .figura .tit, .tabla .tit { font-style: italic; line-height: 2; text-indent: 0; margin-bottom: 0.15cm; }
+  .figura img { display: block; max-width: 100%; margin: 0 auto; }
+  .figura .nota, .tabla .nota {
+    line-height: 1.5; text-indent: 0; margin-top: 0.2cm; font-size: 10pt;
+  }
+  .nota em.etq { font-style: italic; }
+  .figura-pagina { page: figura-grande; page-break-before: always; page-break-after: always; }
+  .figura-pagina .figura { margin-top: 0; }
+
+  .tabla { margin: 0.5cm 0 0.6cm 0; page-break-inside: avoid; }
+  table {
+    width: 100%; border-collapse: collapse; font-size: 10pt; line-height: 1.4;
+  }
+  thead th {
+    border-top: 0.8pt solid #000; border-bottom: 0.8pt solid #000;
+    text-align: left; font-weight: bold; padding: 4pt 5pt; vertical-align: bottom;
+  }
+  tbody td { padding: 4pt 5pt; vertical-align: top; }
+  tbody tr:last-child td { border-bottom: 0.8pt solid #000; }
+
+  code, .mono { font-family: "Courier New", monospace; font-size: 9.5pt; }
+
+  /* Referencias APA: sangría francesa */
+  .referencias p {
+    text-indent: -1.27cm; padding-left: 1.27cm;
+  }
+  ul.lista { margin: 0 0 0 1.27cm; padding: 0; }
+  ul.lista li { line-height: 2; }
+
+  .cu { margin: 0.25cm 0 0.5cm 0; page-break-inside: avoid; }
+  .cu-cab { font-weight: bold; font-size: 11pt; line-height: 2; }
+  .cu-id { color: #16308c; margin-right: 4pt; }
+  .cu .plan { font-weight: normal; font-style: italic; font-size: 9.5pt; color: #555; margin-left: 6pt; }
+  .cu table { font-size: 9.6pt; border-top: 0.8pt solid #000; border-bottom: 0.8pt solid #000; }
+  .cu td { padding: 3.5pt 5pt; vertical-align: top; border-bottom: 0.4pt solid #ccc; line-height: 1.4; }
+  .cu tr:last-child td { border-bottom: 0; }
+  .cu td.k { width: 24%; font-weight: bold; }
+  .cu ol { margin: 0; padding-left: 14pt; }
+  .cu ol li { line-height: 1.4; margin-bottom: 1pt; }
+  table.hu tr { page-break-inside: avoid; }
+  table.hu ul { margin: 0; padding-left: 11pt; }
+  table.hu li { line-height: 1.35; margin-bottom: 2pt; }
+  .mono { font-family: "Courier New", monospace; font-size: 9pt; }
+
+  /* Entrega Obligatoria N.º 2: el PDF se genera con Chrome (docs/generar_pdf.py), que numera las páginas
+     en el encabezado y completa el índice en dos pasadas (no soporta leader() ni target-counter()). */
+  @page { size: A4; margin: 2.54cm; }
+  .indice li { display: flex; align-items: baseline; gap: 4pt; }
+  .indice a::after { content: none; }
+  .indice .relleno { flex: 1; border-bottom: 1px dotted #000; transform: translateY(-3pt); }
+  .indice .pag { min-width: 1.2em; text-align: right; }
+  .figura img.alto { max-height: 21.5cm; width: auto; }
+  .figura img { max-width: 100%; }
+  thead { display: table-header-group; }
+  tr { page-break-inside: avoid; }
+  h1:not(:first-child) { margin-top: 0.5cm; }
+  /* Interlineado 1,5 en el cuerpo para respetar la extensión de 8 a 12 páginas que pide la consigna. */
+  p { line-height: 1.5; margin-bottom: 0.18cm; }
+  h1, h2, h3 { line-height: 1.6; }
+  h2 { margin-top: 0.25cm; }
+  .figura, .tabla { margin: 0.35cm 0 0.45cm 0; }
+  .figura .num, .tabla .num, .figura .tit, .tabla .tit { line-height: 1.5; }
+  .referencias p { line-height: 1.6; }
+  /* Revisión del 15/11: las tablas pueden partirse entre páginas (las filas no) para no dejar media hoja en blanco. */
+  .tabla { page-break-inside: auto; }
+  .tabla .num, .tabla .tit { page-break-after: avoid; }
+  p { line-height: 1.42; margin-bottom: 0.14cm; }
+  table { line-height: 1.32; }
+  tbody td { padding: 3pt 5pt; }
+</style>
+
+</head>
+<body>
+<section class="caratula">
+  <div class="institucion-cabecera">
+    <div class="sigla">UADE</div>
+    <div class="nombre-uni">UNIVERSIDAD ARGENTINA DE LA EMPRESA</div>
+    <div class="facultad">Facultad de Ingeniería y Ciencias Exactas</div>
+    <div class="facultad">Departamento de Tecnología Informática</div>
+    <div class="filete"></div>
+  </div>
+  <div class="titulo">Trabajo Práctico: Desarrollo de Aplicaciones II</div>
+  <div class="subtitulo">MediConecta: diseño de patrones y seguridad</div>
+  <div>Versión final, tal como quedó construido</div>
+  <div class="bloque"><div>Grupo 4</div><div>Agustín Bodas, Máximo Bonarrico y Sergio Casanova</div></div>
+  <div class="bloque">
+    <div>Universidad Argentina de la Empresa</div>
+    <div>3.4.218 Desarrollo de Aplicaciones II, Comisión Lunes TT</div>
+    <div>Prof. Matías Ruiz</div>
+    <div>Versión final: 20 de noviembre de 2026</div>
+    <div>(diseño original: 18 de octubre de 2026)</div>
+  </div>
+</section>
+<section class="indice salto"><h1>Índice</h1><ul><li><a href="#alcance">1. Alcance y diferencias con el diseño de octubre</a><span class="relleno"></span><span class="pag" data-para="alcance"></span></li><li><a href="#mapa">2. Mapa de patrones</a><span class="relleno"></span><span class="pag" data-para="mapa"></span></li><li><a href="#descartados">3. Patrones evaluados y descartados</a><span class="relleno"></span><span class="pag" data-para="descartados"></span></li><li><a href="#seguridad">4. Diseño de seguridad</a><span class="relleno"></span><span class="pag" data-para="seguridad"></span></li><li class="n2"><a href="#matriz">4.1 Roles y matriz de permisos</a><span class="relleno"></span><span class="pag" data-para="matriz"></span></li><li class="n2"><a href="#autenticacion">4.2 Autenticación</a><span class="relleno"></span><span class="pag" data-para="autenticacion"></span></li><li class="n2"><a href="#autorizacion">4.3 Autorización declarativa y por titularidad</a><span class="relleno"></span><span class="pag" data-para="autorizacion"></span></li><li class="n2"><a href="#mensajeria">4.4 Seguridad en la mensajería</a><span class="relleno"></span><span class="pag" data-para="mensajeria"></span></li><li class="n2"><a href="#datos">4.5 Protección de los datos</a><span class="relleno"></span><span class="pag" data-para="datos"></span></li><li class="n2"><a href="#errores">4.6 Validación, errores y cabeceras</a><span class="relleno"></span><span class="pag" data-para="errores"></span></li><li class="n2"><a href="#owasp">4.7 OWASP Top 10: mitigación y verificación</a><span class="relleno"></span><span class="pag" data-para="owasp"></span></li><li><a href="#trazabilidad">5. Trazabilidad con el checklist de la cátedra</a><span class="relleno"></span><span class="pag" data-para="trazabilidad"></span></li><li><a href="#ia">Declaración de uso de IA</a><span class="relleno"></span><span class="pag" data-para="ia"></span></li></ul></section>
+<section class="salto"><h1 id="alcance">1. Alcance y diferencias con el diseño de octubre</h1><p>Este documento describe los patrones de diseño y el diseño de seguridad de MediConecta tal como quedaron construidos al cierre del trabajo. Reemplaza, como descripción del sistema, al documento de diseño del 18 de octubre (<span class="mono">Diseno_Patrones_y_Seguridad_MediConecta_Grupo4.pdf</span>), que era el plan: lo conservamos en el repositorio porque muestra de dónde partimos. Cada patrón tiene su registro de decisión en <span class="mono">docs/adr/</span> (24 en total), con el problema, las alternativas descartadas y las consecuencias; acá no repetimos ese detalle, sino que lo ordenamos y lo vinculamos con el código y con las pruebas.</p><p>Al construirlo, varias decisiones cambiaron respecto del plan. La Tabla 1 las reúne para que quien lea los dos documentos no encuentre contradicciones sin explicar.</p><div class="tabla"><div class="num">Tabla 1</div><div class="tit">Qué cambió entre el diseño de octubre y lo construido</div><table><thead><tr><th style="width:16%">Tema</th><th style="width:24%">Diseño de octubre</th><th>Lo construido</th><th style="width:10%">Decisión</th></tr></thead><tbody><tr><td>Fachada de turnos</td><td><span class="mono">TurnoFacade</span> (@Stateless) y <span class="mono">TurnoService</span></td><td><span class="mono">ServicioDeTurnosBean</span> (@Stateful: conserva el turno en espera entre pantallas) y <span class="mono">ProcesoConfirmacionTurno</span> (@Stateless, la transacción)</td><td>ADR-0002</td></tr><tr><td>EJB con estado</td><td><span class="mono">ReservaEnCurso</span>, un asistente de reserva paso a paso</td><td>El mismo <span class="mono">ServicioDeTurnosBean</span>: la reserva retiene el turno 5 minutos y la confirmación lo cobra</td><td>ADR-0002</td></tr><tr><td>Colas</td><td><span class="mono">cola.autorizaciones</span> y <span class="mono">cola.revalidacion</span></td><td>Sólo <span class="mono">cola.autorizaciones</span>: la revalidación no hizo falta, porque la cobertura se consulta en cada confirmación</td><td>ADR-0012</td></tr><tr><td>JWT de la API</td><td>MicroProfile JWT</td><td>JWT propio con HS256 (<span class="mono">CodificadorJwt</span>): WildFly 41 sin el perfil de MicroProfile y una sola clave simétrica</td><td>ADR-0017</td></tr><tr><td>Resiliencia</td><td>MicroProfile Fault Tolerance</td><td>Circuit Breaker, Retry y Fallback propios (<span class="mono">CircuitBreaker</span>, <span class="mono">Reintento</span>), por la misma razón y para poder probarlos sin contenedor</td><td>ADR-0008</td></tr><tr><td>Autenticación web</td><td>BASIC sobre TLS</td><td>Formulario propio con sesión del contenedor; la API usa JWT. Los dos validan contra el mismo identity store</td><td>ADR-0017</td></tr><tr><td>Rol AUDITOR</td><td>Consultaba la auditoría</td><td>No se implementó: cada paciente ve quién accedió a su historia (<span class="mono">accesosAMiHistoria</span>), y la auditoría completa queda en la base</td><td>—</td></tr><tr><td>Strategy de lista de espera</td><td><span class="mono">PoliticaListaEspera</span></td><td>No se implementó: no hay lista de espera en el alcance</td><td>—</td></tr><tr><td>Dependency-Check</td><td>En el build de Maven, con el reporte en el repositorio</td><td>En el pipeline (perfil <span class="mono">dependencias</span>), junto con Trivy; el reporte queda como artefacto de cada corrida</td><td>—</td></tr></tbody></table></div></section>
+<section class="salto"><h1 id="mapa">2. Mapa de patrones</h1><p>La Tabla 2 lista los patrones aplicados, con las clases que cumplen cada rol, la entrega en que se incorporaron y su registro de decisión. Todos están en el código y tienen pruebas: las unitarias cubren la lógica de los patrones sin contenedor y las de integración, los que dependen del servidor (la mensajería, la transacción y la compensación). El detalle de cada prueba está en el documento del QA.</p><div class="tabla"><div class="num">Tabla 2</div><div class="tit">Patrones aplicados en MediConecta</div><table><thead><tr><th style="width:22%">Patrón</th><th style="width:11%">Familia</th><th>Dónde está</th><th style="width:8%">Desde</th><th style="width:8%">ADR</th></tr></thead><tbody><tr><td>Data Access Object</td><td>Java EE</td><td><span class="mono">dao/*DAO</span> (15 DAO, uno por agregado)</td><td>14/09</td><td>0001</td></tr><tr><td>Transfer Object</td><td>Java EE</td><td><span class="mono">api/dto/*Api</span>, <span class="mono">negocio/dto/*</span> (<span class="mono">FichaPaciente</span>, <span class="mono">FilaMonitorDTO</span>)</td><td>09/11</td><td>0016</td></tr><tr><td>Session Facade</td><td>Java EE</td><td><span class="mono">ServicioDeTurnosBean</span> (@Stateful) sobre <span class="mono">ProcesoConfirmacionTurno</span></td><td>14/09</td><td>0002</td></tr><tr><td>Intercepting Filter</td><td>Java EE</td><td><span class="mono">AuditoriaInterceptor</span> con <span class="mono">@Auditado</span> sobre la historia clínica</td><td>09/11</td><td>0014</td></tr><tr><td>Singleton</td><td>GoF / EJB</td><td><span class="mono">CatalogoPrestaciones</span> (@Singleton, @Startup, @Lock(READ))</td><td>09/11</td><td>0015</td></tr><tr><td>Factory</td><td>GoF</td><td><span class="mono">UsuarioFactory</span>: crea paciente, profesional o administrativo según el rol</td><td>14/09</td><td>0003</td></tr><tr><td>Builder</td><td>GoF</td><td><span class="mono">EventoTurno.Builder</span></td><td>19/10</td><td>0009</td></tr><tr><td>Template Method y Factory Method</td><td>GoF</td><td><span class="mono">ProcesadorNotificacion</span> con <span class="mono">ProcesadorEmail</span> y <span class="mono">ProcesadorAvisoProfesional</span></td><td>19/10</td><td>0010</td></tr><tr><td>Adapter y Gateway</td><td>Integración</td><td><span class="mono">CoberturaSoapAdapter</span>, <span class="mono">PasarelaPagosRestAdapter</span>, <span class="mono">VideoconsultaRestAdapter</span> detrás de sus <span class="mono">*Gateway</span></td><td>09/11</td><td>0007</td></tr><tr><td>Chain of Responsibility</td><td>GoF</td><td><span class="mono">CadenaDeValidacion</span> y los eslabones <span class="mono">ValidadorReserva</span></td><td>09/11</td><td>0006</td></tr><tr><td>State</td><td>GoF</td><td><span class="mono">EstadoDeTurno</span> con <span class="mono">TurnoDisponible</span>, <span class="mono">TurnoEnHold</span>, <span class="mono">TurnoConfirmado</span> y <span class="mono">TurnoCancelado</span>; 409 ante una transición inválida</td><td>09/11</td><td>0004</td></tr><tr><td>Strategy</td><td>GoF</td><td><span class="mono">CalculoCopago</span> (<span class="mono">CopagoPorcentual</span>, <span class="mono">CopagoMontoFijo</span>, <span class="mono">CopagoExento</span>, <span class="mono">TarifaParticular</span>), elegida por <span class="mono">SelectorCalculoCopago</span></td><td>09/11</td><td>0005</td></tr><tr><td>Decorator</td><td>GoF / CDI</td><td><span class="mono">PacienteEnmascarado</span> (@Decorator) sobre <span class="mono">ServicioDePacientes</span></td><td>Final</td><td>0023</td></tr><tr><td>Circuit Breaker, Retry y Fallback con caché</td><td>Resiliencia</td><td><span class="mono">CircuitBreaker</span>, <span class="mono">Reintento</span>; si el legado no responde, la cotización usa la última validación exitosa (24 h) o queda pendiente</td><td>09/11</td><td>0008</td></tr><tr><td>Publish-Subscribe, Durable Subscriber y Selective Consumer</td><td>Integración</td><td><span class="mono">topico.turnos</span> con tres suscriptores durables; Facturación con selector por tipo de evento</td><td>19/10</td><td>0011</td></tr><tr><td>Idempotent Receiver</td><td>Integración</td><td>Tabla <span class="mono">evento_procesado</span> con clave única suscriptor:evento</td><td>19/10</td><td>0011</td></tr><tr><td>Point-to-Point y Competing Consumers</td><td>Integración</td><td><span class="mono">cola.autorizaciones</span> con <span class="mono">AutorizacionConsumer</span></td><td>09/11</td><td>0012</td></tr><tr><td>Dead Letter Channel y Message Expiration</td><td>Integración</td><td>DLQ por <span class="mono">address-setting</span> de WildFly; TTL de 24 h en las solicitudes</td><td>19/10</td><td>0011, 0012</td></tr><tr><td>Transactional Client</td><td>Integración / Transacciones</td><td>Envío JMS dentro de la transacción JTA (fábrica XA) en <span class="mono">ProcesoConfirmacionTurno</span></td><td>09/11</td><td>0013</td></tr><tr><td>Transacción compensatoria</td><td>Transacciones</td><td><span class="mono">CompensacionDePago</span> (Synchronization): reembolsa el cobro si la confirmación no hace commit</td><td>09/11</td><td>0013</td></tr><tr><td>Bandeja de salida con reintentos (outbox)</td><td>Resiliencia</td><td><span class="mono">ReintegroPendiente</span>, <span class="mono">ServicioDeReintegrosBean</span> y <span class="mono">ReintentadorDeReintegros</span></td><td>Final</td><td>0024</td></tr><tr><td>Clave de idempotencia</td><td>Integración</td><td><span class="mono">Idempotencia</span> y <span class="mono">PedidoIdempotente</span>: un POST repetido con la misma Idempotency-Key devuelve la misma respuesta</td><td>Final</td><td>—</td></tr><tr><td>Bloqueo optimista con ETag</td><td>Integración</td><td><span class="mono">@Version</span> del turno expuesto como ETag; If-Match desactualizado responde 412</td><td>Final</td><td>0004</td></tr></tbody></table><div class="nota"><em class="etq">Nota.</em> Desde: fecha de la decisión (14/09, Entrega 1; 19/10, Entrega Parcial N.º 2; 09/11, Entrega Obligatoria N.º 2). Final: agregados para la entrega final. Los diagramas de clases de los patrones están en el documento maestro de diagramas, versión final (Figuras 10, 17 y 21).</div></div></section>
+<section><h1 id="descartados">3. Patrones evaluados y descartados</h1><div class="tabla"><div class="num">Tabla 3</div><div class="tit">Patrones evaluados y descartados</div><table><thead><tr><th style="width:30%">Patrón</th><th>Motivo</th></tr></thead><tbody><tr><td>Observer</td><td>Lo provee JMS con el tópico; implementarlo a mano duplicaría lo que resuelve el broker.</td></tr><tr><td>Service Locator y Business Delegate</td><td>Reemplazados por la inyección de CDI y @EJB. No hay clientes remotos de EJB.</td></tr><tr><td>Command y Memento</td><td>Sólo aportan si hay que deshacer acciones, y no es un requerimiento. El historial queda en la auditoría.</td></tr><tr><td>Abstract Factory</td><td>Hay una sola obra social integrada; se reevalúa si se suman varias con familias de componentes propias.</td></tr><tr><td>Correlation Identifier</td><td>El consumidor de autorizaciones resuelve contra el legado de forma sincrónica: no hay respuesta que correlacionar.</td></tr><tr><td>Claim Check</td><td>Reduciría los datos en el broker a cambio de una consulta por evento; se prefirió un evento con datos mínimos y sin datos clínicos.</td></tr><tr><td>MicroProfile Fault Tolerance y MicroProfile JWT</td><td>Planificados en octubre y reemplazados por implementaciones propias (ADR-0008 y ADR-0017).</td></tr><tr><td>Visitor, Prototype, Flyweight y Composite</td><td>No hay en el dominio un problema concreto que resuelvan.</td></tr></tbody></table></div></section>
+<section class="salto"><h1 id="seguridad">4. Diseño de seguridad</h1><p>MediConecta trata datos de salud. La Ley 25.326 de Protección de Datos Personales los define como datos sensibles (art. 2) y regula su tratamiento (art. 8), y la Ley 26.529 de Derechos del Paciente establece la confidencialidad de la historia clínica. Las decisiones de esta sección responden a ese marco: control de acceso por rol y por titularidad, cifrado en tránsito y en reposo, minimización de los datos que circulan y trazabilidad de los accesos.</p><h2 id="matriz">4.1 Roles y matriz de permisos</h2><p>Hay tres roles de persona (PACIENTE, PROFESIONAL y ADMINISTRATIVO) y un rol técnico, SISTEMA, que sólo usan los consumidores de mensajes. Los casilleros con (*) no se resuelven sólo con el rol: además se verifica que el recurso sea de quien lo pide (4.3).</p><div class="tabla"><div class="num">Tabla 4</div><div class="tit">Matriz de permisos</div><table><thead><tr><th style="width:24%">Operación</th><th>Paciente</th><th>Profesional</th><th>Administrativo</th><th style="width:14%">Sistema</th></tr></thead><tbody><tr><td>Registrarse</td><td>Sí</td><td>—</td><td>—</td><td>—</td></tr><tr><td>Reservar y confirmar un turno</td><td>Sí, para sí mismo</td><td>No</td><td>No</td><td>No</td></tr><tr><td>Cancelar un turno</td><td>Los propios (*)</td><td>Los de su agenda (*)</td><td>Cualquiera</td><td>No</td></tr><tr><td>Ver la historia clínica</td><td>La propia (*)</td><td>De pacientes con turno con él (*)</td><td>No</td><td>No</td></tr><tr><td>Cargar diagnóstico o receta</td><td>No</td><td>Sobre un turno confirmado suyo (*)</td><td>No</td><td>No</td></tr><tr><td>Ver la ficha del paciente</td><td>No</td><td>Completa si tiene turno con él; si no, sin datos clínicos (*)</td><td>Sin datos clínicos</td><td>No</td></tr><tr><td>Ver pagos</td><td>Los propios (*)</td><td>No</td><td>Todos, y los reclamos a obras sociales</td><td>No</td></tr><tr><td>Resolver reintegros pendientes</td><td>No</td><td>No</td><td>Sí</td><td>No</td></tr><tr><td>Dar de alta y desbloquear usuarios</td><td>No</td><td>No</td><td>Sí</td><td>No</td></tr><tr><td>Pedir autorizaciones, facturar y reintegrar</td><td>No</td><td>No</td><td>No</td><td>Sí, desde los MDB (@RunAs)</td></tr></tbody></table></div><h2 id="autenticacion">4.2 Autenticación</h2><p>Un solo <span class="mono">HttpAuthenticationMechanism</span> (<span class="mono">MecanismoAutenticacion</span>) atiende los dos caminos: la web usa un formulario propio y la sesión del contenedor, y la API REST usa un JWT firmado con HS256 que dura 30 minutos. Los dos validan contra el mismo identity store sobre la tabla de usuarios, con contraseñas en PBKDF2-SHA256 de 600.000 iteraciones (ADR-0021). Cinco intentos fallidos seguidos bloquean la cuenta 15 minutos y la API responde 429 con <span class="mono">Retry-After</span>; el administrativo puede desbloquearla. Al cerrar sesión en la API, el token se revoca (se guarda su identificador hasta que vence) y deja de servir aunque no haya vencido (ADR-0019). Las cuentas que crea el administrativo nacen con una contraseña temporal que hay que cambiar en el primer ingreso.</p><h2 id="autorizacion">4.3 Autorización declarativa y por titularidad</h2><p>La autorización declarativa (<span class="mono">@RolesAllowed</span>, <span class="mono">@PermitAll</span> y <span class="mono">@DeclareRoles</span> en los EJB y en los recursos REST) decide si un rol puede ejecutar una operación. No alcanza para la regla «un paciente sólo opera sus propios turnos»: cambiando el id en la URL, un paciente autenticado podría pedir el turno de otro (IDOR). Esa regla se resuelve en el servicio con el usuario autenticado: el turno, la historia o el pago se buscan junto con su titular, y si no coincide la respuesta es la misma que si no existiera (404 en la API), para no revelar qué ids hay. La ficha del paciente aplica la misma idea con un Decorator: <span class="mono">PacienteEnmascarado</span> quita los datos clínicos salvo que quien la pida sea un profesional con un turno confirmado con ese paciente (ADR-0023).</p><h2 id="mensajeria">4.4 Seguridad en la mensajería</h2><p>Un MDB no tiene un usuario que lo invoque, así que los consumidores corren con <span class="mono">@RunAs("SISTEMA")</span>, el único rol que puede pedir autorizaciones o reintegrar pagos. En el broker se eliminó el rol guest que WildFly trae por defecto, que podía mandar y leer en cualquier destino, y cada destino tiene sus permisos: sólo la aplicación publica en el tópico de turnos y sólo los consumidores leen (ADR-0020). Los eventos llevan los datos mínimos de contacto y nunca datos clínicos.</p><h2 id="datos">4.5 Protección de los datos</h2><p>En tránsito, la aplicación va por HTTPS (el puerto HTTP redirige) con HSTS, y el canal SOAP lleva WS-Security con UsernameToken. En reposo, el número de afiliado y la descripción de la historia clínica se cifran por columna con AES-256-GCM mediante un <span class="mono">AttributeConverter</span> de JPA; la clave vive en el credential store de Elytron y nunca en el repositorio (ADR-0022). En Supabase, todas las tablas tienen Row Level Security, lo que cierra la API pública que el proveedor expone sobre la base; la aplicación la activa sola al desplegar (ADR-0018). El número de tarjeta viaja a la pasarela y nunca se guarda: del pago quedan la marca y los últimos cuatro dígitos.</p><h2 id="errores">4.6 Validación, errores y cabeceras</h2><p>Los datos de entrada se validan con Bean Validation y en la API con reglas propias (por ejemplo, un JSON sin campos obligatorios responde 422). Las consultas JPA usan siempre parámetros. Todo error de la API responde en formato Problem Details (RFC 9457) con un código estable y sin trazas ni nombres de clases o tablas; los SOAP Fault llevan un código de negocio. Un filtro agrega a cada respuesta las cabeceras de seguridad (HSTS, <span class="mono">X-Content-Type-Options</span>, <span class="mono">X-Frame-Options</span> y <span class="mono">Referrer-Policy</span>), y PrimeFaces pone la política de contenido con un nonce por respuesta.</p><h2 id="owasp">4.7 OWASP Top 10: mitigación y verificación</h2><div class="tabla"><div class="num">Tabla 5</div><div class="tit">Riesgos del OWASP Top 10, su mitigación y la prueba que la verifica</div><table><thead><tr><th style="width:22%">Riesgo</th><th>Mitigación</th><th style="width:15%">Casos</th></tr></thead><tbody><tr><td>A01 Control de acceso roto</td><td>@RolesAllowed según la matriz y titularidad contra IDOR; un recurso ajeno responde 404 como uno inexistente</td><td>CP-18, CP-43, CP-55</td></tr><tr><td>A02 Fallas criptográficas</td><td>HTTPS con HSTS; PBKDF2-SHA256 de 600.000 iteraciones; AES-256-GCM en columnas con la clave en Elytron</td><td>CP-50, CP-85</td></tr><tr><td>A03 Inyección</td><td>JPA siempre con parámetros; Bean Validation; JSF escapa la salida; el canal SOAP rechaza las entidades externas (XXE)</td><td>CP-49, CP-53, CP-56</td></tr><tr><td>A04 Diseño inseguro</td><td>Matriz de permisos y minimización de datos definidas antes del código; eventos sin datos clínicos</td><td>CP-84</td></tr><tr><td>A05 Configuración incorrecta</td><td>Rol guest del broker eliminado; cabeceras de seguridad y CORS cerrados; sin trazas en las respuestas</td><td>CP-51, CP-48</td></tr><tr><td>A06 Componentes vulnerables</td><td>Trivy y OWASP Dependency-Check en cada corrida del pipeline</td><td>CP-82</td></tr><tr><td>A07 Fallas de autenticación</td><td>Límite de intentos con 429 y bloqueo de 15 minutos; JWT de 30 minutos, revocable al cerrar sesión</td><td>CP-47, CP-73</td></tr><tr><td>A08 Integridad de software y datos</td><td>Sólo la aplicación publica en el tópico; gitleaks sobre todo el historial; dependencias con versión fija</td><td>CP-81</td></tr><tr><td>A09 Registro y monitoreo</td><td>Interceptor de auditoría sobre la historia clínica; bitácora de integraciones; logs sin datos personales</td><td>CP-54</td></tr><tr><td>A10 SSRF</td><td>Los destinos salientes son fijos en la configuración y nunca se arman con datos del usuario</td><td>—</td></tr></tbody></table><div class="nota"><em class="etq">Nota.</em> Los casos (CP-xx) están en el documento del QA, con su resultado. Además, OWASP ZAP recorre la web y la API en cada corrida del pipeline, con 0 alertas altas en la última.</div></div></section>
+<section class="salto"><h1 id="trazabilidad">5. Trazabilidad con el checklist de la cátedra</h1><div class="tabla"><div class="num">Tabla 6</div><div class="tit">Ítems del checklist y dónde se cumplen</div><table><thead><tr><th style="width:24%">Ítem</th><th>Dónde se cumple</th></tr></thead><tbody><tr><td>Servicio SOAP con WSDL</td><td><span class="mono">CoberturaService</span> (simulador del legado de la obra social, en <span class="mono">externos.war</span>), consumido por <span class="mono">CoberturaSoapAdapter</span> con un cliente generado por wsimport</td></tr><tr><td>Servicio REST</td><td>API propia <span class="mono">/api/v1</span> (<span class="mono">AuthResource</span>, <span class="mono">ProfesionalesResource</span>, <span class="mono">TurnosResource</span>) y clientes REST de la pasarela y la videoconsulta</td></tr><tr><td>JMS: cola</td><td><span class="mono">cola.autorizaciones</span> con consumidores en competencia</td></tr><tr><td>JMS: tópico</td><td><span class="mono">topico.turnos</span> con tres suscriptores durables (Notificaciones, Auditoría y Facturación)</td></tr><tr><td>EJB sin estado</td><td>Los servicios de negocio (<span class="mono">ServicioDe*Bean</span>), <span class="mono">ProcesoConfirmacionTurno</span> y los recursos REST</td></tr><tr><td>EJB con estado</td><td><span class="mono">ServicioDeTurnosBean</span>: conserva el turno en espera de la conversación de reserva</td></tr><tr><td>EJB Singleton y temporizadores</td><td><span class="mono">CatalogoPrestaciones</span>, <span class="mono">LiberadorDeHolds</span>, <span class="mono">VencedorDeDisponibilidad</span>, <span class="mono">ReintentadorDeReintegros</span></td></tr><tr><td>Tres o más patrones</td><td>23 patrones aplicados (Tabla 2) y 8 evaluados y descartados (Tabla 3)</td></tr><tr><td>Seguridad declarativa</td><td><span class="mono">@RolesAllowed</span> y <span class="mono">@DeclareRoles</span> según la matriz (Tabla 4), más la titularidad programática</td></tr><tr><td>Transacciones</td><td>CMT: REQUIRED en <span class="mono">ProcesoConfirmacionTurno</span>, MANDATORY en el cobro, REQUIRES_NEW en la bitácora de integraciones, NOT_SUPPORTED en la fachada con estado; envío JMS dentro de la transacción JTA y compensación del cobro</td></tr></tbody></table></div></section>
+<section><h1 id="ia">Declaración de uso de IA</h1><p>Esta versión final se redactó con Claude Code (Anthropic) a partir del código fuente, de los registros de decisión y del documento de diseño de octubre, que había escrito el grupo. Cada clase, anotación y comportamiento que se menciona se comprobó contra el repositorio. El grupo la revisa antes de la entrega.</p></section>
+</body>
+</html>

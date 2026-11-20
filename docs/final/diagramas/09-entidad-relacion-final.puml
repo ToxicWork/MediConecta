@@ -38,7 +38,9 @@ entity turno {
   estado_autorizacion, codigo_autorizacion,
   motivo_autorizacion : varchar
   sala_id, sala_url_profesional, sala_url_paciente
+  sala_cerrada_en : timestamp
   confirmado_en, cancelado_en : timestamp
+  cancelado_por : varchar (PACIENTE|PROFESIONAL|ADMINISTRATIVO)
 }
 entity historia_clinica {
   * id : bigint <<PK>>
@@ -117,6 +119,13 @@ entity reintegro_pendiente #FFF4E4 {
   * intentos ; proximo_intento ; ultimo_error
   * creado_en ; resuelto_en ; resuelto_por
 }
+entity pedido_idempotente #EEF3FF {
+  * id : bigint <<PK>>
+  --
+  * usuario_id : bigint ; * clave (Idempotency-Key)
+  * operacion ; * estado_http : integer
+  * respuesta : text ; etag ; * creado_en
+}
 entity token_revocado #EEF3FF {
   * jti : varchar(36) <<PK>>
   --
@@ -146,6 +155,6 @@ legend right
   (hibernate.hbm2ddl.auto=update). El número de tarjeta nunca se guarda.
   Entrega final: nro_afiliado y entrada_clinica.descripcion se guardan cifrados (enc:v1:...; ADR-0022);
   reintegro_pendiente guarda los reintegros que la pasarela no pudo hacer (ADR-0024); token_revocado,
-  los JWT cerrados antes de vencer (ADR-0019). Todas las tablas con Row Level Security en Supabase.
+  los JWT cerrados antes de vencer (ADR-0019); pedido_idempotente, la respuesta guardada de cada Idempotency-Key. Todas las tablas con Row Level Security en Supabase.
 endlegend
 @enduml

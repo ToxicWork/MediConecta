@@ -1,0 +1,146 @@
+@startuml 08-clases-modelo-final
+!include _estilo.iuml
+title MediConecta — Modelo de dominio (entidades JPA) · Entrega final
+hide empty methods
+left to right direction
+
+abstract class Usuario <<Entity>> {
+  - id : Long
+  - nombreCompleto : String
+  - email : String
+  - password : String  [hash PBKDF2]
+  - debeCambiarPassword : Boolean
+  - intentosFallidos : Integer
+  - bloqueadoHasta : LocalDateTime
+}
+class Paciente <<Entity>> {
+  - obraSocial : String
+  - nroAfiliado : String  [cifrado AES-GCM]
+}
+class Profesional <<Entity>> {
+  - matricula : String
+  - especialidad : String
+}
+class Administrativo <<Entity>>
+class Turno <<Entity>> {
+  - id : Long
+  - fechaHora : LocalDateTime
+  - version : int  [@Version]
+  - holdVenceEn : LocalDateTime
+  - cobertura, obraSocial, plan, codigoPrestacion
+  - importeTotal, importePaciente, importeObraSocial : BigDecimal
+  - estadoAutorizacion, codigoAutorizacion
+  - salaId, salaUrlProfesional, salaUrlPaciente
+  - confirmadoEn, canceladoEn : LocalDateTime
+  - canceladoPor : Rol
+  + reservar(Paciente) / confirmar() / cancelar()
+}
+class HistoriaClinica <<Entity>> {
+  - id : Long
+  + agregarEntrada(EntradaClinica)
+}
+class EntradaClinica <<Entity>> {
+  - id : Long
+  - descripcion : String  [cifrado AES-GCM]
+  - fecha : LocalDateTime
+}
+class Pago <<Entity>> {
+  - importe : BigDecimal ; moneda
+  - idPasarela : String
+  - marca, ultimos4
+  - reembolsadoEn, motivoReembolso
+}
+class SolicitudAutorizacion <<Entity>> {
+  - idSolicitud : String
+  - obraSocial, codigoPrestacion
+  - intento : Integer ; procesadaPor
+}
+class ReclamoObraSocial <<Entity>> {
+  - importe : BigDecimal
+  - codigoAutorizacion
+}
+class ReintegroPendiente <<Entity>> {
+  - idPago : String ; referencia
+  - turnoId : Long ; importe
+  - intentos : int ; proximoIntento
+  - ultimoError ; resueltoPor
+}
+class "Notificacion · RegistroAuditoria\nEventoPublicado · EventoProcesado" as MSG <<Entity>> {
+  mensajería (Entrega Parcial N.º 2)
+}
+class "RegistroAcceso · LlamadaIntegracion\nPedidoIdempotente · TokenRevocado" as TRZ <<Entity>> {
+  trazabilidad y seguridad (sin relación JPA)
+}
+
+enum Rol {
+  PACIENTE
+  PROFESIONAL
+  ADMINISTRATIVO
+}
+enum EstadoTurno {
+  DISPONIBLE
+  HOLD
+  CONFIRMADO
+  CANCELADO
+}
+enum Modalidad {
+  PRESENCIAL
+  TELEMEDICINA
+}
+enum TipoEntrada {
+  DIAGNOSTICO
+  RECETA
+}
+enum EstadoPago {
+  APROBADO
+  REEMBOLSADO
+}
+enum EstadoSolicitud {
+  PENDIENTE
+  AUTORIZADA
+  RECHAZADA
+  ANULADA
+}
+enum EstadoReclamo {
+  PENDIENTE_PRESENTACION
+  ANULADO
+}
+enum EstadoReintegro {
+  PENDIENTE
+  CONCILIACION_MANUAL
+  REINTEGRADO
+  CONCILIADO
+}
+
+Usuario <|-- Paciente
+Usuario <|-- Profesional
+Usuario <|-- Administrativo
+Usuario --> "1" Rol : rol
+Turno "*" --> "1" Profesional : profesional
+Turno "*" --> "0..1" Paciente : paciente
+Turno --> "1" EstadoTurno : estado
+Turno --> "1" Modalidad : modalidad
+HistoriaClinica "0..1" --> "1" Paciente : paciente
+HistoriaClinica "1" *-- "0..*" EntradaClinica : entradas
+EntradaClinica "*" --> "1" Profesional : profesional
+EntradaClinica "*" --> "0..1" Turno : turno
+EntradaClinica --> "1" TipoEntrada : tipo
+Pago "*" --> "1" Turno : turno
+Pago --> "1" EstadoPago : estado
+SolicitudAutorizacion "*" --> "1" Turno : turno
+SolicitudAutorizacion --> "1" EstadoSolicitud : estado
+ReclamoObraSocial "*" --> "1" Turno : turno
+ReclamoObraSocial --> "1" EstadoReclamo : estado
+ReintegroPendiente ..> Turno : <<turnoId>>
+ReintegroPendiente --> "1" EstadoReintegro : estado
+MSG ..> Turno : <<turnoId>>
+
+legend right
+  |= Notación |= Significado |
+  | A ──> B  "1" / "0..1" / "~*" | Asociación navegable (número = cuántos B; texto = atributo) |
+  | A "1" ◆── "0..*" B | Composición: las entradas no existen sin su historia |
+  | A ──▷ B | Generalización (herencia, SINGLE_TABLE) |
+  | A - - -> B | Dependencia lógica: guarda solo el id, sin relación JPA |
+  | [cifrado AES-GCM] | Se guarda cifrado con CifradoConverter (ADR-0022) |
+endlegend
+@enduml

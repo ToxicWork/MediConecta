@@ -1,0 +1,104 @@
+@startuml 18-clases-usuarios-y-roles-final
+!include _estilo.iuml
+title Usuarios, roles, bloqueo y vencimientos · Entrega final
+skinparam classAttributeIconSize 0
+hide empty members
+left to right direction
+
+package "Factory: alta de usuarios por rol" #EEF3FF {
+  abstract class Usuario <<Product>> {
+    -rol: Rol
+    -debeCambiarPassword: Boolean
+    -intentosFallidos: Integer
+    -bloqueadoHasta: LocalDateTime
+    +isDebeCambiarPassword(): boolean
+    +exigirCambioDePassword()
+    +cambiarPassword(hash)
+  }
+  class Paciente
+  class Profesional
+  class Administrativo
+  enum Rol {
+    PACIENTE
+    PROFESIONAL
+    ADMINISTRATIVO
+  }
+  class UsuarioFactory <<Factory>> {
+    +crear(Rol, DatosRegistro, hash): Usuario
+  }
+  Usuario <|-- Paciente
+  Usuario <|-- Profesional
+  Usuario <|-- Administrativo
+  Usuario --> Rol
+  UsuarioFactory ..> Usuario : <<create>>
+}
+
+package "Seguridad declarativa" #FFF8EC {
+  interface ServicioDeUsuarios <<Local>>
+  class ServicioDeUsuariosBean <<Stateless>> {
+    +registrarPaciente(datos, pass) @PermitAll
+    +crearUsuario(rol, datos, temporal) @RolesAllowed(ADMINISTRATIVO)
+    +cambiarMiPassword(actual, nueva, rep) @RolesAllowed(todos)
+    +listarUsuarios() @RolesAllowed(ADMINISTRATIVO)
+    +desbloquear(usuarioId) @RolesAllowed(ADMINISTRATIVO)
+  }
+  class PoliticaDeContrasenas <<utility>> {
+    {static} +validar(pass)
+    {static} +validarCambio(actual, nueva, rep)
+  }
+  class ServicioDePagosBean <<Stateless>> {
+    +pagosDelUsuarioActual() @RolesAllowed(PACIENTE)
+    +todosLosPagos() @RolesAllowed(ADMINISTRATIVO)
+  }
+  class ServicioDeFacturacionBean <<Stateless>> {
+    +todosLosReclamos() @RolesAllowed(ADMINISTRATIVO)
+  }
+  class LoginBean <<SessionScoped>> {
+    +exigirRol(roles...): String
+    +exigirSesion(): String
+  }
+  class MecanismoAutenticacion <<HttpAuthenticationMechanism>>
+  class PoliticaDeBloqueo <<utility>> {
+    {static} MAX_INTENTOS_FALLIDOS = 5
+    {static} DURACION_BLOQUEO = 15 min
+  }
+  class LimiteDeIntentos <<ApplicationScoped>> {
+    +registrarFallo(email): boolean
+    +registrarIngreso(email)
+  }
+  ServicioDeUsuariosBean ..> LimiteDeIntentos : 429 en el login (web y API)
+  ServicioDeUsuariosBean ..> PoliticaDeBloqueo
+  ServicioDeUsuarios <|.. ServicioDeUsuariosBean
+  ServicioDeUsuariosBean --> UsuarioFactory
+  ServicioDeUsuariosBean ..> PoliticaDeContrasenas
+  LoginBean ..> ServicioDeUsuarios : rol y contraseña temporal
+  MecanismoAutenticacion ..> ServicioDeUsuarios : API: rechaza\ncontraseña temporal
+}
+
+package "Timers y arranque del contenedor" #E5F7EC {
+  class VencedorDeDisponibilidad <<Singleton>> {
+    +eliminarVencidos() @Schedule(cada minuto)
+  }
+  class LiberadorDeHolds <<Singleton>> {
+    +liberarVencidos() @Schedule(cada minuto)
+  }
+  class InicializadorDeAdministrador <<Singleton>> {
+    +asegurarAdministrador() @Startup @PostConstruct (BMT)
+  }
+  class TurnoDAO <<DAO>> {
+    +eliminarDisponiblesVencidos(ahora): int
+  }
+  VencedorDeDisponibilidad --> TurnoDAO
+  LiberadorDeHolds --> TurnoDAO
+  class ReintentadorDeReintegros <<Singleton>> {
+    +reintentar() @Schedule(cada minuto)
+  }
+  class LimpiezaDePedidosIdempotentes <<Singleton>> {
+    @Schedule(cada hora)
+  }
+  class RevocacionDeTokens <<Singleton>> {
+    limpia los vencidos @Schedule(cada hora)
+  }
+  InicializadorDeAdministrador --> UsuarioFactory : admin@mediconecta.test\n(contraseña temporal)
+}
+@enduml
