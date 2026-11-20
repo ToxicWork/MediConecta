@@ -1,0 +1,132 @@
+@startuml 02-componentes-final
+!include _estilo.iuml
+title MediConecta — Componentes e interfaces · Entrega final
+left to right direction
+
+package "Presentación" {
+  [AgendaBean] as AB
+  [HistoriaBean] as HB
+  [PagosBean] as PB
+  [TelemedicinaBean] as TB
+  [LoginBean / RegistroBean\nPerfilBean / UsuariosBean] as UB
+  [TemaBean + tema.js] as TEMA
+  [FichaPacienteBean] as FPB
+  [ManejadorDeSesionVencida\n(ExceptionHandler)] as MSV
+  [API REST /api/v1\nProfesionalesResource\nTurnosResource] as API
+}
+
+package "Negocio (EJB)" {
+  interface ServicioDeTurnos as I_ST
+  interface ServicioDeAgenda as I_SA
+  interface ServicioDeHistoriaClinica as I_SHC
+  interface ServicioDeObrasSociales as I_SOS
+  interface ServicioDePagos as I_SP
+  interface ServicioDeTelemedicina as I_STM
+  interface ServicioDeFacturacion as I_SF
+  interface ServicioDeUsuarios as I_SU
+  interface ServicioDePacientes as I_SPAC
+  interface ServicioDeReintegros as I_SR
+  [ServicioDePacientesBean\n<<Stateless>>] as SPAC
+  [PacienteEnmascarado\n<<Decorator>>] as DEC
+  [ServicioDeReintegrosBean\n<<Stateless>>] as SR
+  [ReintentadorDeReintegros\n<<Singleton>> @Schedule] as RR
+  [ServicioDeTurnosBean\n<<Stateful>>] as ST
+  [ProcesoConfirmacionTurno\n<<Stateless>>] as PCT
+  [ServicioDeAgendaBean\n<<Stateless>>] as SA
+  [ServicioDeHistoriaClinicaBean\n<<Stateless>>] as SHC
+  [ServicioDeObrasSocialesBean\n<<Stateless>>] as SOS
+  [ServicioDePagosBean\n<<Stateless>>] as SP
+  [ServicioDeTelemedicinaBean\n<<Stateless>>] as STM
+  [ServicioDeFacturacionBean\n<<Stateless>>] as SF
+  [ServicioDeUsuariosBean\n<<Stateless>>] as SU
+  [UsuarioFactory\n(Factory)] as UF
+  [CatalogoPrestaciones\n<<Singleton>>] as CAT
+  [CadenaDeValidacion\n(Chain of Responsibility)] as CV
+  [SelectorCalculoCopago\n(Strategy)] as CC
+  [LiberadorDeHolds\n<<Singleton>> @Schedule] as LH
+  [VencedorDeDisponibilidad\n<<Singleton>> @Schedule] as VD
+  [InicializadorDeAdministrador\n<<Singleton>> @Startup] as IA
+}
+
+package "Integración" {
+  interface CoberturaGateway as G_OS
+  interface PagosGateway as G_PG
+  interface VideoconsultaGateway as G_VID
+  [CoberturaSoapAdapter\n(wsimport + CircuitBreaker)] as A_OS
+  [PasarelaPagosRestAdapter\n(JAX-RS Client)] as A_PG
+  [VideoconsultaRestAdapter\n(JAX-RS Client)] as A_VID
+  [RegistroIntegraciones\n<<Stateless>> REQUIRES_NEW] as RI
+}
+
+package "Mensajería (JMS)" {
+  [PublicadorEventosTurno] as PUB
+  [ProductorSolicitudesAutorizacion] as PROD
+  [AutorizacionConsumer <<MDB>>] as AC
+  [NotificacionesSubscriber <<MDB>>] as NS
+  [AuditoriaSubscriber <<MDB>>] as AS
+  [FacturacionSubscriber <<MDB>>] as FS
+}
+
+package "Transversal" {
+  [AuditoriaInterceptor\n@Auditado] as INT
+  [MecanismoAutenticacion\n(form web + JWT en la API)] as SEC
+  [RevocacionDeTokens\n(logout de la API)] as REV
+  [LimiteDeIntentos\n(429 y bloqueo)] as LIM
+  [CifradoConverter + CifradorDeColumnas\n(AES-256-GCM, clave en Elytron)] as CIF
+}
+
+ST -up- I_ST
+SA -up- I_SA
+SHC -up- I_SHC
+SOS -up- I_SOS
+SP -up- I_SP
+STM -up- I_STM
+SF -up- I_SF
+SU -up- I_SU
+SPAC -up- I_SPAC
+SR -up- I_SR
+A_OS -up- G_OS
+A_PG -up- G_PG
+A_VID -up- G_VID
+
+AB ..> I_ST
+HB ..> I_SHC
+PB ..> I_SP
+PB ..> I_SF
+TB ..> I_STM
+UB ..> I_SU
+API ..> I_SA
+
+ST --> PCT
+PCT --> CV
+PCT --> CAT
+PCT --> CC
+PCT --> I_SOS
+PCT --> I_SP
+PCT --> PROD
+PCT --> PUB
+SOS --> G_OS
+SP --> G_PG
+STM --> G_VID
+A_OS --> RI
+A_PG --> RI
+A_VID --> RI
+AC --> I_SOS
+AC --> PUB
+FS --> I_SF
+SF --> I_SP
+SU --> UF
+IA --> UF
+SEC ..> I_SU : rol y contraseña temporal
+SHC ..> INT : interceptado
+FPB ..> I_SPAC
+DEC ..> SPAC : decora según el rol
+SP --> I_SR : compensación sin respuesta
+RR --> I_SR
+SR --> G_PG
+PB ..> I_SR
+SEC ..> REV
+SEC ..> LIM
+SHC ..> CIF : descripción cifrada
+SU ..> CIF : n.º de afiliado cifrado
+@enduml

@@ -84,7 +84,7 @@ estados_criterios = Counter(estado_criterio(c[3]) for _, c in criterios)
 pct_criterios = 100 * estados_criterios["Pasó"] / len(criterios)
 
 # ---- Secciones --------------------------------------------------------------------------------------------------
-indice = [("intro", "Introducción", 1), ("plan", "1. Plan y estrategia de pruebas", 1), ("alcance", "Alcance y fuera de alcance", 2),
+indice = [("intro", "Introducción", 1), ("guia", "Guía para la corrección", 1), ("plan", "1. Plan y estrategia de pruebas", 1), ("alcance", "Alcance y fuera de alcance", 2),
           ("niveles", "Niveles, herramientas y entornos", 2), ("datos", "Datos de prueba", 2), ("criterios-es", "Criterios de entrada y de salida", 2),
           ("riesgos", "Riesgos priorizados", 2), ("hu", "2. Historias de usuario y matriz de trazabilidad", 1),
           ("gherkin", "Historias, prioridad y criterios de aceptación", 2), ("matriz", "Matriz de trazabilidad", 2),
@@ -110,13 +110,89 @@ partes.append('<section class="indice salto"><h1>Índice</h1><ul>%s</ul></sectio
 # Introducción
 enlaces = [("Repositorio", R["enlaces"]["repo"]), ("Pipeline (corrida de este informe)", R["enlaces"]["run"]),
            ("Tablero (casos y defectos)", R["enlaces"]["tablero"]), ("SonarCloud", R["enlaces"]["sonar"]),
-           ("Contrato de la API (OpenAPI)", R["enlaces"]["openapi"]), ("Reportes (artefactos de la corrida)", R["enlaces"]["run"])]
+           ("Contrato de la API (OpenAPI)", R["enlaces"]["openapi"]),
+           ("Colección de pruebas de la API (REST Assured)", "https://github.com/ToxicWork/MediConecta/blob/main/src/it/java/ar/edu/mediconecta/it/ApiRestAssuredIT.java"),
+           ("Reportes (artefactos de la corrida)", R["enlaces"]["run"])]
 partes.append('<section class="salto"><h1 id="intro">Introducción</h1>' + p(
     "Este documento reúne la documentación de pruebas de MediConecta según la estructura de ISO/IEC/IEEE 29119-3, tal como la pide "
     "la cátedra para la prueba del sistema. Cada resultado sale de una ejecución real del pipeline de integración continua "
     "(corrida <span class=\"mono\">%s</span>, %s, rama <span class=\"mono\">%s</span>) y se puede repetir con los scripts del "
     "repositorio. Lo que no se pudo verificar se dice como tal." % (e(R["corrida"]), e(R["fecha_corrida"]), e(R["rama"]))) + p(R["estado_ramas"]) +
     T("Enlaces de la entrega", ["Qué", "Dónde"], [[e(a), '<span class="mono">%s</span>' % e(b)] for a, b in enlaces], ["35%", None]) + "</section>")
+
+# Guía para la corrección: dónde está cada cosa y cómo se muestra en vivo
+MVN_IT = "mvn -P integracion verify -Dtest=Ninguna -Dsurefire.failIfNoSpecifiedTests=false -Dit.test="
+
+
+def como_se_muestra(ids):
+    """El comando (o el lugar) para mostrar en clase cada caso, sin repetir."""
+    vistos = []
+    for i in ids:
+        c = CASO[i]
+        prueba = c["prueba"]
+        if prueba.startswith("pruebas/") and prueba.endswith(".py"):
+            cmd = "python " + prueba
+        elif prueba.startswith("src/it/java ("):
+            cmd = MVN_IT + prueba[len("src/it/java ("):-1]
+        elif c["resultado"] == "junit":
+            cmd = "mvn test (o una clase: mvn test -Dtest=%s)" % prueba.split(",")[0].strip()
+        elif c["resultado"] in ("k6", "zap", "gitleaks", "trivy", "pit", "estabilidad"):
+            cmd = "Pipeline: resumen del trabajo correspondiente (enlace de la corrida)"
+        else:
+            cmd = prueba
+        if cmd not in vistos:
+            vistos.append(cmd)
+    return "<br>".join('<span class="mono">%s</span>' % e(v) for v in vistos)
+
+
+condiciones = [
+    ["G1 Build reproducible", "Sin Docker ni comando único: la cátedra respondió el 18/11 que no se exigen. El pipeline levanta el sistema desde cero en cada corrida (WildFly y una base vacía), sin secretos del grupo. <b>Pendiente:</b> cómo lo levanta el docente en su máquina contra la base del grupo; lo define el equipo y se documenta en el README"],
+    ["G2 Tag de release", "Tag <span class=\"mono\">v1.0-testing</span> en main, creado antes del 30/11 a las 13:30 (Releases del repositorio)"],
+    ["G3 CI en verde sobre el tag", "Enlace de la corrida (sección Introducción); sección 4 de este documento"],
+    ["G4 Plan, matriz, ejecución y defectos", "Este PDF: secciones 1 a 5"],
+    ["G5 Tablero actualizado", "Trello: cada caso (CP-01 a CP-94) y cada defecto (D-13 a D-48; los D-01 a D-12 vienen de los informes anteriores y están en la sección 5) con estado, HU y responsable"],
+    ["G6 Sin secretos en el historial", "Trabajo «Secretos en todo el historial (gitleaks)» de la corrida; CP-81"],
+    ["G7 Demo en vivo", "En clase, sobre la máquina del grupo (docs/guia-demo-final.md): flujo de reserva, pago, aviso, historia clínica y cancelación"],
+    ["G8 Declaración de IA", "Sección 7"],
+    ["G9 Informe honesto", "Sección 5: todos los defectos conocidos, con su estado; ninguno bloqueante ni crítico abierto"],
+]
+en_vivo = [
+    ["B", "Cambiar una condición, un límite o una validación y correr la suite", ["CP-66", "CP-70", "CP-71", "CP-76"],
+     "Alcanza con <span class=\"mono\">mvn test</span> (333 pruebas, menos de un minuto). La mutación (PIT, 78,8 %) mide justamente eso: el 78,8 % de esos cambios hace fallar al menos una prueba"],
+    ["C", "SOAP: respuesta válida, Fault de negocio y Fault técnico", ["CP-06", "CP-10", "CP-72"], ""],
+    ["C", "SOAP o REST externo que no responde (timeout, reintento, circuit breaker, fallback)", ["CP-09", "CP-72"], "Consola de sistemas externos: obra social «Lenta» o «Caída»"],
+    ["C", "Se apaga el broker y se vuelve a levantar", ["CP-14"], ""],
+    ["C", "Mensaje duplicado: se procesa una sola vez", ["CP-89"], ""],
+    ["C", "Mensaje que falla N veces: DLQ con registro y reproceso", ["CP-23"], ""],
+    ["C", "Falla a mitad de la operación transaccional: rollback y compensación", ["CP-11", "CP-93"], ""],
+    ["C", "POST repetido con la misma Idempotency-Key", ["CP-22"], ""],
+    ["C", "Actualización con ETag desactualizado: 412", ["CP-21", "CP-94"], ""],
+    ["C", "Errores en Problem Details con el código correcto", ["CP-48", "CP-94"], ""],
+    ["C", "Carga: 50 usuarios durante 5 minutos sobre 3 endpoints", ["CP-79"], "Tabla de la sección 4 y resumen del trabajo de k6"],
+    ["D", "BOLA / IDOR: un usuario pide el recurso de otro", ["CP-18", "CP-55"], ""],
+    ["D", "BFLA: un paciente invoca un endpoint de otro rol", ["CP-43"], ""],
+    ["D", "JWT vencido, adulterado, alg=none o de otro emisor", ["CP-55", "CP-73"], ""],
+    ["D", "Mass assignment", ["CP-52"], ""],
+    ["D", "Inyección SQL, XSS y EL en todos los campos", ["CP-56", "CP-49"], ""],
+    ["D", "XXE en el canal SOAP", ["CP-53"], ""],
+    ["D", "Fuerza bruta sobre el login: 429", ["CP-47"], ""],
+    ["D", "OWASP ZAP: 0 High", ["CP-80"], "Sección 6 (alertas y su tratamiento)"],
+    ["D", "Dependencias: Trivy y OWASP Dependency-Check", ["CP-82"], ""],
+    ["D", "Cabeceras, CORS, cookies y TLS", ["CP-50", "CP-51"], ""],
+    ["D", "Logs sin trazas ni datos personales", ["CP-54", "CP-48"], ""],
+    ["D", "Datos sensibles cifrados y minimizados", ["CP-85", "CP-84"], "En Supabase, las columnas se ven como enc:v1:..."],
+    ["A", "Tarea del manual de usuario elegida al azar", ["CP-91"], "Manual de usuario 1.0 (en la entrega)"],
+]
+partes.append('<section class="salto"><h1 id="guia">Guía para la corrección</h1>' + p(
+    "Dónde está la evidencia de cada condición y cómo se muestra en clase cada prueba que la cátedra ejecuta en vivo. Los comandos "
+    "se corren desde la raíz del repositorio, con WildFly levantado; las suites de Python usan Google Chrome (o Edge con "
+    "<span class=\"mono\">set NAVEGADOR=msedge</span>). Todo esto también corre en cada push del pipeline: si algo no se puede repetir "
+    "en clase, el resultado está en la corrida enlazada.") +
+    T("Condiciones de admisibilidad: dónde está cada una", ["Condición", "Dónde verla"],
+      [[e(c[0]), c[1]] for c in condiciones], ["28%", None]) +
+    T("Pruebas en vivo de los ejes B, C y D: cómo se muestra cada una", ["Eje", "Prueba de la cátedra", "Casos", "Cómo se muestra"],
+      [[v[0], e(v[1]), ", ".join(v[2]), como_se_muestra(v[2]) + ("<br>" + v[3] if v[3] else "")] for v in en_vivo],
+      ["5%", "30%", "11%", None]) + "</section>")
 
 # 1. Plan
 niveles = [
@@ -150,8 +226,8 @@ partes.append('<section class="salto"><h1 id="plan">1. Plan y estrategia de prue
       "de videoconsultas (REST), y la mensajería (tópico de turnos y cola de autorizaciones); la API REST versionada; y los criterios de "
       "seguridad SEC del diseño.") +
     p("Fuera de alcance: Mercado Pago real (la pasarela es un simulador), una aplicación móvil (no hay), la funcionalidad de IA dentro del "
-      "sistema (MediConecta no la tiene; consulta pendiente con la cátedra) y el arranque con un único comando con contenedores (G1, eximido "
-      "por la cátedra el 18/11).") +
+      "sistema (MediConecta no la tiene; consulta pendiente con la cátedra) y el arranque con contenedores o con un único comando (la "
+      "cátedra respondió el 18/11 que no se exige).") +
     '<h2 id="niveles">Niveles, herramientas y entornos</h2>' +
     T("Niveles de prueba", ["Nivel", "Herramientas", "Qué cubre", "Estado"], niveles, ["13%", "30%", "32%", None]) +
     T("Entornos", ["Entorno", "Composición"], entornos, ["28%", None]) +

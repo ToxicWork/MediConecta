@@ -1,0 +1,151 @@
+@startuml 09-entidad-relacion-final
+!include _estilo.iuml
+title MediConecta — Modelo de datos (PostgreSQL / Supabase) · Entrega final
+hide circle
+hide empty methods
+skinparam linetype ortho
+
+entity usuario {
+  * id : bigint <<PK>>
+  --
+  * tipo_usuario : varchar  (PACIENTE | PROFESIONAL | ADMINISTRATIVO)
+  * nombre_completo : varchar
+  * email : varchar <<UNIQUE>>
+  * password : varchar
+  * rol : varchar  (CHECK: los mismos tres valores)
+  debe_cambiar_password : boolean  (contraseña temporal)
+  intentos_fallidos : integer ; bloqueado_hasta : timestamp
+  obra_social : varchar
+  nro_afiliado : varchar(256)  <b>cifrado AES-GCM</b>
+  matricula : varchar
+  especialidad : varchar
+}
+entity turno {
+  * id : bigint <<PK>>
+  --
+  * profesional_id : bigint <<FK>>
+  paciente_id : bigint <<FK>>
+  * fecha_hora : timestamp
+  * estado : varchar (DISPONIBLE|HOLD|CONFIRMADO|CANCELADO)
+  * version : integer
+  modalidad : varchar (PRESENCIAL|TELEMEDICINA)
+  hold_vence_en : timestamp
+  cobertura : varchar (CUBIERTA|PARTICULAR|PENDIENTE)
+  obra_social_turno, plan_obra_social : varchar
+  codigo_prestacion : varchar(20)
+  importe_total, importe_paciente,
+  importe_obra_social : numeric(12,2)
+  estado_autorizacion, codigo_autorizacion,
+  motivo_autorizacion : varchar
+  sala_id, sala_url_profesional, sala_url_paciente
+  confirmado_en, cancelado_en : timestamp
+}
+entity historia_clinica {
+  * id : bigint <<PK>>
+  --
+  * paciente_id : bigint <<FK, UNIQUE>>
+}
+entity entrada_clinica {
+  * id : bigint <<PK>>
+  --
+  * historia_clinica_id : bigint <<FK>>
+  * profesional_id : bigint <<FK>>
+  turno_id : bigint <<FK>>
+  * tipo, fecha
+  * descripcion : varchar(8100)  <b>cifrado AES-GCM</b>
+}
+entity pago #FFF4E4 {
+  * id : bigint <<PK>>
+  --
+  * turno_id : bigint <<FK>>
+  * paciente_id, profesional_id : bigint
+  * importe : numeric(12,2)
+  * moneda : varchar(3)
+  * estado : varchar (APROBADO|REEMBOLSADO)
+  * id_pasarela : varchar <<UNIQUE>>
+  marca, ultimos4
+  * creado_en : timestamp
+  reembolsado_en, motivo_reembolso
+}
+entity solicitud_autorizacion #FFF4E4 {
+  * id_solicitud : varchar(36) <<PK>>
+  --
+  * turno_id : bigint <<FK>>
+  * paciente_id, profesional_id : bigint
+  * obra_social, codigo_prestacion
+  * estado : varchar (PENDIENTE|AUTORIZADA|RECHAZADA|ANULADA)
+  codigo_autorizacion, motivo
+  intento : integer
+  procesada_por : varchar
+  * creada_en : timestamp
+  resuelta_en : timestamp
+}
+entity reclamo_obra_social #FFF4E4 {
+  * id : bigint <<PK>>
+  --
+  * turno_id : bigint <<FK>>
+  * profesional_id : bigint
+  * obra_social, codigo_prestacion
+  codigo_autorizacion
+  * importe : numeric(12,2)
+  * estado : varchar (PENDIENTE_PRESENTACION|ANULADO)
+  * creado_en ; anulado_en
+}
+entity registro_acceso #EEF3FF {
+  * id : bigint <<PK>>
+  --
+  * usuario, operacion, recurso : varchar
+  recurso_id : bigint
+  * resultado : varchar (PERMITIDO|DENEGADO|ERROR)
+  detalle ; * fecha
+}
+entity llamada_integracion #EEF3FF {
+  * id : bigint <<PK>>
+  --
+  * sistema : varchar (OBRA_SOCIAL|PASARELA_PAGOS|VIDEOCONSULTA)
+  * operacion ; referencia
+  * resultado : varchar (OK|RECHAZO|ERROR|CIRCUITO_ABIERTO|CACHE|PENDIENTE|COMPENSACION)
+  detalle ; * latencia_ms ; * ocurrida_en
+}
+entity reintegro_pendiente #FFF4E4 {
+  * id : bigint <<PK>>
+  --
+  * id_pago : varchar(60)  (el de la pasarela)
+  referencia ; turno_id ; importe
+  * motivo ; * origen : varchar (COMPENSACION|CANCELACION)
+  * estado : varchar (PENDIENTE|CONCILIACION_MANUAL|REINTEGRADO|CONCILIADO)
+  * intentos ; proximo_intento ; ultimo_error
+  * creado_en ; resuelto_en ; resuelto_por
+}
+entity token_revocado #EEF3FF {
+  * jti : varchar(36) <<PK>>
+  --
+  * vence_en : bigint
+}
+entity "notificacion · registro_auditoria\nevento_publicado · evento_procesado" as MSG #E5F7EC {
+  (Entrega Parcial N.º 2)
+  evento_publicado.suscriptores_esperados : varchar(120)  ← nuevo
+  evento_procesado.clave = "suscriptor:idEvento"
+}
+
+usuario ||--o{ turno : profesional_id
+usuario |o--o{ turno : paciente_id
+usuario ||--o| historia_clinica : paciente_id
+historia_clinica ||--o{ entrada_clinica
+turno |o--o{ entrada_clinica : turno_id
+turno ||--o{ pago
+turno ||--o{ solicitud_autorizacion
+turno ||--o{ reclamo_obra_social
+turno ||..o{ reintegro_pendiente : turno_id
+
+legend right
+  Naranja: tablas de la integración (pagos REST, autorizaciones por cola, facturación).
+  Azul: trazabilidad (registro_acceso por el interceptor @Auditado; llamada_integracion
+  en transacción propia REQUIRES_NEW, sobrevive al rollback del negocio).
+  Las columnas nuevas de turno son opcionales para no romper los turnos existentes
+  (hibernate.hbm2ddl.auto=update). El número de tarjeta nunca se guarda.
+  Entrega final: nro_afiliado y entrada_clinica.descripcion se guardan cifrados (enc:v1:...; ADR-0022);
+  reintegro_pendiente guarda los reintegros que la pasarela no pudo hacer (ADR-0024); token_revocado,
+  los JWT cerrados antes de vencer (ADR-0019). Todas las tablas con Row Level Security en Supabase.
+endlegend
+@enduml

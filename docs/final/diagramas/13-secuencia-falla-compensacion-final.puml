@@ -1,0 +1,54 @@
+@startuml 13-secuencia-falla-compensacion-final
+!include _estilo.iuml
+title Falla a mitad del flujo crítico: rollback declarativo, compensación del cobro y reintegro pendiente (entrega final)
+autonumber
+
+actor Paciente
+participant "ServicioDeTurnosBean\n<<Stateful>>" as ST
+participant "ProcesoConfirmacionTurno\nREQUIRED" as PCT
+participant "ServicioDePagosBean" as SP
+participant "Pasarela de pagos\nREST" as PG
+participant "CompensacionDePago\n(Synchronization)" as COMP
+participant "ServicioDeReintegros\nREQUIRES_NEW" as SR
+participant "ReintentadorDeReintegros\n@Schedule (cada minuto)" as RR
+queue "cola + tópico" as JMS
+database "PostgreSQL" as DB
+
+Paciente -> ST : confirmar(datosPago)
+ST -> PCT : confirmar(...)
+activate PCT
+PCT -> SP : cobrar()
+SP -> PG : POST /pagos
+PG --> SP : 201 APROBADO pay_X
+SP -> COMP : se registra en la transacción
+PCT -> DB : turno CONFIRMADO, pago, solicitud (sin commit)
+PCT -> JMS : send / publish (retenidos)
+PCT -> PCT : cualquier excepción de sistema antes del commit\n(la prueba CompensacionIT la provoca de verdad)
+deactivate PCT
+== el contenedor revierte la transacción JTA ==
+DB -> DB : ROLLBACK: el turno vuelve a HOLD, no hay pago ni solicitud
+JMS -> JMS : los mensajes se descartan: nadie recibe TURNO_CONFIRMADO
+PCT -> COMP : afterCompletion(STATUS_ROLLEDBACK)
+COMP -> PG : POST /pagos/pay_X/reembolso
+alt la pasarela responde
+  PG --> COMP : 200 REEMBOLSADO (idempotente)
+else la pasarela no responde (caída o circuito abierto)
+  COMP -> SR : registrarParaReintentar(pay_X)
+  SR -> DB : reintegro_pendiente PENDIENTE
+  loop espera exponencial: 1, 2, 4... hasta 60 min; máximo 10 intentos
+    RR -> SR : reintentar vencidos
+    SR -> PG : POST /pagos/pay_X/reembolso
+  end
+  SR -> DB : REINTEGRADO (o CONCILIACION_MANUAL al agotar los intentos)
+else la pasarela no conoce el pago
+  COMP -> SR : registrarParaConciliar(pay_X)
+  SR -> DB : CONCILIACION_MANUAL\n(el administrativo lo ve en Pagos y lo resuelve)
+end
+PCT --> ST : excepción (sin destruir el @Stateful)
+ST --> Paciente : "no se pudo confirmar; el cobro se revierte;\ntu turno sigue en espera"
+note over Paciente, DB
+  Base y broker: atomicidad por JTA/XA (no hace falta código).
+  Pasarela REST: no transaccional → compensación explícita y, si falla, outbox con reintentos (ADR-0024).
+  SOAP de cobertura: consulta sin efectos → nada que compensar.
+end note
+@enduml

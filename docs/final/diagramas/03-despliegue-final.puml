@@ -1,0 +1,42 @@
+@startuml 03-despliegue-final
+!include _estilo.iuml
+title MediConecta — Despliegue · Entrega final
+
+node "Equipo del usuario" {
+  artifact "Navegador web" as NAV
+  artifact "Sistema externo\n(cliente de la API REST)" as CLI
+}
+
+node "Servidor de aplicaciones\nWildFly 41 · JDK 21+\nperfil standalone-full.xml" as WF {
+  artifact "mediconecta.war" as WAR
+  artifact "externos.war\n(obra social SOAP, pasarela y\nvideoconsulta REST: simuladores)" as EXT
+  component "Undertow\nHTTPS :8443 (http :8080 redirige)" as UT
+  component "Contenedor EJB\n(Stateless, Stateful, Singleton, MDB, timers)" as EJB
+  component "Elytron + Jakarta Security\nidentity store (PBKDF2, 600.000 it.)\ncredential store mediconecta-cs\n(clave del cifrado de columnas)" as SEC
+  component "ActiveMQ Artemis embebido\ntopico.turnos · cola.autorizaciones\nDLQ · permisos por destino" as MQ
+  component "Narayana (JTA)" as JTA
+  component "Pool JDBC\njava:/mediconectaDS" as DS
+}
+
+cloud "Supabase (AWS sa-east-1)" {
+  database "PostgreSQL\nSession pooler :5432, SSL\nRow Level Security en todas las tablas" as PG
+}
+
+node "GitHub Actions (cada push)" as CI {
+  component "13 trabajos en paralelo:\ncompilación, unitarias, PIT, Sonar,\ngitleaks, Trivy, Dependency-Check,\npunta a punta, Arquillian, REST Assured,\nk6, ZAP y axe" as JOBS
+  database "PostgreSQL del runner\n(vacío en cada corrida)" as PGCI
+}
+
+NAV --> UT : HTTPS (sesión)
+CLI --> UT : HTTPS + JWT
+UT --> WAR
+WAR --> EJB
+EJB --> SEC
+EJB --> MQ : JMS in-vm (XA)
+EJB --> EXT : SOAP / REST (Circuit Breaker, Retry)
+EJB --> JTA
+JTA --> DS
+JTA --> MQ
+DS --> PG : JDBC / SSL
+JOBS --> PGCI
+@enduml

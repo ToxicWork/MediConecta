@@ -1,0 +1,98 @@
+@startuml 21-clases-patrones-entrega-final
+!include _estilo.iuml
+title Patrones y mecanismos incorporados en la entrega final
+skinparam classAttributeIconSize 0
+hide empty members
+left to right direction
+
+package "Decorator (CDI): ficha del paciente según el rol" #EBDDF7 {
+  interface ServicioDePacientes <<Component>> {
+    +ficha(pacienteId: Long): FichaPaciente
+  }
+  class ServicioDePacientesBean <<ConcreteComponent>>
+  class PacienteEnmascarado <<Decorator>> {
+    @Decorator @Priority(APPLICATION)
+    -@Delegate interno: ServicioDePacientes
+    +ficha(id): FichaPaciente
+  }
+  class FichaPaciente <<record>> {
+    nombre, email, obraSocial, nroAfiliado
+  }
+  class Enmascarador <<utility>> {
+    +afiliado(String): String
+    +email(String): String
+  }
+  ServicioDePacientes <|.. ServicioDePacientesBean
+  ServicioDePacientes <|.. PacienteEnmascarado
+  PacienteEnmascarado o--> ServicioDePacientes : delega
+  PacienteEnmascarado ..> Enmascarador
+  ServicioDePacientes ..> FichaPaciente
+}
+
+package "Cifrado de columnas (AES-256-GCM)" #D9F2DF {
+  class CifradoConverter <<AttributeConverter>> {
+    +convertToDatabaseColumn(String): String
+    +convertToEntityAttribute(String): String
+  }
+  class CifradorDeColumnas {
+    +cifrar(String): String
+    +descifrar(String): String
+  }
+  class ClaveDeCifrado {
+    clave de 256 bits desde el
+    credential store de Elytron
+  }
+  class CifradoDeDatosExistentes <<Startup>> {
+    cifra lo que estaba en claro
+  }
+  CifradoConverter --> CifradorDeColumnas
+  CifradorDeColumnas --> ClaveDeCifrado
+  CifradoDeDatosExistentes --> CifradorDeColumnas
+}
+
+package "Outbox con reintentos: reintegros pendientes" #FFF8EC {
+  class ReintegroPendiente <<Entity>> {
+    estado: PENDIENTE | CONCILIACION_MANUAL
+    | REINTEGRADO | CONCILIADO
+    intentos, proximoIntento
+  }
+  interface ServicioDeReintegros {
+    +registrarParaReintentar(...)
+    +registrarParaConciliar(...)
+    +reintentarVencidos()
+    +marcarConciliado(id)
+  }
+  class ServicioDeReintegrosBean <<Stateless>>
+  class ReintentadorDeReintegros <<Singleton>> {
+    @Schedule cada minuto
+  }
+  class RelojDelSistema <<Producer>> {
+    @Produces Clock
+  }
+  class CompensacionDePago <<Synchronization>>
+  ServicioDeReintegros <|.. ServicioDeReintegrosBean
+  ReintentadorDeReintegros --> ServicioDeReintegros
+  CompensacionDePago --> ServicioDeReintegros : sin respuesta
+  ServicioDeReintegrosBean --> ReintegroPendiente
+  ServicioDeReintegrosBean ..> RelojDelSistema
+}
+
+package "Seguridad endurecida" #F4F6FB {
+  class RevocacionDeTokens {
+    +revocar(jti, vence)
+    +estaRevocado(jti): boolean
+  }
+  class TokenRevocado <<Entity>>
+  class LimiteDeIntentos {
+    429 y bloqueo temporal
+  }
+  class ParametrosDeHash {
+    PBKDF2-SHA256, 600.000 iteraciones
+  }
+  class ManejadorDeSesionVencida <<ExceptionHandler>> {
+    ViewExpiredException
+    → sesion-vencida.xhtml
+  }
+  RevocacionDeTokens --> TokenRevocado
+}
+@enduml
