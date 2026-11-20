@@ -7,6 +7,20 @@ para turnos presenciales y telemedicina, con facturación a obras sociales y pre
 
 TP Integrador, Desarrollo de Aplicaciones II (comisión Lunes TT).
 
+## Para quien corrige
+
+- **Sin levantar nada:** cada push corre el pipeline completo en GitHub Actions (el ícono de arriba). Compila, corre
+  las pruebas unitarias, de integración, de punta a punta, de carga, de seguridad y de accesibilidad, y deja un
+  resumen por trabajo. Corre desde cero, sin ningún secreto del grupo: genera sus propias contraseñas y su clave de
+  cifrado en cada corrida. El documento del QA está en `docs/qa/` y su PDF, en la entrega.
+- **Para levantarla en una máquina propia** (`SETUP.md`):
+  1. WildFly 41 y un PostgreSQL **propio y vacío**: la base del grupo en Supabase no es pública.
+  2. Con el servidor apagado, configurar los scripts de `wildfly/` y una clave de cifrado **nueva**:
+     `python wildfly/configurar_cifrado.py --generar`. La clave del equipo sólo hace falta para leer los datos que ya
+     están cifrados en Supabase; una base nueva no los tiene.
+  3. Desplegar `mediconecta.war` y `externos.war`, y crear los usuarios de demo con
+     `python pruebas/sembrar_usuarios_demo.py` (contraseña `demo1234`).
+
 ## Estado actual
 
 **Entrega Obligatoria N.º 1** (Unidades I-II-III): tres componentes completos, implementados en
