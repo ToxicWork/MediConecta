@@ -9,8 +9,8 @@ probó, cómo y qué se encontró. Cada bloque dice qué mostrar, qué decir y q
 ## Antes de empezar (15 minutos antes)
 
 - [ ] **La clave de cifrado configurada en esa máquina** (SETUP, sección 2.4). Sin ella, la aplicación no despliega.
-- [ ] Supabase activo: si el log dice `tenant/user ... not found`, reanudarlo desde el panel. Si la red de la facultad
-      lo bloquea, usar los datos móviles del celular (ver «Si algo falla»).
+- [ ] **Conectar la máquina a los datos móviles de un celular**: la red de la facultad bloquea Supabase (así se hizo
+      en una entrega anterior). Supabase activo: si el log dice `tenant/user ... not found`, reanudarlo desde el panel.
 - [ ] WildFly levantado con `wildfly\iniciar-servidor.bat`, con `mediconecta.war` y `externos.war` desplegados.
 - [ ] La aplicación en <https://localhost:8443/mediconecta/> (aceptar una vez el certificado) y la consola de
       sistemas externos en <http://localhost:8080/externos/>, con todo **En línea**.
@@ -79,7 +79,7 @@ la pasarela vuelve. Se ve en Pagos de la administrativa (D-06).
 
 | Qué pasa | Qué hacer |
 |---|---|
-| La red bloquea Supabase | Datos móviles del celular. Si tampoco, mostrar el flujo en la última corrida del pipeline (capturas de `prueba_responsive` y el resumen de cada suite) |
+| Los datos móviles no alcanzan o se cortan | Probar con otro celular. Si tampoco, mostrar el flujo en la última corrida del pipeline (capturas de `prueba_responsive` y el resumen de cada suite) |
 | La aplicación no despliega | Casi seguro falta la clave de cifrado: `python wildfly\configurar_cifrado.py` con la clave del equipo (servidor apagado) |
 | El aviso no llega | Esperar 15 s: la bandeja se refresca cada 5 s. El Monitor de eventos muestra si quedó pendiente |
 | Sesión vencida en medio de la demo | Aparece «Tu sesión venció»: volver a ingresar |

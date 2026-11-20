@@ -129,7 +129,7 @@ niveles = [
 ]
 entornos = [["Pipeline (evidencia de este informe)", "GitHub Actions, ubuntu-24.04: WildFly 41.0.0 (zip de Maven Central con checksum), PostgreSQL de la imagen, Google Chrome, Java 25, Python 3.12. Usuarios de demo creados por la propia aplicación; contraseñas al azar por corrida"],
             ["Desarrollo (Windows y macOS)", "WildFly 41 con standalone-full, base en Supabase (PostgreSQL), sistemas externos simulados (externos.war)"],
-            ["Demostración en clase", "El entorno de desarrollo de un integrante con los datos de demo (SETUP.md)"]]
+            ["Demostración en clase", "El entorno de desarrollo de un integrante con los datos de demo (SETUP.md), contra Supabase por los datos móviles de un celular, porque la red de la facultad bloquea Supabase (ya se hizo así en una entrega anterior). Aclaración: la presentación del 16/11 decía que la demo también corría con un PostgreSQL local; no se preparó, y la demo no depende de eso"]]
 riesgos = [
     ["R-01", "Dos operaciones simultáneas sobre un turno (doble reserva, doble cancelación)", "Alta", "Alto", "CP-05, CP-20, CP-46, CP-92 (D-45)"],
     ["R-02", "Pérdida de mensajes si el broker o un suscriptor se cae", "Media", "Alto", "CP-14, CP-35, CP-23"],
