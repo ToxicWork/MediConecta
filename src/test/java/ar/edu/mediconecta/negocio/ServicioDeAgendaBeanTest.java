@@ -15,6 +15,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -100,5 +101,17 @@ class ServicioDeAgendaBeanTest {
         verify(turnoDAO).buscarProximosConfirmados(eq(20L), any(), eq(0), eq(25));
         verify(turnoDAO).buscarProximosConfirmados(eq(20L), any(), eq(50), eq(1));
         assertEquals(42, agenda.contarProximosConfirmados(20L));
+    }
+
+    /** D-48: la API distingue un profesional sin horarios de un id que no es de un profesional. */
+    @Test
+    void sabeSiUnIdEsDeUnProfesional() {
+        when(usuarioDAO.buscarPorId(20L)).thenReturn(Fixtures.profesional(20L, "Cardiología"));
+        when(usuarioDAO.buscarPorId(7L)).thenReturn(Fixtures.paciente(7L, "OSDE"));
+
+        assertTrue(agenda.existeProfesional(20L));
+        assertFalse(agenda.existeProfesional(7L), "un paciente no es un profesional");
+        assertFalse(agenda.existeProfesional(99L));
+        assertFalse(agenda.existeProfesional(null));
     }
 }

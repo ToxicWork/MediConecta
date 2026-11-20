@@ -3,7 +3,7 @@ Bloqueante, Crítica, Mayor (máximo 3 abiertos, con alternativa documentada), M
 
 Estados: Cerrado (corregido en main y verificado por una prueba), Resuelto en rama (corregido y verificado en una rama
 que todavía no está en main), Abierto, Limitación aceptada (se decidió no corregirlo; tiene alternativa documentada).
-Los D-13 a D-47 tienen tarjeta en el tablero; los D-01 a D-12 salen de los informes del 14/11 y del 16/11.
+Los D-13 a D-48 tienen tarjeta en el tablero; los D-01 a D-12 salen de los informes del 14/11 y del 16/11.
 """
 
 
@@ -147,4 +147,10 @@ DEFECTOS = [
             "No hay nada para el administrativo. Faltan el pago, la cobertura, la ficha y el diálogo de cancelación; dice que Telemedicina y Pagos están «Pronto» y que el registro pide el tipo de usuario",
             "El manual es de la Entrega Parcial N.º 2 y no se actualizó con las entregas siguientes. La versión 0.4 del repositorio ya tenía las tareas del administrativo, pero le faltaba lo de noviembre. Arreglo (19/11): manual 1.0 (Entrega Final), con la ficha, los reintegros, Turnos, el desbloqueo, el Monitor y la sesión vencida",
             "img/manual/cp91-*.jpg y cp91-tareas-del-manual.gif"),
+    defecto("D-48", "La disponibilidad de un profesional que no existe respondía 200 con una lista vacía", "Menor", "Baja", "Resuelto en rama", "HU-01 (API)", "Pruebas de la API con REST Assured (20/11)",
+            "GET /api/v1/profesionales/999999999/disponibilidad",
+            "404 (Problem Details): el profesional no existe, como documenta el OpenAPI",
+            "200 con una lista vacía: un cliente no puede distinguir \"sin horarios\" de \"ese profesional no existe\"",
+            "El recurso devolvía lo que encontrara sin mirar si el profesional existía (el 404 sólo salía con un id que no es un número). Arreglo: si no hay horarios, se verifica que el profesional exista; el camino normal no suma consultas",
+            "ApiRestAssuredIT (CP-94); ServicioDeAgendaBeanTest"),
 ]

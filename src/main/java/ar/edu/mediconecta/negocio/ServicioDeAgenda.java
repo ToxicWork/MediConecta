@@ -18,6 +18,9 @@ public interface ServicioDeAgenda {
 
     List<Turno> disponibilidadDe(Long profesionalId);
 
+    /** Si existe un profesional con ese id (D-48: la API distingue "sin horarios" de "no existe"). */
+    boolean existeProfesional(Long profesionalId);
+
     List<Turno> turnosDelUsuarioActual();
 
     Optional<Turno> turnoDelUsuarioActual(Long turnoId);

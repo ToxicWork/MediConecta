@@ -2,12 +2,14 @@ package ar.edu.mediconecta.api;
 
 import ar.edu.mediconecta.api.dto.ProfesionalApi;
 import ar.edu.mediconecta.api.dto.TurnoDisponibleApi;
+import ar.edu.mediconecta.modelo.Turno;
 import ar.edu.mediconecta.negocio.ServicioDeAgenda;
 import ar.edu.mediconecta.negocio.catalogo.CatalogoPrestaciones;
 import jakarta.annotation.security.PermitAll;
 import jakarta.ejb.Stateless;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
@@ -39,7 +41,13 @@ public class ProfesionalesResource {
     @GET
     @Path("/{id}/disponibilidad")
     public List<TurnoDisponibleApi> disponibilidad(@PathParam("id") Long profesionalId) {
-        return agenda.disponibilidadDe(profesionalId).stream()
+        List<Turno> libres = agenda.disponibilidadDe(profesionalId);
+        // D-48: un id que no es de un profesional es 404, no una lista vacía. Sólo se consulta si no hay horarios,
+        // así el camino normal (el que mide la prueba de carga) no suma una consulta.
+        if (libres.isEmpty() && !agenda.existeProfesional(profesionalId)) {
+            throw new NotFoundException("No existe ese profesional.");
+        }
+        return libres.stream()
                 .map(t -> EnsambladorApi.disponible(t, catalogo.para(t)))
                 .toList();
     }

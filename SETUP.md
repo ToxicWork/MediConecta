@@ -354,7 +354,7 @@ python pruebas/prueba_broker.py      # el broker se cae y vuelve a levantar sin 
 python pruebas/prueba_permisos_broker.py  # de afuera, nadie publica ni lee en el broker (sección 2.3)
 python pruebas/prueba_datos_protegidos.py # ficha del paciente (Decorator) y cifrado AES-GCM mirado en la base (sección 2.4)
 python pruebas/prueba_contrato_wsdl.py   # el WSDL que publica el legado contra el contrato del que se genera el cliente
-mvn -P integracion verify                 # Arquillian: repositorios (PostgreSQL), consumidores (Artemis) y compensación del cobro
+mvn -P integracion verify                 # Arquillian (repositorios, consumidores, compensación) y REST Assured (la API)
 mvn -P dependencias verify -DskipTests    # OWASP Dependency-Check: CVE de las dependencias contra la NVD (la 1.ª vez baja la base)
 python pruebas/prueba_inyeccion.py   # SQL, XSS y expresiones EL en todos los campos de texto
 python pruebas/prueba_contrato_api.py  # la API REST contra su OpenAPI (docs/api/openapi.json)

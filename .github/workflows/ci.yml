@@ -465,10 +465,19 @@ jobs:
           .venv/bin/pip install -q playwright==1.65.2
       - name: Usuarios de demo (los crea la propia aplicación)
         run: '"$PYTHON" pruebas/sembrar_usuarios_demo.py'
+      - name: Dependencias de las pruebas de integración (al principio, antes de que se crucen las descargas)
+        if: matrix.tipo == 'suites' && matrix.integracion
+        run: |
+          for intento in 1 2 3 4; do
+            mvn -B -ntp -q -P integracion test-compile && exit 0
+            echo "::warning::No se pudieron bajar las dependencias de integración (intento $intento); se reintenta"
+            sleep $((45 * intento))
+          done
+          exit 1
       - name: Pruebas de punta a punta
         if: matrix.tipo == 'suites'
         run: bash .github/scripts/punta_a_punta.sh ${{ matrix.suites }}
-      - name: Pruebas de integración con Arquillian (repositorios sobre PostgreSQL y consumidores sobre Artemis)
+      - name: Pruebas de integración (Arquillian y REST Assured contra el servidor del runner)
         if: matrix.tipo == 'suites' && matrix.integracion
         run: |
           # Se despliegan en el WildFly de este runner (contenedor remoto, autenticación local de administración).
@@ -481,10 +490,16 @@ jobs:
             sleep $((30 * intento))
           done
           {
-            echo "### Pruebas de integración (Arquillian)"
+            echo "### Pruebas de integración (Arquillian y REST Assured)"
             echo
             grep -h "Tests run:.*-- in ar.edu.mediconecta.it" integracion.log | sed 's/^\[[A-Z]*\] /- /' || true
           } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$codigo" != 0 ]; then
+            # El detalle en una anotación: el log del trabajo pide iniciar sesión en GitHub para leerlo.
+            detalle=$({ grep -hE "Tests run:.*FAIL|<<< (FAILURE|ERROR)|AssertionFailed|Exception:|\[ERROR\]" integracion.log || true; } | head -12 | cut -c1-230)
+            echo "::error title=Integración::$(echo "${detalle:-sin detalle en la salida}" | sed ':a;N;$!ba;s/%/%25/g;s/
+/%0A/g')"
+          fi
           exit "$codigo"
       - name: k6 2.3.0 (binario oficial, con su checksum)
         if: matrix.tipo == 'carga'

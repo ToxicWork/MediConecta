@@ -125,7 +125,7 @@
       "tiempo": "1 s"
     },
     "integracion": {
-      "texto": "Pasó (7 de 7 en una PC el 19/11: repositorios, consumidores y compensación; el pipeline las corre en el grupo 3)"
+      "texto": "Pasó (14 de 14 en una PC el 20/11: repositorios, consumidores, compensación y la API con REST Assured)"
     },
     "prueba_datos_protegidos": {
       "ok": 17,
@@ -152,11 +152,11 @@
     },
     {
       "nivel": "Integración",
-      "ejecutados": 7,
-      "pasados": 7,
+      "ejecutados": 14,
+      "pasados": 14,
       "fallados": 0,
       "bloqueados": 0,
-      "detalle": "Arquillian en el WildFly: 3 de repositorios (PostgreSQL), 1 de consumidores (Artemis) y 3 de compensación (CompensacionIT)"
+      "detalle": "En el WildFly: Arquillian (3 de repositorios, 1 de consumidores, 3 de compensación) y 7 de la API con REST Assured"
     },
     {
       "nivel": "Punta a punta",

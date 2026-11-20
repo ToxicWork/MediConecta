@@ -237,6 +237,10 @@ defectos D-01, D-02, D-04, D-07 y D-09 del informe del 16/11.
     el cifrado del afiliado en la columna y la idempotencia por la clave de la base; `ConsumidoresDeMensajesIT`
     publica un evento real en el tópico y verifica que los MDB de la aplicación lo procesen una sola vez aunque llegue
     dos veces. Las corre el pipeline en el grupo 3.
+  - Pruebas de la API con **REST Assured** (`ApiRestAssuredIT`, en el mismo perfil de integración): cada endpoint
+    del OpenAPI con al menos un caso de éxito y uno de error, pedidos desde afuera por HTTPS y con el JWT. Un primer
+    paso adentro del servidor deja un paciente de prueba con un turno confirmado. Encontraron el D-48: la
+    disponibilidad de un profesional que no existe respondía 200 con una lista vacía; ahora responde 404.
   - [`pruebas/manual/`](pruebas/manual): los scripts de apoyo de las pruebas manuales del 19/11 (CP-90 y CP-92). No son
     suites: registran lo observado para que una persona lo revise.
   - [`pruebas/prueba_inyeccion.py`](pruebas/prueba_inyeccion.py): SQL, XSS y expresiones EL en todos los campos

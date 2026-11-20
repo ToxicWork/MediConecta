@@ -43,6 +43,12 @@ public class ServicioDeAgendaBean implements ServicioDeAgenda {
     }
 
     @Override
+    @PermitAll
+    public boolean existeProfesional(Long profesionalId) {
+        return profesionalId != null && usuarioDAO.buscarPorId(profesionalId) instanceof Profesional;
+    }
+
+    @Override
     @RolesAllowed({"PACIENTE", "PROFESIONAL"})
     public List<Turno> turnosDelUsuarioActual() {
         Usuario usuario = usuarioActual();
